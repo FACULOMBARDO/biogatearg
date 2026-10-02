@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Entrar · Biogate</title>
+<script>try { const t = localStorage.getItem('fx-theme'); if (t) document.documentElement.dataset.theme = t; } catch {}</script>
+<link rel="icon" href="/logo">
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<main style="max-width:400px;padding-top:12vh">
+  <form class="card" method="post" id="f" style="padding:28px">
+    <div style="text-align:center;margin-bottom:18px">
+      <img src="/logo-biogate.png" alt="BIOGATE" style="height:130px;max-width:240px;object-fit:contain">
+      <h2 style="margin:12px 0 2px;font-size:18px">Ventas y envíos</h2>
+      <div class="muted" style="font-size:14px">Ingresá la contraseña del panel</div>
+    </div>
+    <p id="err" class="msg" style="display:none;background:var(--err-bg);color:var(--err)">Contraseña incorrecta.</p>
+    <input type="password" name="password" placeholder="Contraseña" autofocus required>
+    <button class="btn primary" style="width:100%;margin-top:12px;padding:11px">Entrar</button>
+  </form>
+</main>
+<script>
+  const q = new URLSearchParams(location.search);
+  if (q.get('error')) document.getElementById('err').style.display = 'block';
+  document.getElementById('f').action = '/login' + (q.get('next') ? '?next=' + encodeURIComponent(q.get('next')) : '');
+</script>
+</body>
+</html>
