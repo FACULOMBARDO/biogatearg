@@ -803,27 +803,39 @@ app.post('/api/woo/settings', (req, res) => {
 // ---------- TUYO (cuenta con productos de Amazon) ----------
 app.get('/api/tuyo', (req, res) => {
   const c = tuyo.cfg();
-  const ym = /^\d{4}-\d{2}$/.test(req.query.month || '') ? req.query.month : new Date(Date.now() - 3 * 3600e3).toISOString().slice(0, 7);
+  // Período: desde/hasta (AAAA-MM-DD); por defecto, el mes actual.
+  const today = new Date(Date.now() - 3 * 3600e3).toISOString().slice(0, 10);
+  const from = validDate(req.query.from) ? req.query.from : today.slice(0, 8) + '01';
+  const to = validDate(req.query.to) ? req.query.to : today;
   const accounts = store.getAccounts().map(a => ({ user_id: a.user_id, nickname: a.nickname || a.user_id }));
-  if (!c.account_id) return res.json({ cfg: { account_id: '', kg_usd: c.kg_usd, tc: c.tc }, accounts, month: ym, products: [], summary: null });
-  // Publicaciones vendidas por la cuenta TUYO (todas las ventas guardadas), con lo vendido en el mes elegido.
+  const base = { cfg: { account_id: c.account_id, kg_usd: c.kg_usd, tc: c.tc }, accounts, from, to };
+  if (!c.account_id) return res.json({ ...base, products: [], summary: null, sales: [] });
+  const a = new Date(from + 'T00:00:00-03:00'), b = new Date(to + 'T23:59:59-03:00');
+  // Publicaciones vendidas por la cuenta TUYO (todas las ventas guardadas), con lo vendido en el período.
   const prods = {};
   for (const raw of store.getSales(null, null, c.account_id)) {
     const s = sales.enrich(raw);
-    const inMonth = String(new Date(new Date(s.date) - 3 * 3600e3).toISOString()).startsWith(ym);
+    if (sales.EXCLUDED.includes(s.order_state)) continue;
+    const d = new Date(s.date), inRange = d >= a && d <= b;
     for (const i of s.items || []) {
       const k = i.item_id || ('T:' + i.title);
-      const p = prods[k] || (prods[k] = { item_id: i.item_id || '', title: i.title, sku: i.sku || '', thumb: i.thumb || '', units: 0, units_month: 0, last_price: 0, last_date: '' });
+      const p = prods[k] || (prods[k] = { item_id: i.item_id || '', title: i.title, sku: i.sku || '', units: 0, units_month: 0, last_price: 0, last_date: '' });
       if (s.cancelled) continue;
       p.units += i.qty || 1;
-      if (inMonth) p.units_month += i.qty || 1;
+      if (inRange) p.units_month += i.qty || 1;
       if (!p.last_date || s.date > p.last_date) { p.last_date = s.date; p.last_price = i.unit_price || (s.gross / Math.max(1, s.qty || 1)); p.title = i.title || p.title; }
     }
   }
   const products = Object.values(prods).map(p => ({ ...p, cost_in: c.items[p.item_id] || null, cost: tuyo.calc(c.items[p.item_id], c) }))
-    .sort((a, b) => b.units_month - a.units_month || b.units - a.units);
-  const sum = insights.monthSummary(ym).tuyo;
-  res.json({ cfg: { account_id: c.account_id, kg_usd: c.kg_usd, tc: c.tc }, accounts, month: ym, products, summary: sum });
+    .sort((x, y) => y.units_month - x.units_month || y.units - x.units);
+  const list = withStage(store.getSales(from, to, c.account_id).map(sales.enrich)).filter(s => !sales.EXCLUDED.includes(s.order_state)).sort((x, y) => new Date(y.date) - new Date(x.date));
+  const summary = insights.mlBlock(list);
+  const okL = list.filter(s => !s.cancelled);
+  summary.mp_received = Math.round(okL.reduce((t, s) => t + (s.mp_received || 0), 0));
+  summary.mp_n = okL.filter(s => s.mp_received !== null && s.mp_received !== undefined).length;
+  summary.flex = Math.round(okL.reduce((t, s) => t + (s.flex_cost || 0), 0));
+  summary.ship_ml = Math.round(okL.reduce((t, s) => t + (s.ship_ml_deducted || 0), 0));
+  res.json({ ...base, products, summary, sales: list });
 });
 app.put('/api/tuyo/config', (req, res) => { try { const c = tuyo.saveConfig(req.body || {}); res.json({ ok: true, cfg: { account_id: c.account_id, kg_usd: c.kg_usd, tc: c.tc } }); } catch (e) { res.status(400).json({ ok: false, error: e.message }); } });
 app.put('/api/tuyo/item/:id', (req, res) => { try { res.json({ ok: true, ...tuyo.saveItem(req.params.id, req.body || {}) }); } catch (e) { res.status(400).json({ ok: false, error: e.message }); } });

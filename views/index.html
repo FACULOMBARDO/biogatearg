@@ -587,10 +587,15 @@
 <section id="viewTuyo" hidden>
   <div class="row" style="justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px">
     <h1 class="page-title">TUYO <span class="muted" style="font-size:15px;font-weight:500">· productos de Amazon</span></h1>
-    <div class="seg"><button id="tuPrev" title="Mes anterior">‹</button><button id="tuMonth" class="on" style="min-width:150px" title="Volver al mes actual"></button><button id="tuNext" title="Mes siguiente">›</button></div>
+    <div class="row" style="gap:8px;flex-wrap:wrap">
+      <div class="seg" id="tuQuick"><button data-q="today">Hoy</button><button data-q="7">7 días</button><button data-q="30">30 días</button></div>
+      <div class="seg"><button id="tuPrev" title="Mes anterior">‹</button><button id="tuMonth" style="min-width:150px" title="Ver el mes actual"></button><button id="tuNext" title="Mes siguiente">›</button></div>
+      <div class="row tu-range" style="gap:6px"><input type="date" id="tuFrom" title="Desde"><span class="muted">a</span><input type="date" id="tuTo" title="Hasta"></div>
+    </div>
   </div>
-  <div class="card">
-    <div class="tu-cfg">
+  <details class="card" id="tuCfgBox">
+    <summary style="cursor:pointer;font-weight:600">Configuración <span class="muted" id="tuCfgSum" style="font-weight:400;font-size:13px"></span></summary>
+    <div class="tu-cfg" style="margin-top:10px">
       <label class="fld"><span>Cuenta de Mercado Libre</span><select id="tuAcc"></select></label>
       <label class="fld"><span>Envío por kilo (US$)</span><input type="text" id="tuKg" inputmode="decimal"></label>
       <label class="fld"><span>Tipo de cambio ($)</span><input type="text" id="tuTc" inputmode="decimal"></label>
@@ -598,18 +603,47 @@
     </div>
     <div class="muted" style="font-size:13px;margin-top:8px">Costo de cada producto = (precio en Amazon US$ + peso × US$ por kilo) × tipo de cambio. Las ventas de esta cuenta usan este costo en lugar de la lista de precios y se suman aparte en <a href="#resultado">Resultado del mes</a>.</div>
     <div id="tuMsg" style="font-size:13.5px;margin-top:6px"></div>
-  </div>
+  </details>
   <div id="tuEmpty" class="card" hidden></div>
-  <div class="stats" id="tuStats"></div>
-  <div class="card" style="padding:0" id="tuProdCard">
-    <div class="row" style="padding:12px 14px;justify-content:space-between;flex-wrap:wrap;gap:8px">
-      <div class="k-title">Costo de cada producto <span class="muted" id="tuInfo" style="font-weight:400"></span></div>
-      <div class="row"><input type="search" id="tuQ" placeholder="Buscar producto…" style="max-width:240px"><label class="muted" style="font-size:13.5px"><input type="checkbox" id="tuOnlyMissing"> Solo sin costo</label></div>
+  <div id="tuMain">
+    <div class="card tu-fetch">
+      <div class="row" style="gap:10px;flex-wrap:wrap;align-items:center">
+        <button class="btn primary" id="tuFetch">Traer ventas de este período</button>
+        <label class="muted" style="font-size:13.5px"><input type="checkbox" id="tuRefresh"> volver a traer las ya guardadas</label>
+        <span id="tuFetchMsg" style="font-size:13.5px"></span>
+      </div>
+      <div class="muted" style="font-size:12.5px;margin-top:6px">Trae todas las ventas pagadas del período, aunque todavía no se hayan despachado.</div>
     </div>
-    <div class="table-wrap"><table class="tbl tu-tbl">
-      <thead><tr><th>Producto</th><th style="text-align:right">Vendidas<br><small class="muted">mes · total</small></th><th style="text-align:right">Precio ML</th><th>Precio Amazon (US$)</th><th>Peso</th><th style="text-align:right">Costo US$</th><th style="text-align:right">Costo $</th><th style="text-align:right">Margen</th></tr></thead>
-      <tbody id="tuRows"></tbody>
-    </table></div>
+    <div class="stats" id="tuStats"></div>
+    <div class="tu-grid">
+      <div class="card"><div class="k-title" style="margin-bottom:6px">Cómo se pagó y cuánto queda</div><div id="tuWater"></div></div>
+      <div class="card" style="padding:0">
+        <div class="row" style="padding:12px 14px;justify-content:space-between;flex-wrap:wrap;gap:8px">
+          <div class="k-title">Costo de cada producto <span class="muted" id="tuInfo" style="font-weight:400"></span></div>
+          <div class="row"><input type="search" id="tuQ" placeholder="Buscar producto…" style="max-width:200px"><label class="muted" style="font-size:13px"><input type="checkbox" id="tuOnlyMissing"> Solo sin costo</label></div>
+        </div>
+        <div class="table-wrap" style="max-height:520px;overflow:auto"><table class="tbl tu-tbl">
+          <thead><tr><th>Producto</th><th style="text-align:right">Vendidas<br><small class="muted">período · total</small></th><th style="text-align:right">Precio ML</th><th>Amazon (US$)</th><th>Peso</th><th style="text-align:right">Costo US$</th><th style="text-align:right">Costo $</th><th style="text-align:right">Margen</th></tr></thead>
+          <tbody id="tuRows"></tbody>
+        </table></div>
+      </div>
+    </div>
+    <div class="card" style="padding:0">
+      <div class="row" style="padding:12px 14px;justify-content:space-between;flex-wrap:wrap;gap:8px">
+        <div class="k-title">Ventas del período</div>
+        <div class="seg" id="tuStages"><button data-st="" class="on">Todas <span class="cnt"></span></button><button data-st="to_ship">Por enviar <span class="cnt"></span></button><button data-st="in_transit">En camino <span class="cnt"></span></button><button data-st="delivered">Entregadas <span class="cnt"></span></button><button data-st="cancelled">Canceladas / devueltas <span class="cnt"></span></button></div>
+      </div>
+      <div class="table-wrap">
+        <table class="sales-table">
+          <thead><tr>
+            <th>Fecha</th><th>SKU</th><th style="text-align:right">Precio</th><th style="text-align:right">Comisión</th><th style="text-align:right">Envío ML</th><th style="text-align:right">Impuestos</th>
+            <th style="text-align:right">Tu envío Flex</th><th style="text-align:right">Costo Amazon</th><th style="text-align:right" title="Solo referencia">Recibido MP (ref.)</th>
+            <th style="text-align:right" class="col-net">Neto</th><th style="text-align:right" class="col-net">Neto después de costos</th>
+          </tr></thead>
+          <tbody id="tuSales"></tbody>
+        </table>
+      </div>
+    </div>
   </div>
 </section>
 <section id="viewCalc" hidden>
@@ -1473,6 +1507,32 @@ function stagePill(s) {
   const [t, c] = STAGES[s.stage] || ['', ''];
   return t ? `<span class="stage" style="--c:${c}" title="${s.shipment_id ? 'Envío ' + esc(s.ship_status_eff || '') : 'Sin envío de Mercado Libre'}">${t}</span>${s.state_manual ? ` ${fix}` : ''}` : '';
 }
+// Fila de una venta (se usa en Ventas y en TUYO).
+function saleRow(s) {
+  const cell = (v, neg) => `<td class="price" style="text-align:right;font-weight:500${neg && v ? ';color:var(--err)' : ''}">${v === null || v === undefined ? '<span class="muted">—</span>' : (neg && v ? '− ' : '') + money(v)}</td>`;
+    const d = new Date(s.date);
+    const skuHtml = s.tuyo && !(s.items || []).some(i => i.sku) ? `<span class="pill" style="color:var(--brand);border-color:var(--brand)">TUYO</span>` : (s.items || []).map(i => i.sku
+      ? `<b style="font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13.5px">${esc(i.sku)}</b>${i.qty > 1 ? ` <span class="pill">${i.qty} u.</span>` : ''}${i.sku_manual ? ` <a href="#" data-set-sku="${esc(i.item_id || '')}" data-title="${esc(i.title)}" data-current="${esc(i.sku)}" class="muted" style="font-size:11px" title="SKU cargado a mano">✎</a>` : ''}`
+      : `<span class="pill" style="color:var(--err)">sin SKU</span> <button class="btn small" data-set-sku="${esc(i.item_id || '')}" data-title="${esc(i.title)}">cargar SKU</button>`).join('<br>');
+    const costHtml = s.cancelled ? '<span class="muted">—</span>'
+      : s.cost !== null ? `<span style="color:var(--err)">− ${money(s.cost)}</span>`
+      : s.tuyo ? `<span class="muted" style="font-size:12.5px">sin costo</span><br><a class="btn small" href="#tuyo" style="margin-top:3px">cargar en TUYO</a>`
+      : (s.cost_missing || []).filter(Boolean).length
+        ? `<span class="muted" style="font-size:12.5px">sin costo</span><br>${(s.cost_missing || []).filter(Boolean).map(x => `<button class="btn small" data-cost-sku="${esc(x)}" style="margin-top:3px">cargar</button>`).join(' ')}`
+        : '<span class="muted" style="font-size:12.5px">sin SKU</span>';
+    return `<tr style="${s.cancelled ? 'opacity:.55' : ''}">
+      <td style="white-space:nowrap">${d.toLocaleDateString('es-AR')}<div class="muted" style="font-size:12px">${d.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}</div>${stagePill(s)}<br><a href="https://www.mercadolibre.com.ar/ventas/${esc(s.pack_id || s.order_id)}/detalle" target="_blank" style="font-size:11.5px" title="Venta ${esc(s.order_id)}${s.buyer ? ' · @' + esc(s.buyer) : ''}">ver venta</a>${!s.cancelled && !s.state_manual ? ` · <a href="#" data-fix-state="${esc(s.order_id)}" style="font-size:11px;opacity:.7" title="Corregir cómo se cuenta esta venta">corregir</a>` : ''}</td>
+      <td style="max-width:230px">${skuHtml}<div class="muted" style="font-size:12px;margin-top:3px;line-height:1.3">${esc(s.title)}</div><div class="row" style="gap:4px;margin-top:4px">${s.account_nickname ? `<span class="pill">${esc(s.account_nickname)}</span>` : ''}${s.is_flex ? '<span class="pill">Flex</span>' : ''}${s.logistic === 'fulfillment' ? '<span class="pill pill-full" title="Entrega con Mercado Libre Full">⚡ FULL</span>' : ''}${s.cancelled ? `<span class="pill" style="color:${s.order_state === 'ml_cancelled' ? 'var(--muted)' : 'var(--err)'}">${({ returned: 'devuelta', ml_cancelled: 'no cuenta' })[s.order_state] || 'cancelada'}</span>` : ''}</div></td>
+      ${cell(s.gross)}${cell(s.fee, true)}
+      ${s.is_flex ? '<td class="price" style="text-align:right" title="Venta Flex: se descuenta solo tu envío Flex"><span class="muted">—</span></td>' : cell(s.ship_ml_deducted, true)}
+      ${cell(s.tax, true)}
+      <td class="price" style="text-align:right;font-weight:500">${s.flex_cost ? `<span class="zone z-${s.zone}" style="font-size:10.5px">${ZN[s.zone] || ''}</span><div style="color:var(--err)">− ${money(s.flex_cost)}</div>` : (s.is_flex && s.first_of_shipment && !s.cancelled ? '<span class="muted" style="font-size:12px">sin zona</span>' : '<span class="muted">—</span>')}</td>
+      <td class="price" style="text-align:right;font-weight:500">${costHtml}</td>
+      <td class="price" style="text-align:right;font-weight:400" title="Lo que informa Mercado Pago (solo referencia)">${s.mp_received === null || s.mp_received === undefined ? '<span class="muted">—</span>' : `<span class="muted">${money(s.mp_received)}</span>`}</td>
+      <td class="price col-net" style="text-align:right;font-size:15px">${money(s.net)}</td>
+      <td class="price col-net" style="text-align:right;font-size:15px">${s.net_after_cost === null ? '<span class="muted" style="font-size:12.5px;font-weight:500">sin costo</span>' : `<span style="color:${s.net_after_cost < 0 ? 'var(--err)' : 'var(--ok)'}">${money(s.net_after_cost)}</span>${s.margin_pct !== null && !s.cancelled ? `<div class="muted" style="font-size:12px;font-weight:500">${s.margin_pct}%</div>` : ''}`}</td>
+    </tr>`;
+}
 function renderSales() {
   const term = $('sQ').value.trim().toLowerCase();
   // Las ventas que nunca se pagaron no cuentan para nada (Mercado Libre tampoco las muestra).
@@ -1520,30 +1580,7 @@ function renderSales() {
     : '';
   if (!list.length) { $('sRows').innerHTML = `<tr><td colspan="11" class="muted" style="padding:28px;text-align:center">No hay ventas guardadas en este período. Tocá "Traer ventas de este período".</td></tr>`; return; }
   const cell = (v, neg) => `<td class="price" style="text-align:right;font-weight:500${neg && v ? ';color:var(--err)' : ''}">${v === null || v === undefined ? '<span class="muted">—</span>' : (neg && v ? '− ' : '') + money(v)}</td>`;
-  $('sRows').innerHTML = list.map(s => {
-    const d = new Date(s.date);
-    const skuHtml = s.tuyo && !(s.items || []).some(i => i.sku) ? `<span class="pill" style="color:var(--brand);border-color:var(--brand)">TUYO</span>` : (s.items || []).map(i => i.sku
-      ? `<b style="font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13.5px">${esc(i.sku)}</b>${i.qty > 1 ? ` <span class="pill">${i.qty} u.</span>` : ''}${i.sku_manual ? ` <a href="#" data-set-sku="${esc(i.item_id || '')}" data-title="${esc(i.title)}" data-current="${esc(i.sku)}" class="muted" style="font-size:11px" title="SKU cargado a mano">✎</a>` : ''}`
-      : `<span class="pill" style="color:var(--err)">sin SKU</span> <button class="btn small" data-set-sku="${esc(i.item_id || '')}" data-title="${esc(i.title)}">cargar SKU</button>`).join('<br>');
-    const costHtml = s.cancelled ? '<span class="muted">—</span>'
-      : s.cost !== null ? `<span style="color:var(--err)">− ${money(s.cost)}</span>`
-      : s.tuyo ? `<span class="muted" style="font-size:12.5px">sin costo</span><br><a class="btn small" href="#tuyo" style="margin-top:3px">cargar en TUYO</a>`
-      : (s.cost_missing || []).filter(Boolean).length
-        ? `<span class="muted" style="font-size:12.5px">sin costo</span><br>${(s.cost_missing || []).filter(Boolean).map(x => `<button class="btn small" data-cost-sku="${esc(x)}" style="margin-top:3px">cargar</button>`).join(' ')}`
-        : '<span class="muted" style="font-size:12.5px">sin SKU</span>';
-    return `<tr style="${s.cancelled ? 'opacity:.55' : ''}">
-      <td style="white-space:nowrap">${d.toLocaleDateString('es-AR')}<div class="muted" style="font-size:12px">${d.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}</div>${stagePill(s)}<br><a href="https://www.mercadolibre.com.ar/ventas/${esc(s.pack_id || s.order_id)}/detalle" target="_blank" style="font-size:11.5px" title="Venta ${esc(s.order_id)}${s.buyer ? ' · @' + esc(s.buyer) : ''}">ver venta</a>${!s.cancelled && !s.state_manual ? ` · <a href="#" data-fix-state="${esc(s.order_id)}" style="font-size:11px;opacity:.7" title="Corregir cómo se cuenta esta venta">corregir</a>` : ''}</td>
-      <td style="max-width:230px">${skuHtml}<div class="muted" style="font-size:12px;margin-top:3px;line-height:1.3">${esc(s.title)}</div><div class="row" style="gap:4px;margin-top:4px">${s.account_nickname ? `<span class="pill">${esc(s.account_nickname)}</span>` : ''}${s.is_flex ? '<span class="pill">Flex</span>' : ''}${s.logistic === 'fulfillment' ? '<span class="pill pill-full" title="Entrega con Mercado Libre Full">⚡ FULL</span>' : ''}${s.cancelled ? `<span class="pill" style="color:${s.order_state === 'ml_cancelled' ? 'var(--muted)' : 'var(--err)'}">${({ returned: 'devuelta', ml_cancelled: 'no cuenta' })[s.order_state] || 'cancelada'}</span>` : ''}</div></td>
-      ${cell(s.gross)}${cell(s.fee, true)}
-      ${s.is_flex ? '<td class="price" style="text-align:right" title="Venta Flex: se descuenta solo tu envío Flex"><span class="muted">—</span></td>' : cell(s.ship_ml_deducted, true)}
-      ${cell(s.tax, true)}
-      <td class="price" style="text-align:right;font-weight:500">${s.flex_cost ? `<span class="zone z-${s.zone}" style="font-size:10.5px">${ZN[s.zone] || ''}</span><div style="color:var(--err)">− ${money(s.flex_cost)}</div>` : (s.is_flex && s.first_of_shipment && !s.cancelled ? '<span class="muted" style="font-size:12px">sin zona</span>' : '<span class="muted">—</span>')}</td>
-      <td class="price" style="text-align:right;font-weight:500">${costHtml}</td>
-      <td class="price" style="text-align:right;font-weight:400" title="Lo que informa Mercado Pago (solo referencia)">${s.mp_received === null || s.mp_received === undefined ? '<span class="muted">—</span>' : `<span class="muted">${money(s.mp_received)}</span>`}</td>
-      <td class="price col-net" style="text-align:right;font-size:15px">${money(s.net)}</td>
-      <td class="price col-net" style="text-align:right;font-size:15px">${s.net_after_cost === null ? '<span class="muted" style="font-size:12.5px;font-weight:500">sin costo</span>' : `<span style="color:${s.net_after_cost < 0 ? 'var(--err)' : 'var(--ok)'}">${money(s.net_after_cost)}</span>${s.margin_pct !== null && !s.cancelled ? `<div class="muted" style="font-size:12px;font-weight:500">${s.margin_pct}%</div>` : ''}`}</td>
-    </tr>`;
-  }).join('');
+  $('sRows').innerHTML = list.map(saleRow).join('');
 }
 
 // Corregir a mano cómo se cuenta una venta (si alguna vez no coincide con Mercado Libre).
@@ -1555,7 +1592,7 @@ document.addEventListener('click', async (e) => {
   const v = prompt('¿Cómo tiene que contarse esta venta?\n\n1 = Cobrada (vendida normal)\n2 = Cancelada\n3 = Devuelta\n4 = No cuenta (Mercado Libre no la muestra)\n0 = Automático (como la clasifica el programa)\n\nEscribí el número:', '');
   if (v === null || !(v.trim() in opts)) return;
   await fetch(`/api/sales/${b.dataset.fixState}/state`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ state: opts[v.trim()] }) });
-  loadSales();
+  if (!$('viewTuyo').hidden) loadTuyo(); else loadSales();
 });
 
 // Datos crudos de Mercado Libre de una venta (para revisar canceladas/devueltas).
@@ -2405,9 +2442,17 @@ $('exImpGo').onclick = async () => {
   $('exMsg').innerHTML = `<span style="color:var(--ok)">✓ Se agregaron <b>${d.added} gastos</b> (${money(d.total)})${ms ? ` en ${esc(ms)}` : ''}.</span>${d.dupes ? ` <span class="muted">${d.dupes} ya estaban cargados y se saltearon.</span>` : ''}${d.error_count ? ` <span class="err-t">${d.error_count} filas con error.</span>` : ''}`;
 };
 // ---------- TUYO (productos de Amazon) ----------
-let tuMonth = ymd(new Date()).slice(0, 7), tuData = null;
+let tuFromD = ymd(new Date()).slice(0, 8) + '01', tuToD = ymd(new Date()), tuData = null, tuStage = '';
+try { const r = JSON.parse(localStorage.getItem('tu_range') || 'null'); if (r && r.from && r.to) { tuFromD = r.from; tuToD = r.to; } } catch { /* sin memoria */ }
 const tuNum = (v) => { const n = Number(String(v ?? '').trim().replace(/\s/g, '').replace(',', '.')); return Number.isFinite(n) ? n : 0; };
 const tuUsd = (v) => 'US$ ' + (Math.round(v * 100) / 100).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const tuLastDay = (y, m) => new Date(y, m, 0).getDate();
+function tuSetRange(from, to) { tuFromD = from; tuToD = to; try { localStorage.setItem('tu_range', JSON.stringify({ from, to })); } catch { /* nada */ } loadTuyo(); }
+function tuRangeLabel() {
+  const [y, m] = tuFromD.split('-').map(Number);
+  const isMonth = tuFromD.endsWith('-01') && tuToD.slice(0, 7) === tuFromD.slice(0, 7) && (Number(tuToD.slice(8)) === tuLastDay(y, m) || tuToD === ymd(new Date()));
+  return isMonth ? `${MESES[m - 1]} ${y}` : `${tuFromD.split('-').reverse().join('/')} – ${tuToD.split('-').reverse().join('/')}`;
+}
 function tuCalc(usd, weight, unit) {
   if (!(usd > 0)) return null;
   const kg = weight * (unit === 'lb' ? 0.45359237 : unit === 'oz' ? 0.028349523125 : 1);
@@ -2416,26 +2461,58 @@ function tuCalc(usd, weight, unit) {
   return { usd: total, ars: Math.round(total * tc), ship: kg * kgUsd };
 }
 async function loadTuyo() {
-  $('tuMonth').textContent = rsName(tuMonth);
-  tuData = await (await fetch('/api/tuyo?month=' + tuMonth)).json();
-  const c = tuData.cfg;
-  $('tuAcc').innerHTML = '<option value="">— Elegí la cuenta —</option>' + tuData.accounts.map(a => `<option value="${esc(a.user_id)}"${a.user_id === c.account_id ? ' selected' : ''}>${esc(a.nickname)}</option>`).join('');
+  $('tuMonth').textContent = tuRangeLabel();
+  $('tuFrom').value = tuFromD; $('tuTo').value = tuToD;
+  let d;
+  try { const r = await fetch(`/api/tuyo?from=${tuFromD}&to=${tuToD}`); d = await r.json(); if (!r.ok) throw new Error(d.error || r.status); }
+  catch (e) { $('tuEmpty').hidden = false; $('tuMain').hidden = true; $('tuEmpty').innerHTML = `<span class="err-t">No se pudo cargar TUYO (${esc(e.message)}). Revisá que estén subidos server.js y la carpeta lib.</span>`; return; }
+  tuData = d;
+  const c = d.cfg;
+  $('tuAcc').innerHTML = '<option value="">— Elegí la cuenta —</option>' + d.accounts.map(a => `<option value="${esc(a.user_id)}"${a.user_id === c.account_id ? ' selected' : ''}>${esc(a.nickname)}</option>`).join('');
   if (document.activeElement !== $('tuKg')) $('tuKg').value = String(c.kg_usd).replace('.', ',');
   if (document.activeElement !== $('tuTc')) $('tuTc').value = String(c.tc).replace('.', ',');
+  const acc = d.accounts.find(a => a.user_id === c.account_id);
+  $('tuCfgSum').textContent = acc ? `· ${acc.nickname} · US$ ${c.kg_usd} por kilo · cambio $ ${c.tc}` : '· falta elegir la cuenta';
   const none = !c.account_id;
-  $('tuEmpty').hidden = !none; $('tuStats').hidden = none; $('tuProdCard').hidden = none;
-  if (none) { $('tuEmpty').innerHTML = `<b>Elegí arriba cuál es la cuenta TUYO.</b><div class="muted" style="margin-top:6px;font-size:13.5px">Si todavía no la conectaste: tocá <button class="btn small" id="tuInvite">Copiar link de invitación</button>, abrilo en una ventana de incógnito (Ctrl + Shift + N), entrá con esa cuenta de Mercado Libre y autorizá. Después recargá esta página, elegila arriba y traé sus ventas desde <a href="#ventas">Ventas</a>.</div>`;
+  $('tuEmpty').hidden = !none; $('tuMain').hidden = none;
+  if (none) {
+    $('tuCfgBox').open = true;
+    $('tuEmpty').innerHTML = `<b>Elegí en Configuración cuál es la cuenta TUYO.</b><div class="muted" style="margin-top:6px;font-size:13.5px">Si todavía no la conectaste: tocá <button class="btn small" id="tuInvite">Copiar link de invitación</button>, abrilo en una ventana de incógnito (Ctrl + Shift + N), entrá con esa cuenta de Mercado Libre y autorizá. Después recargá esta página y elegila.</div>`;
     $('tuInvite').onclick = async () => { const { url } = await (await fetch('/api/invite')).json(); try { await navigator.clipboard.writeText(url); $('tuInvite').textContent = '¡Link copiado!'; } catch { prompt('Copiá este link:', url); } };
-    return; }
-  const s = tuData.summary || {};
+    return;
+  }
+  const s = d.summary || {};
+  const neg = (v) => v < 0 ? '− ' + money(-v) : money(v);
+  const mlNet = (s.gross || 0) - (s.fee || 0) - (s.ship || 0) - (s.tax || 0);
   $('tuStats').innerHTML = [
-    `<div class="stat main"><div class="k">Ganancia del mes</div><div class="v">${s.profit < 0 ? '− ' + money(-s.profit) : money(s.profit || 0)}</div><div class="sub">${s.sales || 0} ventas · ${s.units || 0} unidades</div></div>`,
-    `<div class="stat"><div class="k">Facturación</div><div class="v">${money(s.gross || 0)}</div><div class="sub">${s.cancelled_n || s.returned_n ? `${(s.cancelled_n || 0) + (s.returned_n || 0)} canceladas/devueltas` : 'sin canceladas'}</div></div>`,
-    `<div class="stat"><div class="k">Costo Amazon</div><div class="v">${money(s.cost || 0)}</div><div class="sub">${s.no_cost_n ? `<span class="err-t">${s.no_cost_n} ventas sin costo</span>` : 'todas con costo'}</div></div>`,
-    `<div class="stat"><div class="k">Comisiones + envíos + impuestos</div><div class="v">${money((s.fee || 0) + (s.ship || 0) + (s.tax || 0))}</div><div class="sub">ML ${money(s.fee || 0)} · envíos ${money(s.ship || 0)} · imp. ${money(s.tax || 0)}</div></div>`,
+    `<div class="stat main"><div class="k">Neto después de costos</div><div class="v">${neg(s.profit || 0)}</div><div class="sub">${s.sales || 0} ventas · ${s.units || 0} unidades${s.no_cost_n ? ` · <b>${s.no_cost_n} sin costo</b>` : ''}</div></div>`,
+    `<div class="stat"><div class="k">Facturación bruta</div><div class="v">${money(s.gross_all || 0)}</div><div class="sub">${s.cancelled_n || s.returned_n ? `<span class="err-t">${s.cancelled_n} canceladas · ${s.returned_n} devueltas</span>` : 'sin canceladas ni devueltas'}</div></div>`,
+    `<div class="stat"><div class="k">Neto de Mercado Libre</div><div class="v">${neg(mlNet)}</div><div class="sub">antes del costo Amazon</div></div>`,
+    `<div class="stat"><div class="k">Costo Amazon</div><div class="v">${money(s.cost || 0)}</div><div class="sub">${s.no_cost_n ? `<span class="err-t">${s.no_cost_n} ventas sin costo cargado</span>` : 'todas con costo'}</div></div>`,
   ].join('');
-  tuRender();
+  const line = (label, v, kind, sub) => `<div class="rs-line ${kind || ''}${kind === 'total' && v < 0 ? ' neg' : ''}"><span>${label}${sub ? `<small>${sub}</small>` : ''}</span><b>${kind === 'minus' ? '− ' + money(Math.abs(v)) : neg(v)}</b></div>`;
+  $('tuWater').innerHTML = [
+    line('Facturación bruta', s.gross_all || 0, 'plus', `${(s.sales || 0) + (s.cancelled_n || 0) + (s.returned_n || 0)} ventas`),
+    line('Canceladas y devueltas', (s.cancelled || 0) + (s.returned || 0), 'minus', `${s.cancelled_n || 0} canceladas ${money(s.cancelled || 0)} · ${s.returned_n || 0} devueltas ${money(s.returned || 0)}`),
+    line('Facturación neta', s.gross || 0, 'sub'),
+    line('Comisiones de Mercado Libre', s.fee || 0, 'minus'),
+    line('Envíos', s.ship || 0, 'minus', `Mercado Libre ${money(s.ship_ml || 0)} · tu Flex ${money(s.flex || 0)}`),
+    line('Impuestos (IVA + IIBB)', s.tax || 0, 'minus'),
+    line('Neto de Mercado Libre', mlNet, 'sub', s.mp_n ? `Mercado Pago informó ${money(s.mp_received)} recibido (referencia)` : ''),
+    line('Costo Amazon (producto + envío por kilo)', s.cost || 0, 'minus', s.no_cost_n ? `${s.no_cost_n} ventas sin costo: cargalo en la tabla de productos` : ''),
+    line('NETO DESPUÉS DE COSTOS', s.profit || 0, 'total'),
+  ].join('');
+  tuRender(); tuSalesRender();
 }
+function tuSalesRender() {
+  const list = tuData.sales || [];
+  const cnt = { '': list.length, to_ship: 0, in_transit: 0, delivered: 0, cancelled: 0 };
+  list.forEach(s => { if (s.cancelled) cnt.cancelled++; else if (cnt[s.stage] !== undefined) cnt[s.stage]++; });
+  document.querySelectorAll('#tuStages [data-st]').forEach(b => { b.classList.toggle('on', b.dataset.st === tuStage); b.querySelector('.cnt').textContent = cnt[b.dataset.st] ? `(${cnt[b.dataset.st]})` : ''; });
+  const show = list.filter(s => !tuStage || (tuStage === 'cancelled' ? s.cancelled : !s.cancelled && s.stage === tuStage));
+  $('tuSales').innerHTML = show.length ? show.map(saleRow).join('') : `<tr><td colspan="11" class="muted" style="padding:24px;text-align:center">${list.length ? 'No hay ventas con este filtro.' : 'No hay ventas guardadas en este período. Tocá "Traer ventas de este período".'}</td></tr>`;
+}
+$('tuStages').onclick = (e) => { const b = e.target.closest('[data-st]'); if (!b) return; tuStage = b.dataset.st; tuSalesRender(); };
 function tuRender() {
   const q = $('tuQ').value.trim().toLowerCase(), only = $('tuOnlyMissing').checked;
   const all = tuData.products, missing = all.filter(p => !p.cost).length;
@@ -2444,24 +2521,24 @@ function tuRender() {
   $('tuRows').innerHTML = list.length ? list.map(p => {
     const ci = p.cost_in || {}, can = !!p.item_id;
     return `<tr data-tu="${esc(p.item_id)}" data-price="${p.last_price || 0}">
-      <td><b>${esc(p.title)}</b><div class="muted" style="font-size:12px">${esc(p.item_id || 'sin publicación')}${p.sku ? ' · ' + esc(p.sku) : ''}</div></td>
+      <td><b style="font-size:13px">${esc(p.title)}</b><div class="muted" style="font-size:11.5px">${esc(p.item_id || 'sin publicación')}${p.sku ? ' · ' + esc(p.sku) : ''}</div></td>
       <td style="text-align:right"><b>${p.units_month}</b> <span class="muted">· ${p.units}</span></td>
       <td class="price" style="text-align:right">${p.last_price ? money(p.last_price) : '—'}</td>
       <td><input type="text" class="tu-usd" inputmode="decimal" value="${ci.usd ? String(ci.usd).replace('.', ',') : ''}" placeholder="0,00" ${can ? '' : 'disabled'}></td>
-      <td style="white-space:nowrap"><input type="text" class="tu-w" inputmode="decimal" value="${ci.weight ? String(ci.weight).replace('.', ',') : ''}" placeholder="0" style="width:70px" ${can ? '' : 'disabled'}> <select class="tu-u" ${can ? '' : 'disabled'}><option value="kg"${ci.unit === 'kg' || !ci.unit ? ' selected' : ''}>kg</option><option value="lb"${ci.unit === 'lb' ? ' selected' : ''}>lb</option><option value="oz"${ci.unit === 'oz' ? ' selected' : ''}>oz</option></select></td>
+      <td style="white-space:nowrap"><input type="text" class="tu-w" inputmode="decimal" value="${ci.weight ? String(ci.weight).replace('.', ',') : ''}" placeholder="0" style="width:60px" ${can ? '' : 'disabled'}> <select class="tu-u" ${can ? '' : 'disabled'}><option value="kg"${ci.unit === 'kg' || !ci.unit ? ' selected' : ''}>kg</option><option value="lb"${ci.unit === 'lb' ? ' selected' : ''}>lb</option><option value="oz"${ci.unit === 'oz' ? ' selected' : ''}>oz</option></select></td>
       <td class="price tu-cusd" style="text-align:right"></td>
       <td class="price tu-cars" style="text-align:right"></td>
       <td class="tu-mg" style="text-align:right"></td>
     </tr>`;
-  }).join('') : `<tr><td colspan="8" class="muted" style="padding:24px;text-align:center">${all.length ? 'No hay productos con este filtro.' : 'Todavía no hay ventas guardadas de esta cuenta. Traelas desde Ventas (elegí la cuenta y "Traer ventas de este período").'}</td></tr>`;
+  }).join('') : `<tr><td colspan="8" class="muted" style="padding:24px;text-align:center">${all.length ? 'No hay productos con este filtro.' : 'Todavía no hay ventas guardadas de esta cuenta. Tocá "Traer ventas de este período".'}</td></tr>`;
   $('tuRows').querySelectorAll('tr[data-tu]').forEach(tuRowCalc);
 }
 function tuRowCalc(tr) {
   const usd = tuNum(tr.querySelector('.tu-usd').value), w = tuNum(tr.querySelector('.tu-w').value), u = tr.querySelector('.tu-u').value;
   const c = tuCalc(usd, w, u), price = Number(tr.dataset.price) || 0;
-  tr.querySelector('.tu-cusd').innerHTML = c ? `${tuUsd(c.usd)}${c.ship ? `<div class="muted" style="font-size:11.5px">envío ${tuUsd(c.ship)}</div>` : ''}` : '<span class="err-t" style="font-size:12.5px">falta costo</span>';
+  tr.querySelector('.tu-cusd').innerHTML = c ? `${tuUsd(c.usd)}${c.ship ? `<div class="muted" style="font-size:11px">envío ${tuUsd(c.ship)}</div>` : ''}` : '<span class="err-t" style="font-size:12.5px">falta costo</span>';
   tr.querySelector('.tu-cars').textContent = c ? money(c.ars) : '—';
-  tr.querySelector('.tu-mg').innerHTML = c && price ? `<span style="color:${price - c.ars >= 0 ? 'var(--ok)' : 'var(--err)'};font-weight:600">${Math.round((price - c.ars) / price * 100)}%</span><div class="muted" style="font-size:11.5px">antes de comisión</div>` : '';
+  tr.querySelector('.tu-mg').innerHTML = c && price ? `<span style="color:${price - c.ars >= 0 ? 'var(--ok)' : 'var(--err)'};font-weight:600">${Math.round((price - c.ars) / price * 100)}%</span><div class="muted" style="font-size:11px">antes de comisión</div>` : '';
 }
 const tuTimers = {};
 $('tuRows').addEventListener('input', (e) => {
@@ -2471,6 +2548,7 @@ $('tuRows').addEventListener('input', (e) => {
   tuTimers[tr.dataset.tu] = setTimeout(() => tuSaveRow(tr), 700);
 });
 $('tuRows').addEventListener('change', (e) => { const tr = e.target.closest('tr[data-tu]'); if (tr) { tuRowCalc(tr); clearTimeout(tuTimers[tr.dataset.tu]); tuSaveRow(tr); } });
+let tuReloadT = null;
 async function tuSaveRow(tr) {
   const id = tr.dataset.tu; if (!id) return;
   const p = tuData.products.find(x => x.item_id === id);
@@ -2479,8 +2557,14 @@ async function tuSaveRow(tr) {
   if (!d.ok) { tr.querySelector('.tu-cars').innerHTML = `<span class="err-t">${esc(d.error || 'No se guardó')}</span>`; return; }
   if (p) { p.cost_in = d.item; p.cost = d.cost; }
   tr.classList.add('tu-saved'); setTimeout(() => tr.classList.remove('tu-saved'), 900);
-  $('tuInfo').textContent = `· ${tuData.products.length} productos${tuData.products.filter(x => !x.cost).length ? ` · ${tuData.products.filter(x => !x.cost).length} sin costo` : ''}`;
+  // Recalcula totales y ventas con el costo nuevo (sin pisar lo que se está escribiendo).
+  clearTimeout(tuReloadT);
+  tuReloadT = setTimeout(async () => {
+    if (document.activeElement && document.activeElement.closest && document.activeElement.closest('#tuRows')) return;
+    const keep = $('tuRows').parentElement.scrollTop; await loadTuyo(); $('tuRows').parentElement.scrollTop = keep;
+  }, 1500);
 }
+$('tuRows').addEventListener('focusout', () => { clearTimeout(tuReloadT); tuReloadT = setTimeout(() => { if (!(document.activeElement && document.activeElement.closest && document.activeElement.closest('#tuRows'))) { const keep = $('tuRows').parentElement.scrollTop; loadTuyo().then(() => { $('tuRows').parentElement.scrollTop = keep; }); } }, 1200); });
 $('tuSaveCfg').onclick = async () => {
   const d = await (await fetch('/api/tuyo/config', { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ account_id: $('tuAcc').value, kg_usd: $('tuKg').value, tc: $('tuTc').value }) })).json().catch(() => ({}));
   $('tuMsg').innerHTML = d.ok ? '<span style="color:var(--ok)">✓ Guardado</span>' : `<span class="err-t">${esc(d.error || 'No se pudo guardar.')}</span>`;
@@ -2490,9 +2574,30 @@ $('tuSaveCfg').onclick = async () => {
 $('tuAcc').onchange = () => $('tuSaveCfg').click();
 ['tuKg', 'tuTc'].forEach(id => $(id).addEventListener('input', () => { if (tuData && tuData.products) $('tuRows').querySelectorAll('tr[data-tu]').forEach(tuRowCalc); }));
 $('tuQ').oninput = tuRender; $('tuOnlyMissing').onchange = tuRender;
-$('tuPrev').onclick = () => { tuMonth = rsShift(tuMonth, -1); loadTuyo(); };
-$('tuNext').onclick = () => { tuMonth = rsShift(tuMonth, 1); loadTuyo(); };
-$('tuMonth').onclick = () => { tuMonth = ymd(new Date()).slice(0, 7); loadTuyo(); };
+// Período
+const tuMonthShift = (k) => { const [y, m] = tuFromD.split('-').map(Number); const d = new Date(y, m - 1 + k, 1); const from = ymd(d), last = ymd(new Date(d.getFullYear(), d.getMonth() + 1, 0)); tuSetRange(from, last > ymd(new Date()) ? ymd(new Date()) : last); };
+$('tuPrev').onclick = () => tuMonthShift(-1);
+$('tuNext').onclick = () => tuMonthShift(1);
+$('tuMonth').onclick = () => tuSetRange(ymd(new Date()).slice(0, 8) + '01', ymd(new Date()));
+$('tuQuick').onclick = (e) => { const b = e.target.closest('[data-q]'); if (!b) return; const t = new Date(); if (b.dataset.q === 'today') tuSetRange(ymd(t), ymd(t)); else tuSetRange(ymd(new Date(t.getFullYear(), t.getMonth(), t.getDate() - Number(b.dataset.q) + 1)), ymd(t)); };
+['tuFrom', 'tuTo'].forEach(id => $(id).onchange = () => { const f = $('tuFrom').value, t = $('tuTo').value; if (f && t) tuSetRange(f <= t ? f : t, f <= t ? t : f); });
+// Traer ventas de la cuenta TUYO (todas las pagadas del período, enviadas o no).
+$('tuFetch').onclick = async () => {
+  if (!tuData || !tuData.cfg.account_id) return;
+  $('tuFetch').disabled = true; $('tuFetchMsg').textContent = 'Buscando ventas…';
+  const r = await fetch('/api/sales/import', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ from: tuFromD, to: tuToD, account: tuData.cfg.account_id, refresh: $('tuRefresh').checked }) });
+  const d = await r.json().catch(() => ({}));
+  if (!d.ok) { $('tuFetchMsg').innerHTML = `<span class="err-t">${esc(d.error || 'No se pudo.')}</span>`; $('tuFetch').disabled = false; return; }
+  const tick = async () => {
+    const j = await (await fetch('/api/sales/status')).json().catch(() => ({}));
+    $('tuFetchMsg').textContent = `${j.phase || 'Trayendo…'} ${j.total ? j.done + ' de ' + j.total : ''}`;
+    if (j.running) return setTimeout(tick, 1300);
+    $('tuFetch').disabled = false;
+    $('tuFetchMsg').innerHTML = j.phase === 'Error' ? `<span class="err-t">${esc((j.errors || [])[0] || 'Error')}</span>` : `<span style="color:var(--ok)">✓ Listo: ${j.saved || 0} ventas actualizadas${j.skipped ? ` · ${j.skipped} ya estaban` : ''}</span>${j.error_count ? ` <span class="err-t">· ${j.error_count} con error: ${esc((j.errors || [])[0] || '')}</span>` : ''}`;
+    loadTuyo();
+  };
+  setTimeout(tick, 800);
+};
 
 $('exCsv').onclick = () => {
   const e = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
@@ -2707,18 +2812,44 @@ function renderResults() {
   $('rsWarn').innerHTML = warn.length ? `<div class="msg" style="font-size:13.5px;display:grid;gap:6px">${warn.map(w => `<div>${w}</div>`).join('')}</div>` : '';
   const sgn = (v) => v < 0 ? `<span style="color:var(--err)">− ${money(-v)}</span>` : money(v);
   const line = (label, v, kind, sub) => `<div class="rs-line ${kind || ''}${kind === 'total' && v < 0 ? ' neg' : ''}"><span>${label}${sub ? `<small>${sub}</small>` : ''}</span><b>${kind === 'minus' ? '− ' + money(Math.abs(v)) : sgn(v)}</b></div>`;
+  const head = (t) => `<div class="rs-head">${t}</div>`;
+  const showTu = tu.configured || tu.sales || tu.cancelled_n || tu.returned_n, showWeb = wb.orders || rsData.has_woo_key;
   $('rsWater').innerHTML = [
-    line('Ventas brutas Mercado Libre', ml.gross_all, 'plus', `${ml.sales + ml.cancelled_n + ml.returned_n} ventas`),
+    head('Mercado Libre'),
+    line('Ventas brutas', ml.gross_all, 'plus', `${ml.sales + ml.cancelled_n + ml.returned_n} ventas`),
     line('Canceladas y devueltas', ml.cancelled + ml.returned, 'minus', `${ml.cancelled_n} canceladas · ${ml.returned_n} devueltas`),
     line('Comisiones de Mercado Libre', ml.fee, 'minus'),
     line('Envíos (Mercado Libre y tu Flex)', ml.ship, 'minus'),
     line('Impuestos (IVA + IIBB)', ml.tax, 'minus'),
     line('Costo de mercadería', ml.cost, 'minus', ml.no_cost_n ? `${ml.no_cost_n} ventas sin costo` : ''),
-    line('Ganancia Mercado Libre', ml.profit, 'sub'),
-    tu.configured || tu.sales ? line('Ganancia TUYO (Amazon)', tu.profit, 'plus', `${tu.sales} ventas · ${money(tu.gross)} facturado − comisiones ${money(tu.fee)} − envíos ${money(tu.ship)} − impuestos ${money(tu.tax)} − costo Amazon ${money(tu.cost)}`) : '',
-    wb.orders || rsData.has_woo_key ? line('Ganancia ventas web', wb.profit, 'plus', `${wb.orders} pedidos · ${money(wb.gross)} vendido`) : '',
-    line('Ganancia presupuestos confirmados', qt.profit, 'plus', qt.n ? `${qt.n} confirmados · ${money(qt.gross)} vendido − impuestos ${money(qt.tax)} − mercadería ${money(qt.cost)}` : 'No hay presupuestos confirmados este mes'),
-    ...qt.by.map(g => `<div class="rs-line ch"><span>↳ ${esc(g.label)}<small>${g.n} presupuesto${g.n === 1 ? '' : 's'} · ${money(g.gross)} vendido · ${g.units} unidad${g.units === 1 ? '' : 'es'}</small></span><b>${sgn(g.profit)}</b></div>`),
+    line('Neto Mercado Libre', ml.profit, 'sub'),
+    ...(showTu ? [
+      head('TUYO (Amazon)'),
+      line('Ventas brutas', tu.gross_all || 0, 'plus', `${(tu.sales || 0) + (tu.cancelled_n || 0) + (tu.returned_n || 0)} ventas`),
+      line('Canceladas y devueltas', (tu.cancelled || 0) + (tu.returned || 0), 'minus', `${tu.cancelled_n || 0} canceladas · ${tu.returned_n || 0} devueltas`),
+      line('Comisiones de Mercado Libre', tu.fee || 0, 'minus'),
+      line('Envíos', tu.ship || 0, 'minus'),
+      line('Impuestos (IVA + IIBB)', tu.tax || 0, 'minus'),
+      line('Costo Amazon (producto + envío)', tu.cost || 0, 'minus', tu.no_cost_n ? `${tu.no_cost_n} ventas sin costo` : ''),
+      line('Neto TUYO', tu.profit || 0, 'sub'),
+    ] : []),
+    ...(showWeb ? [
+      head('Ventas web'),
+      line('Ventas brutas', wb.gross, 'plus', `${wb.orders} pedidos completados`),
+      line('Impuestos', wb.tax, 'minus'),
+      ...(wb.fee ? [line('Comisión del medio de pago', wb.fee, 'minus')] : []),
+      line('Costo de mercadería', wb.cost, 'minus', wb.no_cost_n ? `${wb.no_cost_n} pedidos sin costo` : ''),
+      line('Neto ventas web', wb.profit, 'sub'),
+    ] : []),
+    head('Presupuestos confirmados'),
+    line('Ventas brutas', qt.gross, 'plus', qt.n ? `${qt.n} confirmados` : 'No hay presupuestos confirmados este mes'),
+    ...qt.by.map(g => `<div class="rs-line ch"><span>↳ ${esc(g.label)}<small>${g.n} presupuesto${g.n === 1 ? '' : 's'} · neto ${sgn(g.profit)}</small></span><b>${money(g.gross)}</b></div>`),
+    line('Impuestos', qt.tax, 'minus'),
+    line('Costo de mercadería', qt.cost, 'minus', qt.no_cost_n ? `${qt.no_cost_n} sin costo` : ''),
+    line('Neto presupuestos', qt.profit, 'sub'),
+    head('Total del mes'),
+    line('Facturación total (bruto)', ml.gross + (tu.gross || 0) + wb.gross + qt.gross, 'plus', 'sin canceladas ni devueltas'),
+    line('Neto de todas las ventas', c.profit, 'plus', 'después de comisiones, envíos, impuestos y costos'),
     line('Gastos del local', c.expenses, 'minus', `${c.expenses_n} gastos cargados`),
     line('NETO NETO', c.net_net, 'total'),
   ].join('');

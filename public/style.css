@@ -455,3 +455,11 @@ button.un-chip { font: inherit; font-size: 13.5px; color: var(--text); }
 .tu-tbl td { vertical-align: middle; }
 .tu-tbl tr.tu-saved td { background: var(--ok-bg); transition: background .3s; }
 @media (max-width: 900px) { .tu-cfg { grid-template-columns: 1fr 1fr; } }
+.tu-grid { display: grid; grid-template-columns: minmax(380px, 0.9fr) 1.35fr; gap: 14px; align-items: start; margin-bottom: 14px; }
+.tu-grid > .card { margin: 0; }
+.tu-range input[type=date] { padding: 6px 8px; width: 150px; }
+#tuWater .rs-line.total { font-size: 16px; }
+#tuWater .rs-line.total b { font-size: 19px; }
+@media (max-width: 1100px) { .tu-grid { grid-template-columns: 1fr; } }
+.rs-head { font-weight: 800; font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--brand); padding: 16px 0 2px; border-bottom: 2px solid var(--brand-2); }
+.rs-head:first-child { padding-top: 0; }

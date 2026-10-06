@@ -224,6 +224,22 @@ En el menú lateral, **📱 Estados de WhatsApp**. El panel lee los productos de
 7. **Descargar imagen**, o en el celu **Compartir en WhatsApp → Mi estado**.
 Si la web no deja leer la lista de productos, en "Configurar web" cargá una clave de WooCommerce de solo **Lectura** (WordPress → WooCommerce → Ajustes → Avanzado → API REST → Añadir clave).
 
+### Recibos en el Resultado del mes
+En **📊 Resultado del mes** se suman los presupuestos **confirmados** del mes (por su fecha), separados por origen. En **Presupuestos**, cada uno tiene el botón **✅ Confirmado / ⏳ Sin confirmar**: los nuevos arrancan sin confirmar y los tocás cuando se venden (los anteriores a este cambio quedaron confirmados). Los sin confirmar aparecen como aviso, sin sumar. Se separan por origen: **Pacientes de Lara**, **WhatsApp**, **Local** (y Mail, Instagram o "Sin origen" si hay). La ganancia se calcula igual que la web: total − impuestos (23%) − costo de mercadería de la lista de precios. Entran en el NETO NETO, en el histórico y en el Excel del resultado.
+
+### 🛒 TUYO (productos de Amazon)
+Cuenta de Mercado Libre con productos comprados en Amazon: sus ventas se traen igual que las demás, pero el costo no sale de la lista de precios.
+1. Conectá la cuenta nueva (en TUYO → **Copiar link de invitación**, abrilo en incógnito y autorizá con esa cuenta).
+2. En **TUYO** elegí esa cuenta. Arriba quedan el **envío por kilo (US$ 35)** y el **tipo de cambio (1550)**, editables.
+3. Traé sus ventas desde **Ventas** (elegí la cuenta → Traer ventas).
+4. En la tabla de productos cargá a cada publicación el **precio en Amazon (US$)** y el **peso** (kg, libras u onzas). El panel calcula: costo US$ = precio + peso en kilos × 35; costo $ = costo US$ × 1550. Se guarda solo.
+5. Arriba elegís el período: **Hoy**, **7 días**, **30 días**, un mes con las flechas, o un rango con las fechas **desde/hasta**. **Traer ventas de este período** trae todas las ventas pagadas de esa cuenta en esas fechas, aunque todavía no se hayan despachado.
+6. **Cómo se pagó y cuánto queda**: facturación bruta − canceladas y devueltas − comisiones − envíos − impuestos − costo Amazon = neto después de costos. Abajo está la lista de ventas igual que en Ventas, con filtro Por enviar / En camino / Entregadas / Canceladas y devueltas.
+7. En **Resultado del mes** aparece aparte como **Ganancia TUYO (Amazon)**: facturación − comisiones − envíos − impuestos − costo Amazon, y se suma al NETO NETO y a la facturación total.
+
+### Subir gastos desde Excel
+En **🏪 Gastos del local** → **📥 Subir Excel**. El panel reconoce solo las columnas (Fecha, Gasto/Concepto, Monto/Importe, Forma de pago, Detalle), aunque el título no esté en la primera fila. Antes de importar muestra una vista previa; si alguna columna no se reconoció, la elegís en la lista. Si la planilla tiene varias hojas (por ejemplo una por mes), podés importar **Todas las hojas**. Las filas de TOTAL se ignoran y los gastos que ya estaban cargados (misma fecha, gasto y monto) se saltean.
+
 ### Etiquetas de producto
 En el menú lateral, **🏷️ Etiquetas de producto**. Arma la etiqueta de 10 × 5 cm igual a los modelos de cada marca, pero dice **SKU** en lugar de MODELO.
 1. Tocá la marca: **BIOGATE**, **PESTGATE**, **PETGO** o **PLAYFUSION** (logo, color de la barra y del borde de cada una).
