@@ -114,7 +114,7 @@ td input[type=checkbox], th input[type=checkbox] { width: 18px; height: 18px; ac
 
 /* ---------- Panel lateral ---------- */
 .layout { display: grid; grid-template-columns: 210px minmax(0, 1fr); min-height: calc(100vh - 60px); }
-.side { position: sticky; top: 60px; align-self: start; height: calc(100vh - 60px); padding: 18px 12px; border-right: 1px solid var(--line);
+.side { position: sticky; top: 60px; align-self: start; height: calc(100vh - 60px); overflow-y: auto; overscroll-behavior: contain; padding: 18px 12px; border-right: 1px solid var(--line);
   background: var(--card); display: flex; flex-direction: column; gap: 4px; }
 .side .nav { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 10px; color: var(--text); font-weight: 500; }
 .side .nav:hover { background: var(--card-2); text-decoration: none; }
@@ -439,3 +439,19 @@ button.un-chip { font: inherit; font-size: 13.5px; color: var(--text); }
 .pl-chip i { margin-right: 0; }
 .pl-cfg { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
 @media (max-width: 900px) { .pl-grid { grid-template-columns: 1fr; } .pl-prevcard { position: static; order: -1; } .pl-cfg { grid-template-columns: 1fr; } .pl-brands { grid-template-columns: repeat(2, 1fr); } }
+.rs-line.ch { padding: 5px 0 5px 18px; font-size: 13.5px; border-bottom: 1px dotted var(--line); }
+.rs-line.ch b { font-weight: 600; }
+.ex-imp-map { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; }
+.ex-imp-map select { width: 100%; }
+@media (max-width: 900px) { .ex-imp-map { grid-template-columns: 1fr 1fr; } }
+
+.q-conf { white-space: nowrap; }
+.q-conf.on { background: var(--ok-bg); color: var(--ok); border-color: color-mix(in srgb, var(--ok) 40%, transparent); font-weight: 600; }
+.q-conf.off { color: var(--muted); }
+/* TUYO */
+.tu-cfg { display: grid; grid-template-columns: 1.4fr 1fr 1fr auto; gap: 10px; align-items: end; }
+.tu-cfg select { width: 100%; }
+.tu-tbl input.tu-usd { width: 100px; }
+.tu-tbl td { vertical-align: middle; }
+.tu-tbl tr.tu-saved td { background: var(--ok-bg); transition: background .3s; }
+@media (max-width: 900px) { .tu-cfg { grid-template-columns: 1fr 1fr; } }

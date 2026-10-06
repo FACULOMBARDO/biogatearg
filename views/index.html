@@ -33,6 +33,7 @@
   <a href="#horarios" class="nav" data-view="horarios"><span class="ic">🕐</span><span>Horarios de compra</span></a>
   <a href="#stock" class="nav" data-view="stock"><span class="ic">📦</span><span>Stock</span></a>
   <a href="#full" class="nav" data-view="full"><span class="ic">⚡</span><span>Full</span></a>
+  <a href="#tuyo" class="nav" data-view="tuyo"><span class="ic">🛒</span><span>TUYO</span></a>
   <a href="#flex" class="nav" data-view="flex"><span class="ic">🛵</span><span>Envíos Flex</span></a>
   <a href="#ranking" class="nav" data-view="ranking"><span class="ic">🏆</span><span>Ranking</span></a>
   <a href="#precios" class="nav" data-view="precios"><span class="ic">📋</span><span>Lista de precios</span></a>
@@ -62,6 +63,7 @@
       <input type="search" id="q" placeholder="Buscar por nombre, teléfono, envío, dirección…" style="flex:1;min-width:220px;max-width:460px">
       <div class="seg" id="fxMode"><button data-m="day" class="on">Día</button><button data-m="week">Semana</button><button data-m="month">Mes</button><button data-m="all">Todo</button></div>
       <div class="seg" id="fxNav"><button id="fxPrev" title="Anterior">‹</button><button id="fxLabel" class="on" style="min-width:170px" title="Volver a hoy"></button><button id="fxNext" title="Siguiente">›</button></div>
+      <select id="fxMonthSel" title="Ver todos los envíos de un mes"></select>
       <input type="date" id="fxDate" title="Ir a una fecha" style="width:auto">
       <select id="dateBy" title="Qué fecha usar para filtrar">
         <option value="venta">por fecha de venta</option>
@@ -226,7 +228,7 @@
   <div class="card" style="padding:0">
     <div class="table-wrap">
       <table class="sales-table">
-        <thead><tr><th>Nº</th><th>Fecha</th><th>Cliente</th><th>WhatsApp</th><th>Productos</th><th style="text-align:right">Total</th><th>Origen</th><th>Entrega</th><th></th></tr></thead>
+        <thead><tr><th>Nº</th><th>Fecha</th><th>Cliente</th><th>WhatsApp</th><th>Productos</th><th style="text-align:right">Total</th><th>Estado</th><th>Origen</th><th>Entrega</th><th></th></tr></thead>
         <tbody id="qRows"></tbody>
       </table>
     </div>
@@ -239,6 +241,7 @@
     <div class="row">
       <div class="seg"><button id="exPrev" title="Mes anterior">‹</button><button id="exMonth" class="on" style="min-width:150px"></button><button id="exNext" title="Mes siguiente">›</button></div>
       <button class="btn" id="exCopy" hidden></button>
+      <button class="btn" id="exImpBtn" title="Subí una planilla de Excel con tus gastos">📥 Subir Excel</button><input type="file" id="exImpFile" accept=".xlsx,.xls,.csv,.ods" hidden>
       <button class="btn" id="exCsv">Descargar Excel</button>
     </div>
   </div>
@@ -255,6 +258,22 @@
       <div class="row"><button class="btn" id="exCancel" hidden>Cancelar edición</button><button class="btn primary" id="exSave">Agregar gasto</button></div>
     </div>
     <div id="exMsg" style="font-size:13.5px;margin-top:6px"></div>
+  </div>
+  <div class="card" id="exImpCard" hidden>
+    <div class="row" style="justify-content:space-between;flex-wrap:wrap;gap:8px">
+      <div class="k-title">Importar gastos de <span id="exImpFileName"></span></div>
+      <label class="fld inline" id="exImpSheetBox" hidden><span>Hoja</span><select id="exImpSheet"></select></label>
+    </div>
+    <div class="muted" style="font-size:13px;margin:4px 0 10px">Revisá qué columna es cada dato. Si alguna no se reconoció bien, cambiala en la lista.</div>
+    <div class="ex-imp-map" id="exImpMap"></div>
+    <div id="exImpDateBox" hidden style="margin-top:8px"><label class="fld" style="max-width:220px"><span>La planilla no tiene fecha: usar</span><input type="date" id="exImpDate"></label></div>
+    <div id="exImpInfo" style="margin:12px 0 6px;font-size:14px"></div>
+    <div class="table-wrap" id="exImpPrev"></div>
+    <div class="row" style="justify-content:space-between;margin-top:10px;flex-wrap:wrap;gap:8px">
+      <label class="muted" style="font-size:13.5px"><input type="checkbox" id="exImpDupes" checked> Saltear los que ya están cargados (misma fecha, gasto y monto)</label>
+      <div class="row"><button class="btn" id="exImpCancel">Cancelar</button><button class="btn primary" id="exImpGo">Importar</button></div>
+    </div>
+    <div id="exImpMsg" style="font-size:13.5px;margin-top:6px"></div>
   </div>
   <div class="stats" id="exStats"></div>
   <div class="ex-break">
@@ -349,7 +368,7 @@
     <div id="rsChart" class="rs-chart"></div>
   </div>
   <div class="card" style="padding:0"><div class="table-wrap"><table class="sales-table rs-table">
-    <thead><tr><th>Mes</th><th style="text-align:right">Ventas brutas ML</th><th style="text-align:right">Canceladas y devueltas</th><th style="text-align:right">Ventas web</th><th style="text-align:right">Comisiones</th><th style="text-align:right">Envíos</th><th style="text-align:right">Impuestos</th><th style="text-align:right">Mercadería</th><th style="text-align:right">Ganancia ventas</th><th style="text-align:right">Gastos del local</th><th style="text-align:right" class="col-net">Neto neto</th><th style="text-align:right">vs mes anterior</th></tr></thead>
+    <thead><tr><th>Mes</th><th style="text-align:right">Ventas brutas ML</th><th style="text-align:right">Canceladas y devueltas</th><th style="text-align:right">TUYO</th><th style="text-align:right">Ventas web</th><th style="text-align:right">Recibos</th><th style="text-align:right">Comisiones</th><th style="text-align:right">Envíos</th><th style="text-align:right">Impuestos</th><th style="text-align:right">Mercadería</th><th style="text-align:right">Ganancia ventas</th><th style="text-align:right">Gastos del local</th><th style="text-align:right" class="col-net">Neto neto</th><th style="text-align:right">vs mes anterior</th></tr></thead>
     <tbody id="rsRows"></tbody>
   </table></div></div>
   <div class="card">
@@ -564,6 +583,34 @@
     </div>
     <div class="row" style="gap:8px;margin-top:10px"><button class="btn primary small" id="plcSave">Guardar</button><button class="btn small" id="plcReset">Volver a los datos originales</button><span class="muted" id="plcMsg" style="font-size:13px"></span></div>
   </details>
+</section>
+<section id="viewTuyo" hidden>
+  <div class="row" style="justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px">
+    <h1 class="page-title">TUYO <span class="muted" style="font-size:15px;font-weight:500">· productos de Amazon</span></h1>
+    <div class="seg"><button id="tuPrev" title="Mes anterior">‹</button><button id="tuMonth" class="on" style="min-width:150px" title="Volver al mes actual"></button><button id="tuNext" title="Mes siguiente">›</button></div>
+  </div>
+  <div class="card">
+    <div class="tu-cfg">
+      <label class="fld"><span>Cuenta de Mercado Libre</span><select id="tuAcc"></select></label>
+      <label class="fld"><span>Envío por kilo (US$)</span><input type="text" id="tuKg" inputmode="decimal"></label>
+      <label class="fld"><span>Tipo de cambio ($)</span><input type="text" id="tuTc" inputmode="decimal"></label>
+      <button class="btn primary" id="tuSaveCfg">Guardar</button>
+    </div>
+    <div class="muted" style="font-size:13px;margin-top:8px">Costo de cada producto = (precio en Amazon US$ + peso × US$ por kilo) × tipo de cambio. Las ventas de esta cuenta usan este costo en lugar de la lista de precios y se suman aparte en <a href="#resultado">Resultado del mes</a>.</div>
+    <div id="tuMsg" style="font-size:13.5px;margin-top:6px"></div>
+  </div>
+  <div id="tuEmpty" class="card" hidden></div>
+  <div class="stats" id="tuStats"></div>
+  <div class="card" style="padding:0" id="tuProdCard">
+    <div class="row" style="padding:12px 14px;justify-content:space-between;flex-wrap:wrap;gap:8px">
+      <div class="k-title">Costo de cada producto <span class="muted" id="tuInfo" style="font-weight:400"></span></div>
+      <div class="row"><input type="search" id="tuQ" placeholder="Buscar producto…" style="max-width:240px"><label class="muted" style="font-size:13.5px"><input type="checkbox" id="tuOnlyMissing"> Solo sin costo</label></div>
+    </div>
+    <div class="table-wrap"><table class="tbl tu-tbl">
+      <thead><tr><th>Producto</th><th style="text-align:right">Vendidas<br><small class="muted">mes · total</small></th><th style="text-align:right">Precio ML</th><th>Precio Amazon (US$)</th><th>Peso</th><th style="text-align:right">Costo US$</th><th style="text-align:right">Costo $</th><th style="text-align:right">Margen</th></tr></thead>
+      <tbody id="tuRows"></tbody>
+    </table></div>
+  </div>
 </section>
 <section id="viewCalc" hidden>
   <div class="row" style="justify-content:space-between;margin-bottom:12px">
@@ -954,6 +1001,7 @@ const nameOf = (s) => [s.first_name, s.last_name].filter(Boolean).join(' ') || s
 const dateOf = (s) => new Date(($('dateBy').value === 'carga' ? s.scanned_at : (s.sale_date || s.scanned_at)));
 // Período: día, semana (lunes a domingo) o mes, con flechas para ir hacia atrás.
 let fxMode = 'day', fxRef = new Date();
+try { const m = localStorage.getItem('fx_mode'); if (['day', 'week', 'month', 'all'].includes(m)) fxMode = m; } catch { /* sin memoria */ }
 function fxRange() {
   const r = new Date(fxRef.getFullYear(), fxRef.getMonth(), fxRef.getDate());
   if (fxMode === 'all') return [new Date(0), new Date(8.64e15)];
@@ -973,6 +1021,13 @@ function fxUi() {
   document.querySelectorAll('#fxMode [data-m]').forEach(b => b.classList.toggle('on', b.dataset.m === fxMode));
   $('fxNav').style.display = fxMode === 'all' ? 'none' : ''; $('fxDate').style.display = fxMode === 'all' ? 'none' : '';
   $('fxLabel').textContent = fxLabelText();
+  try { localStorage.setItem('fx_mode', fxMode); } catch { /* sin memoria */ }
+  if (!$('fxMonthSel').options.length) {
+    const now = new Date(), opts = ['<option value="">📅 Elegir mes…</option>'];
+    for (let i = 0; i < 18; i++) { const d = new Date(now.getFullYear(), now.getMonth() - i, 1); opts.push(`<option value="${d.getFullYear()}-${d.getMonth() + 1}">${MESES[d.getMonth()]} ${d.getFullYear()}</option>`); }
+    $('fxMonthSel').innerHTML = opts.join('');
+  }
+  $('fxMonthSel').value = fxMode === 'month' ? `${fxRef.getFullYear()}-${fxRef.getMonth() + 1}` : '';
   $('fxDate').value = ymd(fxRef);
   const [a, b] = fxRange();
   $('fxNext').disabled = b > new Date() && fxMode !== 'all';
@@ -984,6 +1039,7 @@ function fxShift(k) {
   fxRef = fxMode === 'day' ? new Date(r.getFullYear(), r.getMonth(), r.getDate() + k) : fxMode === 'week' ? new Date(r.getFullYear(), r.getMonth(), r.getDate() + 7 * k) : new Date(r.getFullYear(), r.getMonth() + k, 1);
   fxUi(); render();
 }
+$('fxMonthSel').onchange = () => { const v = $('fxMonthSel').value; if (!v) return; const [y, m] = v.split('-').map(Number); fxMode = 'month'; fxRef = new Date(y, m - 1, 1); fxUi(); render(); };
 $('fxMode').onclick = (e) => { const b = e.target.closest('[data-m]'); if (!b) return; fxMode = b.dataset.m; fxUi(); render(); };
 $('fxPrev').onclick = () => fxShift(-1);
 $('fxNext').onclick = () => fxShift(1);
@@ -1329,11 +1385,11 @@ $('impFile').onchange = async (e) => {
 
 // ---------- Vistas (panel lateral) ----------
 function showView() {
-  const v = ({ '#ventas': 'ventas', '#ranking': 'ranking', '#precios': 'precios', '#presupuestos': 'presupuestos', '#estados': 'estados', '#gastos': 'gastos', '#full': 'full', '#flex': 'flex', '#resultado': 'resultado', '#stock': 'stock', '#sugerencias': 'sugerencias', '#web': 'web', '#horarios': 'horarios', '#manuales': 'manuales', '#calculadora': 'calculadora', '#etiquetas': 'etiquetas' })[location.hash] || 'ventas';
+  const v = ({ '#ventas': 'ventas', '#ranking': 'ranking', '#precios': 'precios', '#presupuestos': 'presupuestos', '#estados': 'estados', '#gastos': 'gastos', '#full': 'full', '#flex': 'flex', '#resultado': 'resultado', '#stock': 'stock', '#sugerencias': 'sugerencias', '#web': 'web', '#horarios': 'horarios', '#manuales': 'manuales', '#calculadora': 'calculadora', '#etiquetas': 'etiquetas', '#tuyo': 'tuyo' })[location.hash] || 'ventas';
   $('viewQuotes').hidden = v !== 'presupuestos';
   $('viewStatus').hidden = v !== 'estados';
   $('viewExpenses').hidden = v !== 'gastos'; $('viewFull').hidden = v !== 'full';
-  $('viewResults').hidden = v !== 'resultado'; $('viewStock').hidden = v !== 'stock'; $('viewSuggest').hidden = v !== 'sugerencias'; $('viewWeb').hidden = v !== 'web'; $('viewHours').hidden = v !== 'horarios'; $('viewManuals').hidden = v !== 'manuales'; $('viewCalc').hidden = v !== 'calculadora'; $('viewPLabel').hidden = v !== 'etiquetas';
+  $('viewResults').hidden = v !== 'resultado'; $('viewStock').hidden = v !== 'stock'; $('viewSuggest').hidden = v !== 'sugerencias'; $('viewWeb').hidden = v !== 'web'; $('viewHours').hidden = v !== 'horarios'; $('viewManuals').hidden = v !== 'manuales'; $('viewCalc').hidden = v !== 'calculadora'; $('viewPLabel').hidden = v !== 'etiquetas'; $('viewTuyo').hidden = v !== 'tuyo';
   $('viewFlex').hidden = v !== 'flex'; $('viewSales').hidden = v !== 'ventas';
   $('viewRanking').hidden = v !== 'ranking'; $('viewPrices').hidden = v !== 'precios';
   document.querySelectorAll('.side .nav').forEach(a => a.classList.toggle('active', a.dataset.view === v));
@@ -1352,6 +1408,7 @@ function showView() {
   if (v === 'manuales') loadManuals();
   if (v === 'calculadora') loadCalc();
   if (v === 'etiquetas') loadPLabel();
+  if (v === 'tuyo') loadTuyo();
   if (v === 'flex' && typeof scans !== 'undefined') load();
 }
 window.addEventListener('hashchange', showView);
@@ -1453,22 +1510,24 @@ function renderSales() {
     `<div class="stat"><div class="k">Canceladas y devueltas</div><div class="v" style="color:${cancAmt + retAmt ? 'var(--err)' : 'inherit'}">${cancAmt + retAmt ? '− ' : ''}${money(cancAmt + retAmt)}</div><div class="sub">${canc.length} cancelada${canc.length === 1 ? '' : 's'} ${money(cancAmt)} · ${ret.length} devuelta${ret.length === 1 ? '' : 's'} ${money(retAmt)}</div></div>`,
     `<div class="stat"><div class="k">Unidades vendidas</div><div class="v">${units}</div><div class="sub">${ok.length} ventas · según ML: ${mlUnits} unidades</div></div>`,
   ].join('');
-  const missing = [...new Set(ok.flatMap(s => s.cost_missing || []).filter(Boolean))];
+  const missing = [...new Set(ok.filter(s => !s.tuyo).flatMap(s => s.cost_missing || []).filter(Boolean))];
+  const tuMissing = ok.filter(s => s.tuyo && s.cost === null).length;
   const noSkuItems = [];
-  { const seen = new Set(); for (const x of ok.flatMap(s => s.no_sku_items || [])) { const k = x.item_id || x.title; if (!seen.has(k)) { seen.add(k); noSkuItems.push(x); } } }
-  const noSku = ok.filter(s => s.no_sku).length;
-  $('sNote').innerHTML = (missing.length || noSku)
-    ? `<div class="msg" style="font-size:13.5px">${missing.length ? `<b>${missing.length} SKU sin costo</b> en tu planilla: ${missing.slice(0, 12).map(x => `<a href="#" data-cost-sku="${esc(x)}">${esc(x)}</a>`).join(', ')}${missing.length > 12 ? '…' : ''}. Tocá uno para cargarle el costo, o agregalo en la planilla y tocá "Actualizar costos".` : ''}${noSku ? `${missing.length ? '<br>' : ''}<b>${noSku} venta${noSku > 1 ? 's' : ''} de publicaciones sin SKU</b> en Mercado Libre. Cargale el SKU a mano (queda guardado para esa publicación): ${noSkuItems.slice(0, 8).map(x => `<button class="btn small" data-set-sku="${esc(x.item_id)}" data-title="${esc(x.title)}" style="margin:2px">cargar SKU · ${esc(x.title.slice(0, 40))}</button>`).join(' ')}` : ''}</div>`
+  { const seen = new Set(); for (const x of ok.filter(s => !s.tuyo).flatMap(s => s.no_sku_items || [])) { const k = x.item_id || x.title; if (!seen.has(k)) { seen.add(k); noSkuItems.push(x); } } }
+  const noSku = ok.filter(s => s.no_sku && !s.tuyo).length;
+  $('sNote').innerHTML = (missing.length || noSku || tuMissing)
+    ? `<div class="msg" style="font-size:13.5px">${missing.length ? `<b>${missing.length} SKU sin costo</b> en tu planilla: ${missing.slice(0, 12).map(x => `<a href="#" data-cost-sku="${esc(x)}">${esc(x)}</a>`).join(', ')}${missing.length > 12 ? '…' : ''}. Tocá uno para cargarle el costo, o agregalo en la planilla y tocá "Actualizar costos".` : ''}${noSku ? `${missing.length ? '<br>' : ''}<b>${noSku} venta${noSku > 1 ? 's' : ''} de publicaciones sin SKU</b> en Mercado Libre. Cargale el SKU a mano (queda guardado para esa publicación): ${noSkuItems.slice(0, 8).map(x => `<button class="btn small" data-set-sku="${esc(x.item_id)}" data-title="${esc(x.title)}" style="margin:2px">cargar SKU · ${esc(x.title.slice(0, 40))}</button>`).join(' ')}` : ''}${tuMissing ? `${missing.length || noSku ? '<br>' : ''}<b>${tuMissing} venta${tuMissing > 1 ? 's' : ''} de TUYO</b> sin costo de Amazon. <a href="#tuyo">Cargalo en TUYO</a> (precio en US$ y peso).` : ''}</div>`
     : '';
   if (!list.length) { $('sRows').innerHTML = `<tr><td colspan="11" class="muted" style="padding:28px;text-align:center">No hay ventas guardadas en este período. Tocá "Traer ventas de este período".</td></tr>`; return; }
   const cell = (v, neg) => `<td class="price" style="text-align:right;font-weight:500${neg && v ? ';color:var(--err)' : ''}">${v === null || v === undefined ? '<span class="muted">—</span>' : (neg && v ? '− ' : '') + money(v)}</td>`;
   $('sRows').innerHTML = list.map(s => {
     const d = new Date(s.date);
-    const skuHtml = (s.items || []).map(i => i.sku
+    const skuHtml = s.tuyo && !(s.items || []).some(i => i.sku) ? `<span class="pill" style="color:var(--brand);border-color:var(--brand)">TUYO</span>` : (s.items || []).map(i => i.sku
       ? `<b style="font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13.5px">${esc(i.sku)}</b>${i.qty > 1 ? ` <span class="pill">${i.qty} u.</span>` : ''}${i.sku_manual ? ` <a href="#" data-set-sku="${esc(i.item_id || '')}" data-title="${esc(i.title)}" data-current="${esc(i.sku)}" class="muted" style="font-size:11px" title="SKU cargado a mano">✎</a>` : ''}`
       : `<span class="pill" style="color:var(--err)">sin SKU</span> <button class="btn small" data-set-sku="${esc(i.item_id || '')}" data-title="${esc(i.title)}">cargar SKU</button>`).join('<br>');
     const costHtml = s.cancelled ? '<span class="muted">—</span>'
       : s.cost !== null ? `<span style="color:var(--err)">− ${money(s.cost)}</span>`
+      : s.tuyo ? `<span class="muted" style="font-size:12.5px">sin costo</span><br><a class="btn small" href="#tuyo" style="margin-top:3px">cargar en TUYO</a>`
       : (s.cost_missing || []).filter(Boolean).length
         ? `<span class="muted" style="font-size:12.5px">sin costo</span><br>${(s.cost_missing || []).filter(Boolean).map(x => `<button class="btn small" data-cost-sku="${esc(x)}" style="margin-top:3px">cargar</button>`).join(' ')}`
         : '<span class="muted" style="font-size:12.5px">sin SKU</span>';
@@ -1915,11 +1974,12 @@ function qRender() {
     <td>${esc(q.whatsapp || '')}</td>
     <td class="muted" style="font-size:12.5px;max-width:280px">${esc(q.items.map(i => (i.qty > 1 ? i.qty + 'x ' : '') + (i.name || i.sku)).join(' · '))}</td>
     <td class="price" style="text-align:right;font-size:15px">${qMoney(q.total)}</td>
+    <td><button class="btn small q-conf ${q.confirmed === false ? 'off' : 'on'}" data-qconf="${q.id}" title="${q.confirmed === false ? 'Tocá cuando se venda: pasa a sumar en Resultado del mes' : 'Suma en Resultado del mes. Tocá para desmarcar'}">${q.confirmed === false ? '⏳ Sin confirmar' : '✅ Confirmado'}</button></td>
     <td><select class="q-ch${q.channel ? '' : ' q-empty'}" data-qch="${q.id}">${qOpts(qChannels, q.channel)}</select></td>
     <td style="white-space:nowrap"><select class="q-del${q.delivery ? '' : ' q-empty'}" data-qdl="${q.id}">${qOpts(qDeliveries, q.delivery)}</select>
       ${q.ship && q.ship.on ? `<div style="margin-top:4px">${shipBadge(q.ship_zone)} <a href="#" data-qship="${q.id}" style="font-size:12px">${esc(q.ship.city || 'editar')} · editar</a> <button class="btn small" data-label="P-${q.id}" title="Etiqueta 10x15 para el paquete">🏷️ Etiqueta</button></div>` : q.delivery === 'envio' ? `<div style="margin-top:4px"><button class="btn small" data-qship="${q.id}">🛵 Cargar dirección</button></div>` : ''}</td>
     <td style="white-space:nowrap"><button class="btn small" data-qedit="${q.id}">Abrir</button> <button class="btn small" data-qpdf="${q.id}">PDF</button> <button class="btn small primary" data-qwa="${q.id}">WhatsApp</button> <button class="btn small" data-qdel="${q.id}" title="Borrar">✕</button></td>
-  </tr>`).join('') : `<tr><td colspan="9" class="muted" style="padding:28px;text-align:center">${quotes.length ? 'No hay recibos con estos filtros.' : 'Todavía no hiciste presupuestos. Tocá "+ Nuevo presupuesto".'}</td></tr>`;
+  </tr>`).join('') : `<tr><td colspan="10" class="muted" style="padding:28px;text-align:center">${quotes.length ? 'No hay recibos con estos filtros.' : 'Todavía no hiciste presupuestos. Tocá "+ Nuevo presupuesto".'}</td></tr>`;
 }
 function qItemRow(i = {}) {
   return `<tr>
@@ -2004,6 +2064,15 @@ $('qFDel').onchange = qRender;
 $('qSave').onclick = qSave;
 $('qPdf').onclick = async () => { const q = await qSave(); if (q) (await qBuildPdf(q)).save(q.file_name); };
 $('qWaBtn').onclick = async () => { const q = await qSave(); if (q) qSendWa(q); };
+// Confirmar / desconfirmar un presupuesto (solo los confirmados suman en Resultado del mes).
+$('qRows').addEventListener('click', async (e) => {
+  const b = e.target.closest('[data-qconf]'); if (!b) return;
+  const q = quotes.find(x => String(x.id) === b.dataset.qconf); if (!q) return;
+  b.disabled = true;
+  const d = await (await fetch(`/api/quotes/${q.id}/meta`, { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ confirmed: q.confirmed === false }) })).json().catch(() => ({}));
+  if (!d.ok) { alert(d.error || 'No se pudo guardar.'); b.disabled = false; return; }
+  Object.assign(q, d.quote); qRender();
+});
 document.addEventListener('click', async (e) => {
   const sb = e.target.closest('[data-qship]');
   if (sb) {
@@ -2209,6 +2278,222 @@ $('exCopy').onclick = async () => {
   loadExpenses();
 };
 $('exQ').oninput = exRender; $('exFilterCat').onchange = exRender;
+// ---------- Importar gastos desde Excel ----------
+// Lee la planilla en el navegador, reconoce las columnas (Fecha, Gasto, Monto, Cómo se pagó, Detalle) y muestra una vista previa.
+let exImp = null;
+const EXF = [
+  ['date', 'Fecha', /fecha|^d[ií]a$|^dia\b/i],
+  ['amount', 'Monto', /monto|importe|total|valor|precio|pesos|^\$|egreso|debe|gastado|costo/i],
+  ['method', 'Cómo se pagó', /medio|forma|m[eé]todo|pag[oó] con|tarjeta|caja|cuenta/i],
+  ['category', 'Gasto', /gasto|concepto|nombre|categor|rubro|item|ítem|motivo|tipo/i],
+  ['description', 'Detalle', /detalle|descrip|observ|nota|coment|proveedor|aclarac/i],
+];
+const exColName = (i) => { let s = ''; i++; while (i) { const r = (i - 1) % 26; s = String.fromCharCode(65 + r) + s; i = Math.floor((i - 1) / 26); } return s; };
+function exParseDate(v, defYear) {
+  if (v instanceof Date && !isNaN(v)) return ymd(v);
+  if (typeof v === 'number' && v > 20000 && v < 80000) { const d = XLSX.SSF.parse_date_code(v); return d ? `${d.y}-${String(d.m).padStart(2, '0')}-${String(d.d).padStart(2, '0')}` : ''; }
+  const s = String(v ?? '').trim();
+  let m = s.match(/^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})/);
+  if (m) return `${m[1]}-${m[2].padStart(2, '0')}-${m[3].padStart(2, '0')}`;
+  m = s.match(/^(\d{1,2})[-/.](\d{1,2})(?:[-/.](\d{2,4}))?\b/);
+  if (m) { let y = m[3] ? Number(m[3]) : defYear; if (y < 100) y += 2000; const d = Number(m[1]), mo = Number(m[2]); if (mo >= 1 && mo <= 12 && d >= 1 && d <= 31) return `${y}-${String(mo).padStart(2, '0')}-${String(d).padStart(2, '0')}`; }
+  return '';
+}
+function exParseAmount(v) {
+  if (typeof v === 'number') return Math.abs(v);
+  let s = String(v ?? '').replace(/[^\d.,-]/g, '');
+  if (!s) return 0;
+  const lc = s.lastIndexOf(','), ld = s.lastIndexOf('.');
+  if (lc >= 0 && ld >= 0) s = lc > ld ? s.replace(/\./g, '').replace(',', '.') : s.replace(/,/g, '');
+  else if (lc >= 0) s = /,\d{1,2}$/.test(s) ? s.replace(/\./g, '').replace(',', '.') : s.replace(/,/g, '');
+  else if (ld >= 0 && /\.\d{3}$/.test(s) && (s.match(/\./g) || []).length >= 1) s = s.replace(/\./g, '');
+  return Math.abs(Number(s) || 0);
+}
+// Arma el mapeo de columnas: por encabezado y, si falta, por el contenido.
+function exGuess(rows) {
+  let head = -1, best = 0;
+  for (let r = 0; r < Math.min(15, rows.length); r++) {
+    const score = (rows[r] || []).filter(c => typeof c === 'string' && c.trim() && EXF.some(f => f[2].test(c.trim()))).length;
+    if (score > best) { best = score; head = r; }
+  }
+  if (best < 2) head = -1;
+  const width = Math.max(0, ...rows.slice(0, 50).map(r => (r || []).length));
+  const names = Array.from({ length: width }, (_, i) => (head >= 0 && String(rows[head][i] ?? '').trim()) || `Columna ${exColName(i)}`);
+  const map = {}, used = new Set();
+  if (head >= 0) for (const [k, , re] of EXF) { const i = names.findIndex((n, j) => !used.has(j) && re.test(n)); if (i >= 0) { map[k] = i; used.add(i); } }
+  const body = rows.slice(head + 1, head + 60).filter(r => r && r.some(c => String(c ?? '').trim()));
+  const ratio = (i, fn) => body.length ? body.filter(r => fn(r[i])).length / body.length : 0;
+  const free = () => names.map((_, i) => i).filter(i => !used.has(i));
+  if (map.date === undefined) { const i = free().sort((a, b) => ratio(b, v => !!exParseDate(v, 2000)) - ratio(a, v => !!exParseDate(v, 2000)))[0]; if (i !== undefined && ratio(i, v => !!exParseDate(v, 2000)) > .5) { map.date = i; used.add(i); } }
+  if (map.amount === undefined) { const i = free().sort((a, b) => ratio(b, v => exParseAmount(v) > 0 && !exParseDate(v, 2000)) - ratio(a, v => exParseAmount(v) > 0 && !exParseDate(v, 2000)))[0]; if (i !== undefined && ratio(i, v => exParseAmount(v) > 0) > .5) { map.amount = i; used.add(i); } }
+  if (map.category === undefined) { const i = free().find(i => ratio(i, v => typeof v === 'string' && /[a-záéíóúñ]/i.test(v)) > .5); if (i !== undefined) { map.category = i; used.add(i); } }
+  return { head, names, map };
+}
+function exMapped() {
+  const { rows, head, map } = exImp, defDate = $('exImpDate').value, defYear = Number((defDate || ymd(new Date())).slice(0, 4));
+  const get = (r, k) => (map[k] === undefined || map[k] === '' ? '' : r[map[k]]);
+  const out = [];
+  rows.slice(head + 1).forEach((r, i) => {
+    if (!r || !r.some(c => String(c ?? '').trim())) return;
+    const category = String(get(r, 'category') ?? '').trim();
+    if (/^(sub)?total/i.test(category)) return;
+    const amount = exParseAmount(get(r, 'amount'));
+    const date = exParseDate(get(r, 'date'), defYear) || (map.date === undefined || map.date === '' ? defDate : '');
+    const row = { _row: head + 2 + i, date, category, amount, method: String(get(r, 'method') ?? '').trim(), description: String(get(r, 'description') ?? '').trim() };
+    row.problem = !row.category ? 'sin nombre' : !(row.amount > 0) ? 'sin monto' : !row.date ? 'fecha no reconocida' : '';
+    if (!row.category && !(row.amount > 0)) return;
+    out.push(row);
+  });
+  return out;
+}
+function exImpRender() {
+  const list = exMapped(), ok = list.filter(r => !r.problem), bad = list.filter(r => r.problem);
+  $('exImpMap').innerHTML = EXF.map(([k, label]) => `<label class="fld"><span>${label}${k === 'method' || k === 'description' ? ' <small class="muted">(opcional)</small>' : ''}</span><select data-exmap="${k}"><option value="">— ninguna —</option>${exImp.names.map((n, i) => `<option value="${i}"${exImp.map[k] === i ? ' selected' : ''}>${esc(n)}</option>`).join('')}</select></label>`).join('');
+  $('exImpDateBox').hidden = !(exImp.map.date === undefined || exImp.map.date === '');
+  const total = ok.reduce((t, r) => t + r.amount, 0);
+  $('exImpInfo').innerHTML = `<b>${ok.length} gastos</b> para importar · total <b>${money(total)}</b>${bad.length ? ` · <span class="err-t">${bad.length} filas con problemas (no se importan)</span>` : ''}`;
+  const show = list.slice(0, 12);
+  $('exImpPrev').innerHTML = `<table class="tbl"><thead><tr><th>Fila</th><th>Fecha</th><th>Gasto</th><th>Detalle</th><th>Cómo se pagó</th><th style="text-align:right">Monto</th><th></th></tr></thead><tbody>${show.map(r => `<tr${r.problem ? ' style="opacity:.55"' : ''}><td class="muted">${r._row}</td><td>${r.date ? r.date.split('-').reverse().join('/') : '—'}</td><td>${esc(r.category) || '—'}</td><td>${esc(r.description)}</td><td>${esc(r.method) || '<span class="muted">Otro</span>'}</td><td style="text-align:right">${r.amount ? money(r.amount) : '—'}</td><td>${r.problem ? `<span class="err-t" style="font-size:12px">${r.problem}</span>` : '✓'}</td></tr>`).join('')}</tbody></table>${list.length > show.length ? `<div class="muted" style="font-size:12.5px;padding:6px 2px">… y ${list.length - show.length} filas más</div>` : ''}`;
+  $('exImpGo').disabled = !ok.length;
+  $('exImpGo').textContent = ok.length ? `Importar ${ok.length} gastos` : 'Nada para importar';
+}
+function exImpSheet() {
+  const name = $('exImpSheet').value;
+  const sheets = name === '*' ? exImp.wb.SheetNames : [name];
+  let rows = [], first = null;
+  for (const n of sheets) {
+    const r = XLSX.utils.sheet_to_json(exImp.wb.Sheets[n], { header: 1, raw: true, defval: '' });
+    if (!first) { first = exGuess(r); rows = r; }
+    else { const g = exGuess(r); rows = rows.concat(r.slice(g.head + 1)); }
+  }
+  exImp = { ...exImp, rows, head: first ? first.head : -1, names: first ? first.names : [], map: first ? first.map : {} };
+  exImpRender();
+}
+$('exImpBtn').onclick = () => $('exImpFile').click();
+$('exImpFile').onchange = async () => {
+  const f = $('exImpFile').files[0]; if (!f) return;
+  $('exImpFile').value = '';
+  try {
+    if (!window.XLSX) throw new Error('No se pudo cargar el lector de Excel. Recargá la página.');
+    const wb = XLSX.read(await f.arrayBuffer(), { type: 'array', cellDates: true });
+    exImp = { wb, file: f.name };
+    $('exImpSheet').innerHTML = (wb.SheetNames.length > 1 ? '<option value="*">Todas las hojas</option>' : '') + wb.SheetNames.map(n => `<option>${esc(n)}</option>`).join('');
+    $('exImpSheet').value = wb.SheetNames[0];
+    $('exImpSheetBox').hidden = wb.SheetNames.length < 2;
+    $('exImpFileName').textContent = f.name;
+    $('exImpDate').value = `${exMonth}-01`;
+    $('exImpMsg').textContent = '';
+    $('exImpCard').hidden = false;
+    exImpSheet();
+    $('exImpCard').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  } catch (e) { alert('No pude leer la planilla: ' + e.message); }
+};
+$('exImpSheet').onchange = exImpSheet;
+$('exImpDate').onchange = exImpRender;
+$('exImpMap').onchange = (e) => { const s = e.target.closest('[data-exmap]'); if (!s) return; exImp.map[s.dataset.exmap] = s.value === '' ? '' : Number(s.value); exImpRender(); };
+$('exImpCancel').onclick = () => { $('exImpCard').hidden = true; exImp = null; };
+$('exImpGo').onclick = async () => {
+  const rows = exMapped().filter(r => !r.problem).map(({ problem, ...r }) => r);
+  if (!rows.length) return;
+  $('exImpGo').disabled = true; $('exImpMsg').textContent = 'Importando…';
+  const d = await (await fetch('/api/expenses/import', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ rows, skip_dupes: $('exImpDupes').checked }) })).json().catch(() => ({ ok: false, error: 'No se pudo importar.' }));
+  if (!d.ok) { $('exImpMsg').innerHTML = `<span class="err-t">${esc(d.error || 'Error')}</span>`; $('exImpGo').disabled = false; return; }
+  const ms = (d.months || []).map(m => exMonthName(m)).join(', ');
+  $('exImpCard').hidden = true; exImp = null;
+  if (d.months && d.months.length && !d.months.includes(exMonth)) exMonth = d.months[d.months.length - 1];
+  await loadExpenses();
+  $('exMsg').innerHTML = `<span style="color:var(--ok)">✓ Se agregaron <b>${d.added} gastos</b> (${money(d.total)})${ms ? ` en ${esc(ms)}` : ''}.</span>${d.dupes ? ` <span class="muted">${d.dupes} ya estaban cargados y se saltearon.</span>` : ''}${d.error_count ? ` <span class="err-t">${d.error_count} filas con error.</span>` : ''}`;
+};
+// ---------- TUYO (productos de Amazon) ----------
+let tuMonth = ymd(new Date()).slice(0, 7), tuData = null;
+const tuNum = (v) => { const n = Number(String(v ?? '').trim().replace(/\s/g, '').replace(',', '.')); return Number.isFinite(n) ? n : 0; };
+const tuUsd = (v) => 'US$ ' + (Math.round(v * 100) / 100).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+function tuCalc(usd, weight, unit) {
+  if (!(usd > 0)) return null;
+  const kg = weight * (unit === 'lb' ? 0.45359237 : unit === 'oz' ? 0.028349523125 : 1);
+  const kgUsd = tuNum($('tuKg').value) || tuData.cfg.kg_usd, tc = tuNum($('tuTc').value) || tuData.cfg.tc;
+  const total = usd + kg * kgUsd;
+  return { usd: total, ars: Math.round(total * tc), ship: kg * kgUsd };
+}
+async function loadTuyo() {
+  $('tuMonth').textContent = rsName(tuMonth);
+  tuData = await (await fetch('/api/tuyo?month=' + tuMonth)).json();
+  const c = tuData.cfg;
+  $('tuAcc').innerHTML = '<option value="">— Elegí la cuenta —</option>' + tuData.accounts.map(a => `<option value="${esc(a.user_id)}"${a.user_id === c.account_id ? ' selected' : ''}>${esc(a.nickname)}</option>`).join('');
+  if (document.activeElement !== $('tuKg')) $('tuKg').value = String(c.kg_usd).replace('.', ',');
+  if (document.activeElement !== $('tuTc')) $('tuTc').value = String(c.tc).replace('.', ',');
+  const none = !c.account_id;
+  $('tuEmpty').hidden = !none; $('tuStats').hidden = none; $('tuProdCard').hidden = none;
+  if (none) { $('tuEmpty').innerHTML = `<b>Elegí arriba cuál es la cuenta TUYO.</b><div class="muted" style="margin-top:6px;font-size:13.5px">Si todavía no la conectaste: tocá <button class="btn small" id="tuInvite">Copiar link de invitación</button>, abrilo en una ventana de incógnito (Ctrl + Shift + N), entrá con esa cuenta de Mercado Libre y autorizá. Después recargá esta página, elegila arriba y traé sus ventas desde <a href="#ventas">Ventas</a>.</div>`;
+    $('tuInvite').onclick = async () => { const { url } = await (await fetch('/api/invite')).json(); try { await navigator.clipboard.writeText(url); $('tuInvite').textContent = '¡Link copiado!'; } catch { prompt('Copiá este link:', url); } };
+    return; }
+  const s = tuData.summary || {};
+  $('tuStats').innerHTML = [
+    `<div class="stat main"><div class="k">Ganancia del mes</div><div class="v">${s.profit < 0 ? '− ' + money(-s.profit) : money(s.profit || 0)}</div><div class="sub">${s.sales || 0} ventas · ${s.units || 0} unidades</div></div>`,
+    `<div class="stat"><div class="k">Facturación</div><div class="v">${money(s.gross || 0)}</div><div class="sub">${s.cancelled_n || s.returned_n ? `${(s.cancelled_n || 0) + (s.returned_n || 0)} canceladas/devueltas` : 'sin canceladas'}</div></div>`,
+    `<div class="stat"><div class="k">Costo Amazon</div><div class="v">${money(s.cost || 0)}</div><div class="sub">${s.no_cost_n ? `<span class="err-t">${s.no_cost_n} ventas sin costo</span>` : 'todas con costo'}</div></div>`,
+    `<div class="stat"><div class="k">Comisiones + envíos + impuestos</div><div class="v">${money((s.fee || 0) + (s.ship || 0) + (s.tax || 0))}</div><div class="sub">ML ${money(s.fee || 0)} · envíos ${money(s.ship || 0)} · imp. ${money(s.tax || 0)}</div></div>`,
+  ].join('');
+  tuRender();
+}
+function tuRender() {
+  const q = $('tuQ').value.trim().toLowerCase(), only = $('tuOnlyMissing').checked;
+  const all = tuData.products, missing = all.filter(p => !p.cost).length;
+  $('tuInfo').textContent = `· ${all.length} productos${missing ? ` · ${missing} sin costo` : ''}`;
+  const list = all.filter(p => (!q || (p.title + ' ' + p.item_id + ' ' + p.sku).toLowerCase().includes(q)) && (!only || !p.cost));
+  $('tuRows').innerHTML = list.length ? list.map(p => {
+    const ci = p.cost_in || {}, can = !!p.item_id;
+    return `<tr data-tu="${esc(p.item_id)}" data-price="${p.last_price || 0}">
+      <td><b>${esc(p.title)}</b><div class="muted" style="font-size:12px">${esc(p.item_id || 'sin publicación')}${p.sku ? ' · ' + esc(p.sku) : ''}</div></td>
+      <td style="text-align:right"><b>${p.units_month}</b> <span class="muted">· ${p.units}</span></td>
+      <td class="price" style="text-align:right">${p.last_price ? money(p.last_price) : '—'}</td>
+      <td><input type="text" class="tu-usd" inputmode="decimal" value="${ci.usd ? String(ci.usd).replace('.', ',') : ''}" placeholder="0,00" ${can ? '' : 'disabled'}></td>
+      <td style="white-space:nowrap"><input type="text" class="tu-w" inputmode="decimal" value="${ci.weight ? String(ci.weight).replace('.', ',') : ''}" placeholder="0" style="width:70px" ${can ? '' : 'disabled'}> <select class="tu-u" ${can ? '' : 'disabled'}><option value="kg"${ci.unit === 'kg' || !ci.unit ? ' selected' : ''}>kg</option><option value="lb"${ci.unit === 'lb' ? ' selected' : ''}>lb</option><option value="oz"${ci.unit === 'oz' ? ' selected' : ''}>oz</option></select></td>
+      <td class="price tu-cusd" style="text-align:right"></td>
+      <td class="price tu-cars" style="text-align:right"></td>
+      <td class="tu-mg" style="text-align:right"></td>
+    </tr>`;
+  }).join('') : `<tr><td colspan="8" class="muted" style="padding:24px;text-align:center">${all.length ? 'No hay productos con este filtro.' : 'Todavía no hay ventas guardadas de esta cuenta. Traelas desde Ventas (elegí la cuenta y "Traer ventas de este período").'}</td></tr>`;
+  $('tuRows').querySelectorAll('tr[data-tu]').forEach(tuRowCalc);
+}
+function tuRowCalc(tr) {
+  const usd = tuNum(tr.querySelector('.tu-usd').value), w = tuNum(tr.querySelector('.tu-w').value), u = tr.querySelector('.tu-u').value;
+  const c = tuCalc(usd, w, u), price = Number(tr.dataset.price) || 0;
+  tr.querySelector('.tu-cusd').innerHTML = c ? `${tuUsd(c.usd)}${c.ship ? `<div class="muted" style="font-size:11.5px">envío ${tuUsd(c.ship)}</div>` : ''}` : '<span class="err-t" style="font-size:12.5px">falta costo</span>';
+  tr.querySelector('.tu-cars').textContent = c ? money(c.ars) : '—';
+  tr.querySelector('.tu-mg').innerHTML = c && price ? `<span style="color:${price - c.ars >= 0 ? 'var(--ok)' : 'var(--err)'};font-weight:600">${Math.round((price - c.ars) / price * 100)}%</span><div class="muted" style="font-size:11.5px">antes de comisión</div>` : '';
+}
+const tuTimers = {};
+$('tuRows').addEventListener('input', (e) => {
+  const tr = e.target.closest('tr[data-tu]'); if (!tr) return;
+  tuRowCalc(tr);
+  clearTimeout(tuTimers[tr.dataset.tu]);
+  tuTimers[tr.dataset.tu] = setTimeout(() => tuSaveRow(tr), 700);
+});
+$('tuRows').addEventListener('change', (e) => { const tr = e.target.closest('tr[data-tu]'); if (tr) { tuRowCalc(tr); clearTimeout(tuTimers[tr.dataset.tu]); tuSaveRow(tr); } });
+async function tuSaveRow(tr) {
+  const id = tr.dataset.tu; if (!id) return;
+  const p = tuData.products.find(x => x.item_id === id);
+  const body = { usd: tuNum(tr.querySelector('.tu-usd').value), weight: tuNum(tr.querySelector('.tu-w').value), unit: tr.querySelector('.tu-u').value, title: p ? p.title : '' };
+  const d = await (await fetch('/api/tuyo/item/' + encodeURIComponent(id), { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) })).json().catch(() => ({}));
+  if (!d.ok) { tr.querySelector('.tu-cars').innerHTML = `<span class="err-t">${esc(d.error || 'No se guardó')}</span>`; return; }
+  if (p) { p.cost_in = d.item; p.cost = d.cost; }
+  tr.classList.add('tu-saved'); setTimeout(() => tr.classList.remove('tu-saved'), 900);
+  $('tuInfo').textContent = `· ${tuData.products.length} productos${tuData.products.filter(x => !x.cost).length ? ` · ${tuData.products.filter(x => !x.cost).length} sin costo` : ''}`;
+}
+$('tuSaveCfg').onclick = async () => {
+  const d = await (await fetch('/api/tuyo/config', { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ account_id: $('tuAcc').value, kg_usd: $('tuKg').value, tc: $('tuTc').value }) })).json().catch(() => ({}));
+  $('tuMsg').innerHTML = d.ok ? '<span style="color:var(--ok)">✓ Guardado</span>' : `<span class="err-t">${esc(d.error || 'No se pudo guardar.')}</span>`;
+  setTimeout(() => { $('tuMsg').textContent = ''; }, 2500);
+  if (d.ok) loadTuyo();
+};
+$('tuAcc').onchange = () => $('tuSaveCfg').click();
+['tuKg', 'tuTc'].forEach(id => $(id).addEventListener('input', () => { if (tuData && tuData.products) $('tuRows').querySelectorAll('tr[data-tu]').forEach(tuRowCalc); }));
+$('tuQ').oninput = tuRender; $('tuOnlyMissing').onchange = tuRender;
+$('tuPrev').onclick = () => { tuMonth = rsShift(tuMonth, -1); loadTuyo(); };
+$('tuNext').onclick = () => { tuMonth = rsShift(tuMonth, 1); loadTuyo(); };
+$('tuMonth').onclick = () => { tuMonth = ymd(new Date()).slice(0, 7); loadTuyo(); };
+
 $('exCsv').onclick = () => {
   const e = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
   const rows = exData.items.slice().sort((a, b) => a.date.localeCompare(b.date));
@@ -2408,11 +2693,15 @@ async function loadResults() {
   renderResults(); loadUnits();
 }
 function renderResults() {
-  const c = rsData.current, ml = c.ml, wb = c.web;
+  const c = rsData.current, ml = c.ml, wb = c.web, qt = c.quotes || { n: 0, gross: 0, tax: 0, cost: 0, profit: 0, by: [] }, tu = c.tuyo || { sales: 0, gross: 0, fee: 0, ship: 0, tax: 0, cost: 0, profit: 0, no_cost_n: 0 };
+  const tuG = (m) => (m.tuyo || {}).gross || 0, qtG = (m) => (m.quotes || {}).gross || 0;
   const warn = [];
   if (!ml.sales && !ml.cancelled_n) warn.push(`No hay ventas de Mercado Libre guardadas para ${rsName(c.month)}. <button class="btn small primary" data-rs-fetch="${c.month}">Traer ventas de ${rsName(c.month).split(' ')[0].toLowerCase()}</button>`);
   if (ml.no_cost_n) warn.push(`<b>${ml.no_cost_n} ventas</b> (${money(ml.no_cost_gross)} facturado) tienen productos sin costo cargado: su mercadería no está restada. <a href="#ventas">Cargar costos</a>`);
   if (!rsData.has_woo_key) warn.push('Las ventas de la web no se suman todavía: cargá la clave de WooCommerce en Estados de WhatsApp → Configurar web.');
+  if (tu.no_cost_n) warn.push(`<b>${tu.no_cost_n} ventas de TUYO</b> no tienen el costo de Amazon cargado: no se resta. <a href="#tuyo">Cargar costos</a>`);
+  if (qt.no_cost_n) warn.push(`<b>${qt.no_cost_n} presupuestos</b> confirmados tienen productos sin costo en la lista de precios: su mercadería no está restada.`);
+  if (qt.pending_n) warn.push(`<b>${qt.pending_n} presupuestos sin confirmar</b> (${money(qt.pending_gross)}) no se suman. <a href="#presupuestos">Confirmar los vendidos</a>`);
   if (!c.expenses_n) warn.push(`No cargaste gastos del local en ${rsName(c.month)}. <a href="#gastos">Cargar gastos</a>`);
   if (c.partial) warn.push('Es el mes en curso: los números van a seguir cambiando.');
   $('rsWarn').innerHTML = warn.length ? `<div class="msg" style="font-size:13.5px;display:grid;gap:6px">${warn.map(w => `<div>${w}</div>`).join('')}</div>` : '';
@@ -2426,15 +2715,18 @@ function renderResults() {
     line('Impuestos (IVA + IIBB)', ml.tax, 'minus'),
     line('Costo de mercadería', ml.cost, 'minus', ml.no_cost_n ? `${ml.no_cost_n} ventas sin costo` : ''),
     line('Ganancia Mercado Libre', ml.profit, 'sub'),
+    tu.configured || tu.sales ? line('Ganancia TUYO (Amazon)', tu.profit, 'plus', `${tu.sales} ventas · ${money(tu.gross)} facturado − comisiones ${money(tu.fee)} − envíos ${money(tu.ship)} − impuestos ${money(tu.tax)} − costo Amazon ${money(tu.cost)}`) : '',
     wb.orders || rsData.has_woo_key ? line('Ganancia ventas web', wb.profit, 'plus', `${wb.orders} pedidos · ${money(wb.gross)} vendido`) : '',
+    line('Ganancia presupuestos confirmados', qt.profit, 'plus', qt.n ? `${qt.n} confirmados · ${money(qt.gross)} vendido − impuestos ${money(qt.tax)} − mercadería ${money(qt.cost)}` : 'No hay presupuestos confirmados este mes'),
+    ...qt.by.map(g => `<div class="rs-line ch"><span>↳ ${esc(g.label)}<small>${g.n} presupuesto${g.n === 1 ? '' : 's'} · ${money(g.gross)} vendido · ${g.units} unidad${g.units === 1 ? '' : 'es'}</small></span><b>${sgn(g.profit)}</b></div>`),
     line('Gastos del local', c.expenses, 'minus', `${c.expenses_n} gastos cargados`),
     line('NETO NETO', c.net_net, 'total'),
   ].join('');
   $('rsNet').textContent = c.net_net < 0 ? '− ' + money(-c.net_net) : money(c.net_net);
-  $('rsNetSub').innerHTML = `${rsName(c.month)}${c.partial ? ' (en curso)' : ''} · margen ${pct(c.net_net, ml.gross + wb.gross)} sobre lo facturado`;
+  $('rsNetSub').innerHTML = `${rsName(c.month)}${c.partial ? ' (en curso)' : ''} · margen ${pct(c.net_net, ml.gross + tu.gross + wb.gross + qt.gross)} sobre lo facturado`;
   const cmp = (label, o) => `<div class="rs-cmp"><span>${label}<small>${rsName(o.month)}</small></span><b>${sgn(o.net_net)}</b>${rsVarHtml(c.net_net, o.net_net)}</div>`;
   $('rsCmp').innerHTML = cmp('Mes anterior', rsData.prev) + cmp('Mismo mes del año pasado', rsData.last_year) +
-    `<div class="rs-cmp"><span>Facturación total<small>ML + web vs mes anterior</small></span><b>${money(ml.gross + wb.gross)}</b>${rsVarHtml(ml.gross + wb.gross, rsData.prev.ml.gross + rsData.prev.web.gross)}</div>`;
+    `<div class="rs-cmp"><span>Facturación total<small>ML + TUYO + web + presupuestos vs mes anterior</small></span><b>${money(ml.gross + tu.gross + wb.gross + qt.gross)}</b>${rsVarHtml(ml.gross + tu.gross + wb.gross + qt.gross, rsData.prev.ml.gross + tuG(rsData.prev) + rsData.prev.web.gross + qtG(rsData.prev))}</div>`;
   renderResultsChart();
   const h = rsData.history.slice().reverse();
   $('rsRows').innerHTML = h.map((m, i) => {
@@ -2443,11 +2735,13 @@ function renderResults() {
       <td style="white-space:nowrap"><b>${rsName(m.month)}</b>${m.partial ? ' <span class="pill">en curso</span>' : ''}${!m.ml.sales && !m.ml.cancelled_n ? ' <span class="pill" style="color:var(--err)">sin ventas guardadas</span>' : ''}</td>
       <td class="price" style="text-align:right">${money(m.ml.gross_all)}</td>
       <td class="price" style="text-align:right;color:var(--err)">${m.ml.cancelled + m.ml.returned ? '− ' + money(m.ml.cancelled + m.ml.returned) : '—'}</td>
+      <td class="price" style="text-align:right">${tuG(m) ? money(tuG(m)) : '<span class="muted">—</span>'}</td>
       <td class="price" style="text-align:right">${m.web.orders ? money(m.web.gross) : '<span class="muted">—</span>'}</td>
-      <td class="price" style="text-align:right;color:var(--err)">− ${money(m.ml.fee + m.web.fee)}</td>
-      <td class="price" style="text-align:right;color:var(--err)">− ${money(m.ml.ship)}</td>
-      <td class="price" style="text-align:right;color:var(--err)">− ${money(m.ml.tax + m.web.tax)}</td>
-      <td class="price" style="text-align:right;color:var(--err)">− ${money(m.ml.cost + m.web.cost)}</td>
+      <td class="price" style="text-align:right">${(m.quotes || {}).n ? money(m.quotes.gross) : '<span class="muted">—</span>'}</td>
+      <td class="price" style="text-align:right;color:var(--err)">− ${money(m.ml.fee + m.web.fee + ((m.tuyo || {}).fee || 0))}</td>
+      <td class="price" style="text-align:right;color:var(--err)">− ${money(m.ml.ship + ((m.tuyo || {}).ship || 0))}</td>
+      <td class="price" style="text-align:right;color:var(--err)">− ${money(m.ml.tax + m.web.tax + ((m.quotes || {}).tax || 0) + ((m.tuyo || {}).tax || 0))}</td>
+      <td class="price" style="text-align:right;color:var(--err)">− ${money(m.ml.cost + m.web.cost + ((m.quotes || {}).cost || 0) + ((m.tuyo || {}).cost || 0))}</td>
       <td class="price" style="text-align:right">${money(m.profit)}</td>
       <td class="price" style="text-align:right;color:var(--err)">${m.expenses ? '− ' + money(m.expenses) : '<span class="muted">—</span>'}</td>
       <td class="price col-net" style="text-align:right;font-size:15px;color:${m.net_net < 0 ? 'var(--err)' : 'var(--ok)'}">${m.net_net < 0 ? '− ' + money(-m.net_net) : money(m.net_net)}</td>
@@ -2483,7 +2777,7 @@ function renderResultsChart() {
   $('rsChart').querySelectorAll('.rs-bar').forEach(g => {
     g.addEventListener('mousemove', (e) => {
       const m = rsData.history.find(x => x.month === g.dataset.rsMonth); const tip = $('rsTip');
-      tip.innerHTML = `<b>${rsName(m.month)}</b><div>Neto neto <b>${m.net_net < 0 ? '− ' + money(-m.net_net) : money(m.net_net)}</b></div><div class="muted">Ganancia ventas ${money(m.profit)} · Gastos ${money(m.expenses)}</div><div class="muted">Facturado ${money(m.ml.gross + m.web.gross)}</div>`;
+      tip.innerHTML = `<b>${rsName(m.month)}</b><div>Neto neto <b>${m.net_net < 0 ? '− ' + money(-m.net_net) : money(m.net_net)}</b></div><div class="muted">Ganancia ventas ${money(m.profit)} · Gastos ${money(m.expenses)}</div><div class="muted">Facturado ${money(m.ml.gross + m.web.gross + ((m.quotes || {}).gross || 0) + ((m.tuyo || {}).gross || 0))}</div>`;
       const r = $('rsChart').getBoundingClientRect(); tip.hidden = false;
       tip.style.left = Math.min(r.width - 230, Math.max(0, e.clientX - r.left + 12)) + 'px'; tip.style.top = Math.max(0, e.clientY - r.top - 20) + 'px';
     });
@@ -2508,8 +2802,8 @@ $('rsNext').onclick = () => { rsMonth = rsShift(rsMonth, 1); loadResults(); };
 $('rsMonth').onclick = () => { rsMonth = ymd(new Date()).slice(0, 7); loadResults(); };
 $('rsCsv').onclick = () => {
   const e = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`, n = (v) => String(Math.round(v || 0));
-  const rows = rsData.history.map(m => [rsName(m.month), n(m.ml.gross_all), n(m.ml.cancelled + m.ml.returned), n(m.ml.fee), n(m.ml.ship), n(m.ml.tax), n(m.ml.cost), n(m.ml.profit), n(m.web.gross), n(m.web.profit), n(m.expenses), n(m.net_net)]);
-  const csv = ['Mes;Ventas brutas ML;Canceladas y devueltas;Comisiones ML;Envíos;Impuestos ML;Mercadería ML;Ganancia ML;Ventas web;Ganancia web;Gastos del local;Neto neto'].concat(rows.map(r => r.map(e).join(';'))).join('\r\n');
+  const rows = rsData.history.map(m => [rsName(m.month), n(m.ml.gross_all), n(m.ml.cancelled + m.ml.returned), n(m.ml.fee), n(m.ml.ship), n(m.ml.tax), n(m.ml.cost), n(m.ml.profit), n((m.tuyo || {}).gross), n((m.tuyo || {}).cost), n((m.tuyo || {}).profit), n(m.web.gross), n(m.web.profit), ...['lara', 'whatsapp', 'local', 'mail', 'instagram', ''].map(k => n((((m.quotes || {}).by || []).find(g => g.key === k) || {}).gross)), n((m.quotes || {}).gross), n((m.quotes || {}).profit), n(m.expenses), n(m.net_net)]);
+  const csv = ['Mes;Ventas brutas ML;Canceladas y devueltas;Comisiones ML;Envíos;Impuestos ML;Mercadería ML;Ganancia ML;Ventas TUYO;Costo Amazon TUYO;Ganancia TUYO;Ventas web;Ganancia web;Recibos Pacientes de Lara;Recibos WhatsApp;Recibos Local;Recibos Mail;Recibos Instagram;Recibos sin origen;Recibos total;Ganancia recibos;Gastos del local;Neto neto'].concat(rows.map(r => r.map(e).join(';'))).join('\r\n');
   const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob(['﻿' + csv], { type: 'text/csv' })); a.download = `resultado-${rsMonth}.csv`; document.body.appendChild(a); a.click(); a.remove();
 };
 
