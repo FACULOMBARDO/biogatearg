@@ -152,7 +152,7 @@
       <span id="stageInfo" class="muted" style="font-size:12.5px"></span>
     </div>
     <div class="row" style="margin-top:10px">
-      <select id="sAccount"><option value="">Todas las cuentas</option></select>
+      <details class="acc-pick" id="sAccBox"><summary id="sAccSum">Todas las cuentas</summary><div class="acc-pop"><div class="row" style="gap:6px;margin-bottom:6px;flex-wrap:wrap"><button class="btn small" data-accq="all">Todas</button><button class="btn small" data-accq="notuyo" id="sAccNoTuyo" hidden>Todas menos TUYO</button><button class="btn small" data-accq="none">Ninguna</button></div><div id="sAccList"></div></div></details>
       <select id="sShip"><option value="">Todos los envíos</option><option value="full">Solo Full</option><option value="flex">Solo Flex</option><option value="other">Mercado Envíos (otros)</option></select>
       <label class="muted" style="font-size:13px"><input type="checkbox" id="sCancelled"> mostrar canceladas</label>
       <input type="search" id="sQ" placeholder="Buscar producto, venta, comprador…" style="flex:1;min-width:180px;max-width:320px">
@@ -1478,7 +1478,7 @@ function setPeriod(mode) { sMode = mode; paintPeriod(); loadSales(); }
 const pct = (a, b) => (b ? Math.round(a / b * 1000) / 10 + '%' : '—');
 async function loadSales() {
   const [from, to] = salesRange();
-  const qs = new URLSearchParams({ from, to, account: $('sAccount').value });
+  const qs = new URLSearchParams({ from, to, account: sAccVal() });
   $('sCsv').href = '/sales.csv?' + qs + (sStage ? '&stage=' + sStage : '');
   const r = await fetch('/api/sales?' + qs);
   if (r.status === 401) return (location.href = '/login');
@@ -1488,15 +1488,15 @@ async function loadSales() {
 }
 // Revisa en Mercado Libre el estado de las ventas no entregadas (como mucho cada 2 minutos por período).
 async function refreshStatuses(from, to) {
-  const k = from + to + $('sAccount').value;
+  const k = from + to + sAccVal();
   if (lastStatusCheck[k] && Date.now() - lastStatusCheck[k] < 120000) return;
   lastStatusCheck[k] = Date.now();
   $('stageInfo').textContent = 'actualizando estados de envío…';
   try {
-    const r = await fetch('/api/sales/refresh-status', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ from, to, account: $('sAccount').value }) });
+    const r = await fetch('/api/sales/refresh-status', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ from, to, account: sAccVal() }) });
     const d = await r.json();
     $('stageInfo').textContent = d.busy ? '' : `estados actualizados ${new Date().toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}`;
-    if (d.updated) { const q = new URLSearchParams({ from, to, account: $('sAccount').value }); salesList = await (await fetch('/api/sales?' + q)).json(); renderSales(); }
+    if (d.updated) { const q = new URLSearchParams({ from, to, account: sAccVal() }); salesList = await (await fetch('/api/sales?' + q)).json(); renderSales(); }
   } catch { $('stageInfo').textContent = ''; }
 }
 const STAGES = { to_ship: ['Por enviar', '#f59e0b'], in_transit: ['En camino', '#3b82f6'], delivered: ['Entregada', '#16a34a'] };
@@ -1686,7 +1686,7 @@ async function pollSales() {
 }
 $('sFetch').onclick = async () => {
   const [from, to] = salesRange();
-  const r = await fetch('/api/sales/import', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ from, to, account: $('sAccount').value, refresh: $('sRefresh').checked }) });
+  const r = await fetch('/api/sales/import', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ from, to, account: sAccVal(), refresh: $('sRefresh').checked }) });
   const d = await r.json().catch(() => ({}));
   if (!r.ok || !d.ok) { $('sStatus').innerHTML = `<span class="err-t">${esc(d.error || 'No se pudo empezar.')}</span>`; return; }
   if (!salesTimer) pollSales();
@@ -1695,18 +1695,33 @@ document.querySelectorAll('#sPeriods [data-p]').forEach(b => b.onclick = () => s
 $('mPrev').onclick = () => { monthCur = new Date(monthCur.getFullYear(), monthCur.getMonth() - 1, 1); setPeriod('month'); };
 $('mNext').onclick = () => { monthCur = new Date(monthCur.getFullYear(), monthCur.getMonth() + 1, 1); setPeriod('month'); };
 $('rangeToggle').onclick = (e) => { e.preventDefault(); if (!$('sFrom').value) { const [f, t] = salesRange(); $('sFrom').value = f; $('sTo').value = t; } setPeriod('range'); };
-['sFrom', 'sTo', 'sAccount'].forEach(id => $(id).onchange = loadSales);
+['sFrom', 'sTo'].forEach(id => $(id).onchange = loadSales);
 paintPeriod();
 $('sCancelled').onchange = renderSales;
 document.querySelectorAll('#sStages [data-stage]').forEach(b => b.onclick = () => {
   sStage = b.dataset.stage;
   const [from, to] = salesRange();
-  $('sCsv').href = '/sales.csv?' + new URLSearchParams({ from, to, account: $('sAccount').value }) + (sStage ? '&stage=' + sStage : '');
+  $('sCsv').href = '/sales.csv?' + new URLSearchParams({ from, to, account: sAccVal() }) + (sStage ? '&stage=' + sStage : '');
   renderSales();
 });
 $('sQ').oninput = renderSales;
 $('sShip').onchange = renderSales;
-fetch('/api/accounts').then(r => r.json()).then(a => { $('sAccount').innerHTML = '<option value="">Todas las cuentas</option>' + a.map(x => `<option value="${esc(x.user_id)}">${esc(x.nickname || x.user_id)}</option>`).join(''); }).catch(() => {});
+// Cuentas a mostrar y a traer (se pueden elegir varias; queda guardado).
+let sAccAll = [], sAccSel = null;
+try { const v = JSON.parse(localStorage.getItem('s_accounts') || 'null'); if (Array.isArray(v)) sAccSel = v; } catch { /* sin memoria */ }
+function sAccVal() { if (!sAccAll.length || !sAccSel) return ''; const ids = sAccAll.map(x => x.user_id).filter(id => sAccSel.includes(id)); return ids.length === sAccAll.length ? '' : (ids.join(',') || 'ninguna'); }
+function sAccUi() {
+  const sel = sAccSel || sAccAll.map(x => x.user_id);
+  $('sAccList').innerHTML = sAccAll.map(x => `<label class="acc-opt"><input type="checkbox" data-acc="${esc(x.user_id)}"${sel.includes(x.user_id) ? ' checked' : ''}> ${esc(x.nickname || x.user_id)}${x.tuyo ? ' <span class="pill" style="color:var(--brand);border-color:var(--brand)">TUYO</span>' : ''}</label>`).join('');
+  const on = sAccAll.filter(x => sel.includes(x.user_id));
+  $('sAccSum').textContent = on.length === sAccAll.length ? 'Todas las cuentas' : !on.length ? 'Ninguna cuenta' : on.length <= 2 ? on.map(x => x.nickname || x.user_id).join(' + ') : `${on.length} de ${sAccAll.length} cuentas`;
+  $('sAccNoTuyo').hidden = !sAccAll.some(x => x.tuyo);
+}
+function sAccSet(ids) { sAccSel = ids; try { localStorage.setItem('s_accounts', JSON.stringify(ids)); } catch { /* nada */ } sAccUi(); loadSales(); }
+$('sAccList').addEventListener('change', () => sAccSet([...$('sAccList').querySelectorAll('[data-acc]:checked')].map(i => i.dataset.acc)));
+$('sAccBox').addEventListener('click', (e) => { const b = e.target.closest('[data-accq]'); if (!b) return; e.preventDefault(); const q = b.dataset.accq; sAccSet(q === 'all' ? sAccAll.map(x => x.user_id) : q === 'none' ? [] : sAccAll.filter(x => !x.tuyo).map(x => x.user_id)); });
+document.addEventListener('click', (e) => { if (!e.target.closest('#sAccBox')) $('sAccBox').open = false; });
+fetch('/api/accounts').then(r => r.json()).then(a => { sAccAll = a; if (sAccSel) sAccSel = sAccSel.filter(id => a.some(x => x.user_id === id)).concat(a.filter(x => !(JSON.parse(localStorage.getItem('s_accounts_known') || '[]')).includes(x.user_id) && !sAccSel.includes(x.user_id)).map(x => x.user_id)); try { localStorage.setItem('s_accounts_known', JSON.stringify(a.map(x => x.user_id))); } catch { /* nada */ } sAccUi(); if (sAccSel) loadSales(); }).catch(() => {});
 
 fetch('/api/settings').then(r => r.json()).then(st => { taxPctSetting = st.tax_pct; }).catch(() => {});
 // ---------- Ranking de ventas por SKU ----------

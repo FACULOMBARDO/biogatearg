@@ -463,3 +463,11 @@ button.un-chip { font: inherit; font-size: 13.5px; color: var(--text); }
 @media (max-width: 1100px) { .tu-grid { grid-template-columns: 1fr; } }
 .rs-head { font-weight: 800; font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--brand); padding: 16px 0 2px; border-bottom: 2px solid var(--brand-2); }
 .rs-head:first-child { padding-top: 0; }
+/* Elegir cuentas */
+.acc-pick { position: relative; }
+.acc-pick > summary { list-style: none; cursor: pointer; padding: 10px 34px 10px 14px; border: 1px solid var(--line); border-radius: 10px; background: var(--card); min-width: 190px; white-space: nowrap; position: relative; }
+.acc-pick > summary::-webkit-details-marker { display: none; }
+.acc-pick > summary::after { content: '▾'; position: absolute; right: 12px; top: 50%; transform: translateY(-50%); color: var(--muted); }
+.acc-pop { position: absolute; z-index: 30; top: calc(100% + 6px); left: 0; min-width: 260px; background: var(--card); border: 1px solid var(--line); border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,.15); padding: 10px; }
+.acc-opt { display: flex; align-items: center; gap: 8px; padding: 6px 4px; border-radius: 8px; cursor: pointer; }
+.acc-opt:hover { background: var(--card-2); }

@@ -227,6 +227,9 @@ Si la web no deja leer la lista de productos, en "Configurar web" cargá una cla
 ### Recibos en el Resultado del mes
 En **📊 Resultado del mes** se suman los presupuestos **confirmados** del mes (por su fecha), separados por origen. En **Presupuestos**, cada uno tiene el botón **✅ Confirmado / ⏳ Sin confirmar**: los nuevos arrancan sin confirmar y los tocás cuando se venden (los anteriores a este cambio quedaron confirmados). Los sin confirmar aparecen como aviso, sin sumar. Se separan por origen: **Pacientes de Lara**, **WhatsApp**, **Local** (y Mail, Instagram o "Sin origen" si hay). La ganancia se calcula igual que la web: total − impuestos (23%) − costo de mercadería de la lista de precios. Entran en el NETO NETO, en el histórico y en el Excel del resultado.
 
+### Elegir qué cuentas ver y traer (Ventas)
+En **Ventas**, la lista **Todas las cuentas** se abre y tiene una casilla por cuenta: tildá solo las que querés ver. **Traer ventas de este período** trae solo esas. Atajos: **Todas**, **Todas menos TUYO** y **Ninguna**. La elección queda guardada.
+
 ### 🛒 TUYO (productos de Amazon)
 Cuenta de Mercado Libre con productos comprados en Amazon: sus ventas se traen igual que las demás, pero el costo no sale de la lista de precios.
 1. Conectá la cuenta nueva (en TUYO → **Copiar link de invitación**, abrilo en incógnito y autorizá con esa cuenta).
