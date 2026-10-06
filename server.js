@@ -32,6 +32,7 @@ const woo = require('./lib/woo');
 const insights = require('./lib/insights');
 const manuals = require('./lib/manuals');
 const deliveries = require('./lib/deliveries');
+const tuyo = require('./lib/tuyo');
 
 const MISSING = ['ML_CLIENT_ID', 'ML_CLIENT_SECRET', 'BASE_URL', 'ADMIN_PASSWORD'].filter(k => !process.env[k]);
 if (onVercel && !store.REMOTE) MISSING.push('KV_REST_API_URL / KV_REST_API_TOKEN (conectá la base Upstash Redis al proyecto)');
@@ -71,7 +72,10 @@ app.use(express.json({ limit: '15mb' }));
 // Agrega zona y costo de envío a cada registro (se calcula al momento, así un cambio de precios se refleja en todo).
 // Mensaje de bienvenida sugerido (editable en Configuración). {nombre} = nombre del comprador.
 // Versión completa para WhatsApp (sin el límite de 350 caracteres de Mercado Libre).
-const DEFAULT_WA_WELCOME = "Hola {nombre}! Te hablo de Biogate 💜⚡\n\n📦 Tu compra realizada por Mercado Libre ya está siendo embalada para despacharse hoy.\n\nTe llega entre 15hs y 22hs de hoy.\n\nSi deseas realizar un cambio o agregar artículos, podés avisarnos!!\n\n📲 ¡Agendanos en tus contactos! Así vas a poder ver todas las promos, descuentos y novedades exclusivas que subimos todos los días a nuestros estados de WhatsApp. 👀🔥\n\n🎺 Además, en tu primera compra por este medio recibís un 10% de descuento.\n\n📍 Estamos en Gral. Jose Gervasio Artigas 5767, Villa Pueyrredón, con más de 300 artículos disponibles.\n\n🌐 Web: www.biogate.com.ar\n\n📸 Instagram: @biogate.arg\n\n¡Gracias por tu compra! 💜⚡";
+const DEFAULT_WA_WELCOME = "Hola {nombre}! Te hablo de Biogate\n\nTu compra realizada por Mercado Libre ya está siendo embalada para despacharse hoy.\n\nTe llega entre 15hs y 22hs de hoy.\n\nSi deseas realizar un cambio o agregar artículos, podés avisarnos!!\n\n¡Agendanos en tus contactos! Así vas a poder ver todas las promos, descuentos y novedades exclusivas que subimos todos los días a nuestros estados de WhatsApp.\n\nAdemás, en tu primera compra por este medio recibís un 10% de descuento.\n\nEstamos en Gral. Jose Gervasio Artigas 5767, Villa Pueyrredón, con más de 300 artículos disponibles.\n\nWeb: www.biogate.com.ar\n\nInstagram: @biogate.arg\n\n¡Gracias por tu compra!";
+// Mensaje nuevo sin emojis (oct 2026): reemplaza una sola vez el que estaba guardado.
+const WA_WELCOME_VERSION = 2;
+function waWelcomeUpgrade() { const st = store.getSettings(); if ((st.wa_welcome_v || 1) < WA_WELCOME_VERSION) store.saveSettings({ wa_welcome: DEFAULT_WA_WELCOME, wa_welcome_v: WA_WELCOME_VERSION }); }
 const DEFAULT_WELCOME = '¡Hola, {nombre}! Soy Facundo, de Biogate. Recibimos tu compra correctamente y ya la estamos preparando para que te llegue cuanto antes y en perfectas condiciones. Si tenés alguna duda, escribinos por acá: estamos para ayudarte. Te invitamos a conocer nuestros productos para el cuidado de tu salud. ¡Quedo a tu disposición! Saludos.';
 const withZone = (s) => ({ ...s, ...zones.zoneFor(s, store.getSettings()) });
 app.use(express.urlencoded({ extended: false }));
@@ -256,6 +260,7 @@ app.put('/api/woo/orders/:id/ship', (req, res) => { try { const sh = deliveries.
 
 // Zonas y precios
 app.get('/api/settings', (req, res) => {
+  waWelcomeUpgrade();
   const st = store.getSettings();
   res.json({ costs_sheet_url: st.costs_sheet_url || costs.DEFAULT_SHEET_URL, tax_pct: st.tax_pct ?? sales.DEFAULT_TAX_PCT, prices: { ...zones.DEFAULT_PRICES, ...(st.prices || {}) }, zones: zones.ZONES, has_logo: hasLogo(), welcome: st.welcome || DEFAULT_WELCOME, wa_welcome: st.wa_welcome || DEFAULT_WA_WELCOME, max_msg: ml.MAX_MSG, blob_uploads: files.BLOB });
 });
@@ -795,6 +800,34 @@ app.post('/api/woo/settings', (req, res) => {
   store.saveSettings({ web_fee_pct: Math.round(v * 100) / 100 }); res.json({ ok: true });
 });
 
+// ---------- TUYO (cuenta con productos de Amazon) ----------
+app.get('/api/tuyo', (req, res) => {
+  const c = tuyo.cfg();
+  const ym = /^\d{4}-\d{2}$/.test(req.query.month || '') ? req.query.month : new Date(Date.now() - 3 * 3600e3).toISOString().slice(0, 7);
+  const accounts = store.getAccounts().map(a => ({ user_id: a.user_id, nickname: a.nickname || a.user_id }));
+  if (!c.account_id) return res.json({ cfg: { account_id: '', kg_usd: c.kg_usd, tc: c.tc }, accounts, month: ym, products: [], summary: null });
+  // Publicaciones vendidas por la cuenta TUYO (todas las ventas guardadas), con lo vendido en el mes elegido.
+  const prods = {};
+  for (const raw of store.getSales(null, null, c.account_id)) {
+    const s = sales.enrich(raw);
+    const inMonth = String(new Date(new Date(s.date) - 3 * 3600e3).toISOString()).startsWith(ym);
+    for (const i of s.items || []) {
+      const k = i.item_id || ('T:' + i.title);
+      const p = prods[k] || (prods[k] = { item_id: i.item_id || '', title: i.title, sku: i.sku || '', thumb: i.thumb || '', units: 0, units_month: 0, last_price: 0, last_date: '' });
+      if (s.cancelled) continue;
+      p.units += i.qty || 1;
+      if (inMonth) p.units_month += i.qty || 1;
+      if (!p.last_date || s.date > p.last_date) { p.last_date = s.date; p.last_price = i.unit_price || (s.gross / Math.max(1, s.qty || 1)); p.title = i.title || p.title; }
+    }
+  }
+  const products = Object.values(prods).map(p => ({ ...p, cost_in: c.items[p.item_id] || null, cost: tuyo.calc(c.items[p.item_id], c) }))
+    .sort((a, b) => b.units_month - a.units_month || b.units - a.units);
+  const sum = insights.monthSummary(ym).tuyo;
+  res.json({ cfg: { account_id: c.account_id, kg_usd: c.kg_usd, tc: c.tc }, accounts, month: ym, products, summary: sum });
+});
+app.put('/api/tuyo/config', (req, res) => { try { const c = tuyo.saveConfig(req.body || {}); res.json({ ok: true, cfg: { account_id: c.account_id, kg_usd: c.kg_usd, tc: c.tc } }); } catch (e) { res.status(400).json({ ok: false, error: e.message }); } });
+app.put('/api/tuyo/item/:id', (req, res) => { try { res.json({ ok: true, ...tuyo.saveItem(req.params.id, req.body || {}) }); } catch (e) { res.status(400).json({ ok: false, error: e.message }); } });
+
 // ---------- Gastos del local ----------
 const EXP_METHODS = ['Efectivo', 'Transferencia', 'Débito', 'Crédito', 'Mercado Pago', 'Cheque', 'Otro'];
 const validMonth = (m) => /^\d{4}-\d{2}$/.test(String(m || ''));
@@ -833,6 +866,29 @@ app.post('/api/expenses', (req, res) => {
   } catch (err) { res.status(400).json({ ok: false, error: err.message }); }
 });
 app.delete('/api/expenses/:id', (req, res) => { store.deleteExpense(req.params.id); res.json({ ok: true }); });
+// Importar gastos desde un Excel (el navegador lee la planilla y manda las filas ya ordenadas).
+app.post('/api/expenses/import', (req, res) => {
+  const rows = Array.isArray(req.body.rows) ? req.body.rows.slice(0, 5000) : [];
+  if (!rows.length) return res.status(400).json({ ok: false, error: 'La planilla no tiene gastos para importar.' });
+  const skipDupes = req.body.skip_dupes !== false;
+  const norm = (e) => `${e.date}|${String(e.category).toLowerCase()}|${Math.round(e.amount * 100)}`;
+  const seen = new Set(store.getExpenses().map(norm));
+  const now = new Date().toISOString(), add = [], errors = [];
+  let dupes = 0;
+  rows.forEach((r, i) => {
+    try {
+      const e = cleanExpense(r || {});
+      const plain = (x) => x.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim(); const m = EXP_METHODS.find(x => plain(x) === plain(e.method)); if (m) e.method = m;
+      const k = norm(e);
+      if (skipDupes && seen.has(k)) { dupes++; return; }
+      seen.add(k);
+      add.push({ id: crypto.randomBytes(6).toString('hex'), ...e, imported: true, created_at: now });
+    } catch (err) { errors.push({ row: Number(r && r._row) || i + 1, error: err.message }); }
+  });
+  if (add.length) store.addExpenses(add);
+  const months = [...new Set(add.map(e => e.date.slice(0, 7)))].sort();
+  res.json({ ok: true, added: add.length, total: Math.round(add.reduce((t, e) => t + e.amount, 0) * 100) / 100, dupes, errors: errors.slice(0, 50), error_count: errors.length, months });
+});
 // Copia los gastos marcados como "fijo" del mes anterior (una sola vez cada uno).
 app.post('/api/expenses/copy-fixed', (req, res) => {
   const m = String(req.body.month || '');
@@ -935,6 +991,7 @@ app.put('/api/quotes/:id/meta', (req, res) => {
   if (!q) return res.status(404).json({ ok: false, error: 'No encontré ese presupuesto.' });
   const upd = { id: q.id };
   if (req.body.channel !== undefined) upd.channel = Q_CHANNELS[req.body.channel] ? req.body.channel : '';
+  if (req.body.confirmed !== undefined) { upd.confirmed = !!req.body.confirmed; upd.confirmed_at = upd.confirmed ? new Date().toISOString() : null; }
   if (req.body.delivery !== undefined) {
     upd.delivery = Q_DELIVERY[req.body.delivery] ? req.body.delivery : '';
     if (upd.delivery !== 'envio' && q.ship && q.ship.on) upd.ship = { ...q.ship, on: false };   // deja de sumar en Envíos Flex
@@ -962,6 +1019,9 @@ app.post('/api/quotes', (req, res) => {
     file_name: `Recibo - ${client}.pdf`.replace(/[\\/:*?"<>|]/g, ''),
   };
   if (b.channel !== undefined) data.channel = Q_CHANNELS[b.channel] ? b.channel : '';
+  // Los nuevos arrancan sin confirmar; se confirman desde la lista cuando se venden.
+  if (typeof b.confirmed === 'boolean') { data.confirmed = b.confirmed; data.confirmed_at = b.confirmed ? (q?.confirmed_at || new Date().toISOString()) : null; }
+  else if (!q) data.confirmed = false;
   if (b.delivery !== undefined) data.delivery = Q_DELIVERY[b.delivery] ? b.delivery : '';
   if (q && data.delivery !== undefined && data.delivery !== 'envio' && q.ship && q.ship.on) data.ship = { ...q.ship, on: false };
   res.json({ ok: true, quote: store.saveQuote(data) });
