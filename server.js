@@ -213,7 +213,7 @@ app.use('/api', (req, res, next) => { if (onVercel) autoTasks(); next(); });
 // ---------- API ----------
 app.get('/api/invite', (req, res) => res.json({ url: `${process.env.BASE_URL.replace(/\/$/, '')}/vincular/${INVITE}` }));
 app.get('/api/accounts', (req, res) => {
-  res.json(store.getAccounts().map(a => ({ user_id: a.user_id, nickname: a.nickname || '', connected_at: a.connected_at, needs_reconnect: !!a.needs_reconnect || !a.refresh_token, reconnect_reason: a.reconnect_reason || (!a.refresh_token ? 'Esta cuenta se conectó sin "refresh token": activá "Refresh Token" en tu aplicación y volvé a conectarla.' : '') })));
+  res.json(store.getAccounts().map(a => ({ user_id: a.user_id, nickname: a.nickname || '', tuyo: tuyo.isTuyo(a.user_id), connected_at: a.connected_at, needs_reconnect: !!a.needs_reconnect || !a.refresh_token, reconnect_reason: a.reconnect_reason || (!a.refresh_token ? 'Esta cuenta se conectó sin "refresh token": activá "Refresh Token" en tu aplicación y volvé a conectarla.' : '') })));
 });
 app.delete('/api/accounts/:id', (req, res) => { store.removeAccount(req.params.id); res.json({ ok: true }); });
 
@@ -473,7 +473,8 @@ app.post('/api/sales/import', (req, res) => {
   store.saveJobs({ sales_resume: null });
   const { from, to } = req.body;
   if (!validDate(from) || !validDate(to) || from > to) return res.status(400).json({ ok: false, error: 'Elegí un rango de fechas válido.' });
-  const accs = store.getAccounts().filter(a => !req.body.account || a.user_id === String(req.body.account));
+  const want = req.body.account ? String(req.body.account).split(',').filter(Boolean) : null; // una o varias cuentas
+  const accs = store.getAccounts().filter(a => !want || want.includes(a.user_id));
   if (!accs.length) return res.status(400).json({ ok: false, error: 'No hay cuentas conectadas.' });
   startSalesImport({ from, to, accs, refresh: !!req.body.refresh });
   res.json({ ok: true });
@@ -614,7 +615,7 @@ app.get('/api/clips', (req, res) => {
 });
 
 // ---------- Resultado del mes ----------
-app.get('/api/results', (req, res) => res.json(insights.results(req.query.month, Math.min(24, Math.max(3, Number(req.query.months) || 12)))));
+app.get('/api/results', (req, res) => res.json(insights.results(req.query.month, Math.min(24, Math.max(3, Number(req.query.months) || 12)), { accounts: String(req.query.accounts || ''), web: req.query.web !== '0', quotes: req.query.quotes !== '0' })));
 app.post('/api/results/fetch-month', (req, res) => {
   const m = String(req.body.month || '');
   if (!/^\d{4}-\d{2}$/.test(m)) return res.status(400).json({ ok: false, error: 'Mes inválido.' });
