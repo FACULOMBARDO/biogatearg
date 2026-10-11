@@ -152,7 +152,7 @@
       <span id="stageInfo" class="muted" style="font-size:12.5px"></span>
     </div>
     <div class="row" style="margin-top:10px">
-      <select id="sAccount"><option value="">Todas las cuentas</option></select>
+      <details class="acc-pick" id="sAccBox"></details>
       <select id="sShip"><option value="">Todos los envíos</option><option value="full">Solo Full</option><option value="flex">Solo Flex</option><option value="other">Mercado Envíos (otros)</option></select>
       <label class="muted" style="font-size:13px"><input type="checkbox" id="sCancelled"> mostrar canceladas</label>
       <input type="search" id="sQ" placeholder="Buscar producto, venta, comprador…" style="flex:1;min-width:180px;max-width:320px">
@@ -169,6 +169,7 @@
     </div>
   </div>
   <div class="stats" id="sStats"></div>
+  <div class="card" id="sByAcc" hidden></div>
   <div id="sNote"></div>
   <div class="card" style="padding:0">
     <div class="table-wrap">
@@ -349,7 +350,9 @@
   <div class="row" style="justify-content:space-between;margin-bottom:12px">
     <h1 class="page-title">Resultado del mes</h1>
     <div class="row">
+      <details class="acc-pick" id="rsAccBox"></details>
       <div class="seg"><button id="rsPrev" title="Mes anterior">‹</button><button id="rsMonth" class="on" style="min-width:150px"></button><button id="rsNext" title="Mes siguiente">›</button></div>
+      <button class="btn" id="rsPdf" title="Informe del mes para imprimir o mandar">📄 Informe PDF</button>
       <button class="btn" id="rsCsv">Descargar Excel</button>
       <button class="btn primary" id="rsHistory" title="Baja las ventas de los últimos 12 meses de todas las cuentas (una sola vez)">Traer historial de 12 meses</button>
     </div>
@@ -368,7 +371,7 @@
     <div id="rsChart" class="rs-chart"></div>
   </div>
   <div class="card" style="padding:0"><div class="table-wrap"><table class="sales-table rs-table">
-    <thead><tr><th>Mes</th><th style="text-align:right">Ventas brutas ML</th><th style="text-align:right">Canceladas y devueltas</th><th style="text-align:right">TUYO</th><th style="text-align:right">Ventas web</th><th style="text-align:right">Recibos</th><th style="text-align:right">Comisiones</th><th style="text-align:right">Envíos</th><th style="text-align:right">Impuestos</th><th style="text-align:right">Mercadería</th><th style="text-align:right">Ganancia ventas</th><th style="text-align:right">Gastos del local</th><th style="text-align:right" class="col-net">Neto neto</th><th style="text-align:right">vs mes anterior</th></tr></thead>
+    <thead><tr><th>Mes</th><th style="text-align:right">Ventas brutas ML</th><th style="text-align:right">Canceladas y devueltas</th><th style="text-align:right">Ventas web</th><th style="text-align:right">Recibos</th><th style="text-align:right">Comisiones</th><th style="text-align:right">Envíos</th><th style="text-align:right">Impuestos</th><th style="text-align:right">Mercadería</th><th style="text-align:right">Ganancia ventas</th><th style="text-align:right">Gastos del local</th><th style="text-align:right" class="col-net">Neto neto</th><th style="text-align:right">vs mes anterior</th></tr></thead>
     <tbody id="rsRows"></tbody>
   </table></div></div>
   <div class="card">
@@ -1478,7 +1481,7 @@ function setPeriod(mode) { sMode = mode; paintPeriod(); loadSales(); }
 const pct = (a, b) => (b ? Math.round(a / b * 1000) / 10 + '%' : '—');
 async function loadSales() {
   const [from, to] = salesRange();
-  const qs = new URLSearchParams({ from, to, account: $('sAccount').value });
+  const qs = new URLSearchParams({ from, to, account: sAccVal() });
   $('sCsv').href = '/sales.csv?' + qs + (sStage ? '&stage=' + sStage : '');
   const r = await fetch('/api/sales?' + qs);
   if (r.status === 401) return (location.href = '/login');
@@ -1488,15 +1491,15 @@ async function loadSales() {
 }
 // Revisa en Mercado Libre el estado de las ventas no entregadas (como mucho cada 2 minutos por período).
 async function refreshStatuses(from, to) {
-  const k = from + to + $('sAccount').value;
+  const k = from + to + sAccVal();
   if (lastStatusCheck[k] && Date.now() - lastStatusCheck[k] < 120000) return;
   lastStatusCheck[k] = Date.now();
   $('stageInfo').textContent = 'actualizando estados de envío…';
   try {
-    const r = await fetch('/api/sales/refresh-status', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ from, to, account: $('sAccount').value }) });
+    const r = await fetch('/api/sales/refresh-status', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ from, to, account: sAccVal() }) });
     const d = await r.json();
     $('stageInfo').textContent = d.busy ? '' : `estados actualizados ${new Date().toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}`;
-    if (d.updated) { const q = new URLSearchParams({ from, to, account: $('sAccount').value }); salesList = await (await fetch('/api/sales?' + q)).json(); renderSales(); }
+    if (d.updated) { const q = new URLSearchParams({ from, to, account: sAccVal() }); salesList = await (await fetch('/api/sales?' + q)).json(); renderSales(); }
   } catch { $('stageInfo').textContent = ''; }
 }
 const STAGES = { to_ship: ['Por enviar', '#f59e0b'], in_transit: ['En camino', '#3b82f6'], delivered: ['Entregada', '#16a34a'] };
@@ -1570,6 +1573,13 @@ function renderSales() {
     `<div class="stat"><div class="k">Canceladas y devueltas</div><div class="v" style="color:${cancAmt + retAmt ? 'var(--err)' : 'inherit'}">${cancAmt + retAmt ? '− ' : ''}${money(cancAmt + retAmt)}</div><div class="sub">${canc.length} cancelada${canc.length === 1 ? '' : 's'} ${money(cancAmt)} · ${ret.length} devuelta${ret.length === 1 ? '' : 's'} ${money(retAmt)}</div></div>`,
     `<div class="stat"><div class="k">Unidades vendidas</div><div class="v">${units}</div><div class="sub">${ok.length} ventas · según ML: ${mlUnits} unidades</div></div>`,
   ].join('');
+  // Cuánto vendió cada cuenta (en el período y con los filtros elegidos).
+  { const by = {};
+    for (const s of all) { const k = s.account_id; const g = by[k] || (by[k] = { name: s.account_nickname || k, n: 0, u: 0, gross: 0, net: 0, nac: 0, noCost: 0, canc: 0, tuyo: s.tuyo }); if (s.cancelled) { g.canc++; continue; } g.n++; g.u += s.qty || 0; g.gross += s.gross || 0; g.net += s.net || 0; if (s.net_after_cost === null) g.noCost++; else g.nac += s.net_after_cost; }
+    const rows = Object.values(by).sort((a, b) => b.gross - a.gross), totG = rows.reduce((t, r) => t + r.gross, 0);
+    $('sByAcc').hidden = rows.length < 2;
+    $('sByAcc').innerHTML = rows.length < 2 ? '' : `<div class="k-title" style="margin-bottom:8px">Ventas por cuenta</div><div class="table-wrap"><table class="tbl"><thead><tr><th>Cuenta</th><th style="text-align:right">Ventas</th><th style="text-align:right">Unidades</th><th style="text-align:right">Facturado</th><th style="text-align:right">% del total</th><th style="text-align:right">Neto</th><th style="text-align:right">Neto después de costos</th><th style="text-align:right">Canceladas</th></tr></thead><tbody>${rows.map(r => `<tr><td><b>${esc(r.name)}</b>${r.tuyo ? ' <span class="pill" style="color:var(--brand);border-color:var(--brand)">TUYO</span>' : ''}</td><td style="text-align:right">${r.n}</td><td style="text-align:right">${r.u}</td><td class="price" style="text-align:right">${money(r.gross)}</td><td style="text-align:right">${totG ? Math.round(r.gross / totG * 100) : 0}%</td><td class="price" style="text-align:right">${money(r.net)}</td><td class="price" style="text-align:right;color:${r.nac < 0 ? 'var(--err)' : 'var(--ok)'}">${money(r.nac)}${r.noCost ? `<div class="muted" style="font-size:11.5px;font-weight:400">${r.noCost} sin costo</div>` : ''}</td><td style="text-align:right">${r.canc || '—'}</td></tr>`).join('')}<tr style="font-weight:700"><td>Total</td><td style="text-align:right">${rows.reduce((t, r) => t + r.n, 0)}</td><td style="text-align:right">${rows.reduce((t, r) => t + r.u, 0)}</td><td class="price" style="text-align:right">${money(totG)}</td><td style="text-align:right">100%</td><td class="price" style="text-align:right">${money(rows.reduce((t, r) => t + r.net, 0))}</td><td class="price" style="text-align:right">${money(rows.reduce((t, r) => t + r.nac, 0))}</td><td style="text-align:right">${rows.reduce((t, r) => t + r.canc, 0) || '—'}</td></tr></tbody></table></div>`;
+  }
   const missing = [...new Set(ok.filter(s => !s.tuyo).flatMap(s => s.cost_missing || []).filter(Boolean))];
   const tuMissing = ok.filter(s => s.tuyo && s.cost === null).length;
   const noSkuItems = [];
@@ -1686,7 +1696,7 @@ async function pollSales() {
 }
 $('sFetch').onclick = async () => {
   const [from, to] = salesRange();
-  const r = await fetch('/api/sales/import', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ from, to, account: $('sAccount').value, refresh: $('sRefresh').checked }) });
+  const r = await fetch('/api/sales/import', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ from, to, account: sAccVal(), refresh: $('sRefresh').checked }) });
   const d = await r.json().catch(() => ({}));
   if (!r.ok || !d.ok) { $('sStatus').innerHTML = `<span class="err-t">${esc(d.error || 'No se pudo empezar.')}</span>`; return; }
   if (!salesTimer) pollSales();
@@ -1695,18 +1705,64 @@ document.querySelectorAll('#sPeriods [data-p]').forEach(b => b.onclick = () => s
 $('mPrev').onclick = () => { monthCur = new Date(monthCur.getFullYear(), monthCur.getMonth() - 1, 1); setPeriod('month'); };
 $('mNext').onclick = () => { monthCur = new Date(monthCur.getFullYear(), monthCur.getMonth() + 1, 1); setPeriod('month'); };
 $('rangeToggle').onclick = (e) => { e.preventDefault(); if (!$('sFrom').value) { const [f, t] = salesRange(); $('sFrom').value = f; $('sTo').value = t; } setPeriod('range'); };
-['sFrom', 'sTo', 'sAccount'].forEach(id => $(id).onchange = loadSales);
+['sFrom', 'sTo'].forEach(id => $(id).onchange = loadSales);
 paintPeriod();
 $('sCancelled').onchange = renderSales;
 document.querySelectorAll('#sStages [data-stage]').forEach(b => b.onclick = () => {
   sStage = b.dataset.stage;
   const [from, to] = salesRange();
-  $('sCsv').href = '/sales.csv?' + new URLSearchParams({ from, to, account: $('sAccount').value }) + (sStage ? '&stage=' + sStage : '');
+  $('sCsv').href = '/sales.csv?' + new URLSearchParams({ from, to, account: sAccVal() }) + (sStage ? '&stage=' + sStage : '');
   renderSales();
 });
 $('sQ').oninput = renderSales;
 $('sShip').onchange = renderSales;
-fetch('/api/accounts').then(r => r.json()).then(a => { $('sAccount').innerHTML = '<option value="">Todas las cuentas</option>' + a.map(x => `<option value="${esc(x.user_id)}">${esc(x.nickname || x.user_id)}</option>`).join(''); }).catch(() => {});
+// Selector de cuentas (Ventas y Resultado del mes): varias cuentas, atajos y opciones extra. Queda guardado.
+function accPicker({ id, key, extras = [], onChange, skip = null }) {
+  const box = $(id); let all = [], sel = null, ex = {};
+  try { const v = JSON.parse(localStorage.getItem(key) || 'null'); if (Array.isArray(v)) sel = v; else if (v && Array.isArray(v.acc)) { sel = v.acc; ex = v.ex || {}; } } catch { /* sin memoria */ }
+  extras.forEach(x => { if (ex[x.id] === undefined) ex[x.id] = true; });
+  box.innerHTML = `<summary></summary><div class="acc-pop"><div class="row" style="gap:6px;margin-bottom:6px;flex-wrap:wrap"><button class="btn small" data-accq="all">Todas</button><button class="btn small" data-accq="notuyo" hidden>Todas menos TUYO</button><button class="btn small" data-accq="none">Ninguna</button></div><div class="acc-list"></div>${extras.length ? `<div class="acc-extra"><div class="muted" style="font-size:12px;margin:8px 4px 2px">También sumar</div>${extras.map(x => `<label class="acc-opt"><input type="checkbox" data-ex="${x.id}"> ${esc(x.label)}</label>`).join('')}</div>` : ''}</div>`;
+  const ids = () => (sel || all.map(x => x.user_id)).filter(i => all.some(x => x.user_id === i));
+  const save = () => { try { localStorage.setItem(key, JSON.stringify(extras.length ? { acc: sel, ex } : sel)); } catch { /* nada */ } };
+  function ui() {
+    const on = ids();
+    box.querySelector('.acc-list').innerHTML = all.map(x => `<label class="acc-opt"><input type="checkbox" data-acc="${esc(x.user_id)}"${on.includes(x.user_id) ? ' checked' : ''}> ${esc(x.nickname || x.user_id)}${x.tuyo ? ' <span class="pill" style="color:var(--brand);border-color:var(--brand)">TUYO</span>' : ''}</label>`).join('');
+    box.querySelectorAll('[data-ex]').forEach(i => { i.checked = ex[i.dataset.ex] !== false; });
+    const names = all.filter(x => on.includes(x.user_id));
+    let t = names.length === all.length ? 'Todas las cuentas' : !names.length ? 'Ninguna cuenta' : names.length <= 2 ? names.map(x => x.nickname || x.user_id).join(' + ') : `${names.length} de ${all.length} cuentas`;
+    const off = extras.filter(x => ex[x.id] === false).map(x => x.short || x.label);
+    if (off.length) t += ` · sin ${off.join(' ni ')}`;
+    box.querySelector('summary').textContent = t;
+    box.querySelector('[data-accq="notuyo"]').hidden = !all.some(x => x.tuyo);
+  }
+  function set(list) { sel = list; save(); ui(); onChange(); }
+  box.addEventListener('change', (e) => {
+    if (e.target.dataset.ex) { ex[e.target.dataset.ex] = e.target.checked; save(); ui(); onChange(); return; }
+    if (e.target.dataset.acc !== undefined) set([...box.querySelectorAll('[data-acc]:checked')].map(i => i.dataset.acc));
+  });
+  box.addEventListener('click', (e) => { const b = e.target.closest('[data-accq]'); if (!b) return; e.preventDefault(); const q = b.dataset.accq; set(q === 'all' ? all.map(x => x.user_id) : q === 'none' ? [] : all.filter(x => !x.tuyo).map(x => x.user_id)); });
+  document.addEventListener('click', (e) => { if (!e.target.closest('#' + id)) box.open = false; });
+  return {
+    // '' = todas · 'id1,id2' = algunas · 'ninguna'
+    val() { if (!all.length || !sel) return ''; const on = ids(); return on.length === all.length ? '' : (on.join(',') || 'ninguna'); },
+    ex: (k) => ex[k] !== false,
+    setAccounts(a) {
+      const known = (() => { try { return JSON.parse(localStorage.getItem(key + '_known') || '[]'); } catch { return []; } })();
+      all = a;
+      // Por defecto (o cuentas nuevas): tildadas, salvo las que esta sección deja afuera (ej.: TUYO en Resultado del mes).
+      if (!sel && skip && a.some(skip)) { sel = a.filter(x => !skip(x)).map(x => x.user_id); save(); }
+      else if (sel) sel = sel.filter(i => a.some(x => x.user_id === i)).concat(a.filter(x => !known.includes(x.user_id) && !sel.includes(x.user_id) && !(skip && skip(x))).map(x => x.user_id));
+      try { localStorage.setItem(key + '_known', JSON.stringify(a.map(x => x.user_id))); } catch { /* nada */ }
+      ui();
+    },
+    hasSel: () => !!sel || extras.some(x => ex[x.id] === false),
+    loaded: false,
+  };
+}
+const sAcc = accPicker({ id: 'sAccBox', key: 's_accounts', onChange: () => loadSales() });
+const sAccVal = () => sAcc.val();
+const rsAcc = accPicker({ id: 'rsAccBox', key: 'rs_accounts3', extras: [{ id: 'web', label: 'Ventas web', short: 'web' }, { id: 'quotes', label: 'Presupuestos confirmados', short: 'presupuestos' }], onChange: () => { if (!$('viewResults').hidden) loadResults(); } });
+fetch('/api/accounts').then(r => r.json()).then(a => { sAcc.setAccounts(a); rsAcc.setAccounts(a.filter(x => !x.tuyo)); }).catch(() => {}).finally(() => { rsAcc.loaded = true; if (sAcc.hasSel() && !$('viewSales').hidden) loadSales(); if (!$('viewResults').hidden) loadResults(); });
 
 fetch('/api/settings').then(r => r.json()).then(st => { taxPctSetting = st.tax_pct; }).catch(() => {});
 // ---------- Ranking de ventas por SKU ----------
@@ -2793,8 +2849,9 @@ const rsShift = (m, k) => { const [y, mo] = m.split('-').map(Number); return ymd
 const rsVar = (a, b) => (b ? (a - b) / Math.abs(b) * 100 : null);
 const rsVarHtml = (a, b) => { const v = rsVar(a, b); if (v === null) return '<span class="muted">—</span>'; const up = v >= 0; return `<span style="color:${up ? 'var(--ok)' : 'var(--err)'};font-weight:600">${up ? '▲' : '▼'} ${Math.abs(Math.round(v))}%</span>`; };
 async function loadResults() {
+  if (!rsAcc.loaded) return; // espera a saber qué cuentas sumar (TUYO nunca entra acá)
   $('rsMonth').textContent = rsName(rsMonth);
-  rsData = await (await fetch('/api/results?months=12&month=' + rsMonth)).json();
+  rsData = await (await fetch('/api/results?' + new URLSearchParams({ months: 12, month: rsMonth, accounts: rsAcc.val(), web: rsAcc.ex('web') ? 1 : 0, quotes: rsAcc.ex('quotes') ? 1 : 0 }))).json();
   renderResults(); loadUnits();
 }
 function renderResults() {
@@ -2803,8 +2860,7 @@ function renderResults() {
   const warn = [];
   if (!ml.sales && !ml.cancelled_n) warn.push(`No hay ventas de Mercado Libre guardadas para ${rsName(c.month)}. <button class="btn small primary" data-rs-fetch="${c.month}">Traer ventas de ${rsName(c.month).split(' ')[0].toLowerCase()}</button>`);
   if (ml.no_cost_n) warn.push(`<b>${ml.no_cost_n} ventas</b> (${money(ml.no_cost_gross)} facturado) tienen productos sin costo cargado: su mercadería no está restada. <a href="#ventas">Cargar costos</a>`);
-  if (!rsData.has_woo_key) warn.push('Las ventas de la web no se suman todavía: cargá la clave de WooCommerce en Estados de WhatsApp → Configurar web.');
-  if (tu.no_cost_n) warn.push(`<b>${tu.no_cost_n} ventas de TUYO</b> no tienen el costo de Amazon cargado: no se resta. <a href="#tuyo">Cargar costos</a>`);
+  if (!rsData.has_woo_key && !wb.off) warn.push('Las ventas de la web no se suman todavía: cargá la clave de WooCommerce en Estados de WhatsApp → Configurar web.');
   if (qt.no_cost_n) warn.push(`<b>${qt.no_cost_n} presupuestos</b> confirmados tienen productos sin costo en la lista de precios: su mercadería no está restada.`);
   if (qt.pending_n) warn.push(`<b>${qt.pending_n} presupuestos sin confirmar</b> (${money(qt.pending_gross)}) no se suman. <a href="#presupuestos">Confirmar los vendidos</a>`);
   if (!c.expenses_n) warn.push(`No cargaste gastos del local en ${rsName(c.month)}. <a href="#gastos">Cargar gastos</a>`);
@@ -2813,26 +2869,17 @@ function renderResults() {
   const sgn = (v) => v < 0 ? `<span style="color:var(--err)">− ${money(-v)}</span>` : money(v);
   const line = (label, v, kind, sub) => `<div class="rs-line ${kind || ''}${kind === 'total' && v < 0 ? ' neg' : ''}"><span>${label}${sub ? `<small>${sub}</small>` : ''}</span><b>${kind === 'minus' ? '− ' + money(Math.abs(v)) : sgn(v)}</b></div>`;
   const head = (t) => `<div class="rs-head">${t}</div>`;
-  const showTu = tu.configured || tu.sales || tu.cancelled_n || tu.returned_n, showWeb = wb.orders || rsData.has_woo_key;
+  const showWeb = !wb.off && (wb.orders || rsData.has_woo_key), showQt = !qt.off;
   $('rsWater').innerHTML = [
     head('Mercado Libre'),
     line('Ventas brutas', ml.gross_all, 'plus', `${ml.sales + ml.cancelled_n + ml.returned_n} ventas`),
+    ...(ml.by_account || []).map(a => `<div class="rs-line ch"><span>↳ ${esc(a.nickname)}<small>${a.sales} venta${a.sales === 1 ? '' : 's'} · ${a.units} unidades · neto ${sgn(a.profit)}${a.cancelled_n ? ` · ${a.cancelled_n} cancelada${a.cancelled_n === 1 ? '' : 's'}/devuelta${a.cancelled_n === 1 ? '' : 's'}` : ''}</small></span><b>${money(a.gross)}</b></div>`),
     line('Canceladas y devueltas', ml.cancelled + ml.returned, 'minus', `${ml.cancelled_n} canceladas · ${ml.returned_n} devueltas`),
     line('Comisiones de Mercado Libre', ml.fee, 'minus'),
     line('Envíos (Mercado Libre y tu Flex)', ml.ship, 'minus'),
     line('Impuestos (IVA + IIBB)', ml.tax, 'minus'),
     line('Costo de mercadería', ml.cost, 'minus', ml.no_cost_n ? `${ml.no_cost_n} ventas sin costo` : ''),
     line('Neto Mercado Libre', ml.profit, 'sub'),
-    ...(showTu ? [
-      head('TUYO (Amazon)'),
-      line('Ventas brutas', tu.gross_all || 0, 'plus', `${(tu.sales || 0) + (tu.cancelled_n || 0) + (tu.returned_n || 0)} ventas`),
-      line('Canceladas y devueltas', (tu.cancelled || 0) + (tu.returned || 0), 'minus', `${tu.cancelled_n || 0} canceladas · ${tu.returned_n || 0} devueltas`),
-      line('Comisiones de Mercado Libre', tu.fee || 0, 'minus'),
-      line('Envíos', tu.ship || 0, 'minus'),
-      line('Impuestos (IVA + IIBB)', tu.tax || 0, 'minus'),
-      line('Costo Amazon (producto + envío)', tu.cost || 0, 'minus', tu.no_cost_n ? `${tu.no_cost_n} ventas sin costo` : ''),
-      line('Neto TUYO', tu.profit || 0, 'sub'),
-    ] : []),
     ...(showWeb ? [
       head('Ventas web'),
       line('Ventas brutas', wb.gross, 'plus', `${wb.orders} pedidos completados`),
@@ -2841,12 +2888,12 @@ function renderResults() {
       line('Costo de mercadería', wb.cost, 'minus', wb.no_cost_n ? `${wb.no_cost_n} pedidos sin costo` : ''),
       line('Neto ventas web', wb.profit, 'sub'),
     ] : []),
-    head('Presupuestos confirmados'),
+    ...(showQt ? [head('Presupuestos confirmados'),
     line('Ventas brutas', qt.gross, 'plus', qt.n ? `${qt.n} confirmados` : 'No hay presupuestos confirmados este mes'),
     ...qt.by.map(g => `<div class="rs-line ch"><span>↳ ${esc(g.label)}<small>${g.n} presupuesto${g.n === 1 ? '' : 's'} · neto ${sgn(g.profit)}</small></span><b>${money(g.gross)}</b></div>`),
     line('Impuestos', qt.tax, 'minus'),
     line('Costo de mercadería', qt.cost, 'minus', qt.no_cost_n ? `${qt.no_cost_n} sin costo` : ''),
-    line('Neto presupuestos', qt.profit, 'sub'),
+    line('Neto presupuestos', qt.profit, 'sub')] : []),
     head('Total del mes'),
     line('Facturación total (bruto)', ml.gross + (tu.gross || 0) + wb.gross + qt.gross, 'plus', 'sin canceladas ni devueltas'),
     line('Neto de todas las ventas', c.profit, 'plus', 'después de comisiones, envíos, impuestos y costos'),
@@ -2857,7 +2904,7 @@ function renderResults() {
   $('rsNetSub').innerHTML = `${rsName(c.month)}${c.partial ? ' (en curso)' : ''} · margen ${pct(c.net_net, ml.gross + tu.gross + wb.gross + qt.gross)} sobre lo facturado`;
   const cmp = (label, o) => `<div class="rs-cmp"><span>${label}<small>${rsName(o.month)}</small></span><b>${sgn(o.net_net)}</b>${rsVarHtml(c.net_net, o.net_net)}</div>`;
   $('rsCmp').innerHTML = cmp('Mes anterior', rsData.prev) + cmp('Mismo mes del año pasado', rsData.last_year) +
-    `<div class="rs-cmp"><span>Facturación total<small>ML + TUYO + web + presupuestos vs mes anterior</small></span><b>${money(ml.gross + tu.gross + wb.gross + qt.gross)}</b>${rsVarHtml(ml.gross + tu.gross + wb.gross + qt.gross, rsData.prev.ml.gross + tuG(rsData.prev) + rsData.prev.web.gross + qtG(rsData.prev))}</div>`;
+    `<div class="rs-cmp"><span>Facturación total<small>ML + web + presupuestos vs mes anterior</small></span><b>${money(ml.gross + tu.gross + wb.gross + qt.gross)}</b>${rsVarHtml(ml.gross + tu.gross + wb.gross + qt.gross, rsData.prev.ml.gross + tuG(rsData.prev) + rsData.prev.web.gross + qtG(rsData.prev))}</div>`;
   renderResultsChart();
   const h = rsData.history.slice().reverse();
   $('rsRows').innerHTML = h.map((m, i) => {
@@ -2866,7 +2913,6 @@ function renderResults() {
       <td style="white-space:nowrap"><b>${rsName(m.month)}</b>${m.partial ? ' <span class="pill">en curso</span>' : ''}${!m.ml.sales && !m.ml.cancelled_n ? ' <span class="pill" style="color:var(--err)">sin ventas guardadas</span>' : ''}</td>
       <td class="price" style="text-align:right">${money(m.ml.gross_all)}</td>
       <td class="price" style="text-align:right;color:var(--err)">${m.ml.cancelled + m.ml.returned ? '− ' + money(m.ml.cancelled + m.ml.returned) : '—'}</td>
-      <td class="price" style="text-align:right">${tuG(m) ? money(tuG(m)) : '<span class="muted">—</span>'}</td>
       <td class="price" style="text-align:right">${m.web.orders ? money(m.web.gross) : '<span class="muted">—</span>'}</td>
       <td class="price" style="text-align:right">${(m.quotes || {}).n ? money(m.quotes.gross) : '<span class="muted">—</span>'}</td>
       <td class="price" style="text-align:right;color:var(--err)">− ${money(m.ml.fee + m.web.fee + ((m.tuyo || {}).fee || 0))}</td>
@@ -2933,9 +2979,125 @@ $('rsNext').onclick = () => { rsMonth = rsShift(rsMonth, 1); loadResults(); };
 $('rsMonth').onclick = () => { rsMonth = ymd(new Date()).slice(0, 7); loadResults(); };
 $('rsCsv').onclick = () => {
   const e = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`, n = (v) => String(Math.round(v || 0));
-  const rows = rsData.history.map(m => [rsName(m.month), n(m.ml.gross_all), n(m.ml.cancelled + m.ml.returned), n(m.ml.fee), n(m.ml.ship), n(m.ml.tax), n(m.ml.cost), n(m.ml.profit), n((m.tuyo || {}).gross), n((m.tuyo || {}).cost), n((m.tuyo || {}).profit), n(m.web.gross), n(m.web.profit), ...['lara', 'whatsapp', 'local', 'mail', 'instagram', ''].map(k => n((((m.quotes || {}).by || []).find(g => g.key === k) || {}).gross)), n((m.quotes || {}).gross), n((m.quotes || {}).profit), n(m.expenses), n(m.net_net)]);
-  const csv = ['Mes;Ventas brutas ML;Canceladas y devueltas;Comisiones ML;Envíos;Impuestos ML;Mercadería ML;Ganancia ML;Ventas TUYO;Costo Amazon TUYO;Ganancia TUYO;Ventas web;Ganancia web;Recibos Pacientes de Lara;Recibos WhatsApp;Recibos Local;Recibos Mail;Recibos Instagram;Recibos sin origen;Recibos total;Ganancia recibos;Gastos del local;Neto neto'].concat(rows.map(r => r.map(e).join(';'))).join('\r\n');
+  const rows = rsData.history.map(m => [rsName(m.month), n(m.ml.gross_all), n(m.ml.cancelled + m.ml.returned), n(m.ml.fee), n(m.ml.ship), n(m.ml.tax), n(m.ml.cost), n(m.ml.profit), n(m.web.gross), n(m.web.profit), ...['lara', 'whatsapp', 'local', 'mail', 'instagram', ''].map(k => n((((m.quotes || {}).by || []).find(g => g.key === k) || {}).gross)), n((m.quotes || {}).gross), n((m.quotes || {}).profit), n(m.expenses), n(m.net_net)]);
+  const csv = ['Mes;Ventas brutas ML;Canceladas y devueltas;Comisiones ML;Envíos;Impuestos ML;Mercadería ML;Ganancia ML;Ventas web;Ganancia web;Recibos Pacientes de Lara;Recibos WhatsApp;Recibos Local;Recibos Mail;Recibos Instagram;Recibos sin origen;Recibos total;Ganancia recibos;Gastos del local;Neto neto'].concat(rows.map(r => r.map(e).join(';'))).join('\r\n');
   const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob(['﻿' + csv], { type: 'text/csv' })); a.download = `resultado-${rsMonth}.csv`; document.body.appendChild(a); a.click(); a.remove();
+};
+
+// Informe del mes en PDF (sin TUYO): lo vendido, comparación con el mes anterior y los más vendidos.
+$('rsPdf').onclick = async () => {
+  const btn = $('rsPdf'), old = btn.textContent;
+  btn.disabled = true; btn.textContent = '⏳ Armando informe…';
+  try {
+    const [R, jsPDF, logo] = await Promise.all([fetch('/api/report?month=' + rsMonth).then(r => r.json()), jsPDFLib(), imgData('/logo-white.png')]);
+    const N = R.now, P = R.prev;
+    const mesN = rsName(R.month), mesP = rsName(R.prev_month);
+    const mesPl = MESES_L[Number(R.prev_month.slice(5)) - 1];
+    const totN = N.ml.gross + N.web.gross + N.quotes.gross, totP = P.ml.gross + P.web.gross + P.quotes.gross;
+    const $m = (n) => '$ ' + Math.round(n || 0).toLocaleString('es-AR');
+    const ch = (a, b) => { if (!b) return a ? 'nuevo' : '-'; const p = Math.round((a - b) / Math.abs(b) * 100); return (p > 0 ? '+' : '') + p + '%'; };
+    const dir = (a, b) => !b ? '' : a > b * 1.02 ? `subió ${ch(a, b).slice(1)}` : a < b * 0.98 ? `bajó ${ch(a, b).slice(1)}` : 'se mantuvo igual';
+    const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+    const W = 210, H = 297, M = 14, CW = W - 2 * M;
+    const PUR = [162, 28, 175], DARK = [40, 40, 50], GRAY = [110, 110, 120], LIGHT = [248, 236, 250];
+    let y = 0;
+    const need = (h) => { if (y + h > H - 16) { doc.addPage(); y = 16; } };
+    // Encabezado
+    doc.setFillColor(...PUR); doc.rect(0, 0, W, 30, 'F');
+    if (logo) { const lh = 12, lw = Math.min(55, lh * logo.w / logo.h); doc.addImage(logo.data, 'PNG', M, 9, lw, lh); }
+    doc.setTextColor(255, 255, 255); doc.setFont('helvetica', 'bold'); doc.setFontSize(17);
+    doc.text('Informe del mes', W - M, 14, { align: 'right' });
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(11);
+    doc.text(mesN + (N.partial ? ' (en curso)' : ''), W - M, 21, { align: 'right' });
+    doc.setFontSize(8); doc.text('Generado el ' + new Date().toLocaleDateString('es-AR') + ' · Sin TUYO', W - M, 26, { align: 'right' });
+    y = 40;
+    const h2 = (t) => { need(30); doc.setTextColor(...PUR); doc.setFont('helvetica', 'bold'); doc.setFontSize(12); doc.text(t, M, y); doc.setDrawColor(...PUR); doc.setLineWidth(0.4); doc.line(M, y + 1.5, W - M, y + 1.5); y += 7; };
+    // Resumen en texto
+    h2('Resumen');
+    const lines = [];
+    const parts = [['Mercado Libre', N.ml.gross], ['web', N.web.gross], ['presupuestos', N.quotes.gross]].filter(x => x[1]).map(x => `${x[0]} ${$m(x[1])}`);
+    lines.push(`En ${mesN} se facturaron ${$m(totN)} en total${parts.length > 1 ? ` (${parts.slice(0, -1).join(', ')} y ${parts[parts.length - 1]})` : ''}. Frente a ${mesPl} (${$m(totP)}) la facturación ${dir(totN, totP) || 'no tiene comparación'}.`);
+    lines.push(`En Mercado Libre se hicieron ${N.ml.sales} ventas (${N.ml.units} unidades) contra ${P.ml.sales} ventas (${P.ml.units} unidades) el mes pasado.` + (N.web.orders || P.web.orders ? ` En la web: ${N.web.orders} pedidos (antes ${P.web.orders}).` : '') + (N.quotes.n || P.quotes.n ? ` Presupuestos confirmados: ${N.quotes.n} (antes ${P.quotes.n}).` : ''));
+    lines.push(`La ganancia de las ventas fue ${$m(N.profit)} (${ch(N.profit, P.profit)} vs ${mesPl}). Restando ${$m(N.expenses)} de gastos del local, el neto neto quedó en ${$m(N.net_net)} (el mes pasado fue ${$m(P.net_net)}).`);
+    const acc = (N.ml.by_account || [])[0];
+    if (acc && N.ml.gross) lines.push(`La cuenta que más vendió fue ${acc.nickname}: ${$m(acc.gross)}, el ${Math.round(acc.gross / N.ml.gross * 100)}% de lo facturado en Mercado Libre.`);
+    const top = (R.top_units || [])[0];
+    if (top) lines.push(`El producto más vendido fue ${top.name || top.sku} con ${top.units} unidades${top.prev_units ? ` (en ${mesPl}: ${top.prev_units})` : ''}. En total se vendieron ${R.products_n} productos distintos.`);
+    if (R.best_day) lines.push(`El mejor día en Mercado Libre fue el ${R.best_day.date.slice(8)}/${R.best_day.date.slice(5, 7)} con ${$m(R.best_day.gross)}. Hubo ventas en ${R.days_with_sales} días del mes.`);
+    const cr = [[N.ml.cancelled_n, 'cancelada', 'canceladas'], [N.ml.returned_n, 'devuelta', 'devueltas']].filter(x => x[0]).map(x => `${x[0]} ${x[0] === 1 ? x[1] : x[2]}`);
+    if (cr.length) lines.push(`En Mercado Libre hubo ${cr.join(' y ')} por ${$m(N.ml.cancelled + N.ml.returned)} (no se cuentan en lo facturado).`);
+    if (N.partial) lines.push('El mes todavía está en curso: los números son hasta hoy y la comparación es contra el mes anterior completo.');
+    doc.setTextColor(...DARK); doc.setFont('helvetica', 'normal'); doc.setFontSize(9.5);
+    for (const l of lines) { const t = doc.splitTextToSize(l, CW - 5); need(t.length * 4.4 + 1.5); doc.setTextColor(...PUR); doc.text('•', M, y); doc.setTextColor(...DARK); doc.text(t, M + 4, y); y += t.length * 4.4 + 1.5; }
+    y += 3;
+    // Indicadores
+    need(26);
+    const kpis = [['Facturación total', totN, totP], ['Ventas ML', N.ml.sales, P.ml.sales, true], ['Ganancia de ventas', N.profit, P.profit], ['Neto neto', N.net_net, P.net_net]];
+    const kw = (CW - 9) / 4;
+    kpis.forEach(([lbl, a, b, cnt], i) => {
+      const x = M + i * (kw + 3);
+      doc.setFillColor(...LIGHT); doc.roundedRect(x, y, kw, 22, 2, 2, 'F');
+      doc.setTextColor(...GRAY); doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.text(lbl, x + 3, y + 5.5);
+      doc.setTextColor(...DARK); doc.setFont('helvetica', 'bold'); doc.setFontSize(12.5); doc.text(cnt ? String(a) : $m(a), x + 3, y + 12.5);
+      const c = ch(a, b); doc.setFontSize(8); doc.setFont('helvetica', 'normal');
+      doc.setTextColor(...(c.startsWith('+') ? [22, 140, 70] : c.startsWith('-') && c !== '-' ? [200, 40, 40] : GRAY));
+      doc.text(`${c} vs ${mesPl}`, x + 3, y + 18);
+    });
+    y += 30;
+    // Tablas
+    const fit = (t, w) => { t = String(t ?? ''); if (doc.getTextWidth(t) <= w) return t; while (t.length > 1 && doc.getTextWidth(t + '…') > w) t = t.slice(0, -1); return t + '…'; };
+    const table = (cols, rows, opts = {}) => {
+      const rh = 6.2, tot = cols.reduce((t, c) => t + c.w, 0), k = CW / tot;
+      const ws = cols.map(c => c.w * k);
+      const head = () => {
+        doc.setFillColor(...PUR); doc.rect(M, y, CW, rh, 'F'); doc.setTextColor(255, 255, 255); doc.setFont('helvetica', 'bold'); doc.setFontSize(8);
+        let x = M; cols.forEach((c, i) => { doc.text(fit(c.h, ws[i] - 3), c.r ? x + ws[i] - 1.5 : x + 1.5, y + 4.2, { align: c.r ? 'right' : 'left' }); x += ws[i]; }); y += rh;
+      };
+      need(rh * 2 + 2); head();
+      rows.forEach((r, ri) => {
+        if (y + rh > H - 16) { doc.addPage(); y = 16; head(); }
+        const last = opts.total && ri === rows.length - 1;
+        if (last) { doc.setFillColor(...LIGHT); doc.rect(M, y, CW, rh, 'F'); } else if (ri % 2) { doc.setFillColor(250, 250, 252); doc.rect(M, y, CW, rh, 'F'); }
+        doc.setTextColor(...DARK); doc.setFont('helvetica', last ? 'bold' : 'normal'); doc.setFontSize(8);
+        let x = M; cols.forEach((c, i) => { doc.text(fit(r[i], ws[i] - 3), c.r ? x + ws[i] - 1.5 : x + 1.5, y + 4.2, { align: c.r ? 'right' : 'left' }); x += ws[i]; }); y += rh;
+      });
+      y += 7;
+    };
+    h2('De dónde vino la facturación');
+    const comp = [['Mercado Libre', N.ml, P.ml, 'gross', 'profit'], ['Ventas web', N.web, P.web, 'gross', 'profit'], ['Presupuestos confirmados', N.quotes, P.quotes, 'gross', 'profit']];
+    table([{ h: 'Canal', w: 34 }, { h: 'Facturado', w: 20, r: 1 }, { h: '% del total', w: 13, r: 1 }, { h: 'Ganancia', w: 20, r: 1 }, { h: mesP, w: 20, r: 1 }, { h: 'Variación', w: 13, r: 1 }],
+      comp.map(([n, a, b]) => [n, $m(a.gross), totN ? Math.round(a.gross / totN * 100) + '%' : '-', $m(a.profit), $m(b.gross), ch(a.gross, b.gross)])
+        .concat([['Total', $m(totN), '100%', $m(N.profit), $m(totP), ch(totN, totP)]]), { total: 1 });
+    if ((N.quotes.by || []).length) {
+      h2('Presupuestos por origen');
+      table([{ h: 'Origen', w: 40 }, { h: 'Cantidad', w: 15, r: 1 }, { h: 'Facturado', w: 22, r: 1 }, { h: 'Ganancia', w: 22, r: 1 }, { h: mesP, w: 22, r: 1 }],
+        N.quotes.by.map(g => [g.label, g.n, $m(g.gross), $m(g.profit), $m(((P.quotes.by || []).find(x => x.key === g.key) || {}).gross)]));
+    }
+    if ((N.ml.by_account || []).length) {
+      h2('Mercado Libre por cuenta');
+      const pa = {}; for (const a of P.ml.by_account || []) pa[a.account_id] = a;
+      table([{ h: 'Cuenta', w: 30 }, { h: 'Ventas', w: 11, r: 1 }, { h: 'Unidades', w: 12, r: 1 }, { h: 'Facturado', w: 20, r: 1 }, { h: '% ML', w: 10, r: 1 }, { h: 'Ganancia', w: 20, r: 1 }, { h: mesP, w: 20, r: 1 }, { h: 'Var.', w: 11, r: 1 }],
+        N.ml.by_account.map(a => [a.nickname, a.sales, a.units, $m(a.gross), N.ml.gross ? Math.round(a.gross / N.ml.gross * 100) + '%' : '-', $m(a.profit), $m((pa[a.account_id] || {}).gross), ch(a.gross, (pa[a.account_id] || {}).gross)])
+          .concat([['Total', N.ml.sales, N.ml.units, $m(N.ml.gross), '100%', $m(N.ml.profit), $m(P.ml.gross), ch(N.ml.gross, P.ml.gross)]]), { total: 1 });
+    }
+    if ((R.top_units || []).length) {
+      h2('Los más vendidos');
+      table([{ h: '#', w: 5 }, { h: 'Producto', w: 58 }, { h: 'SKU', w: 18 }, { h: 'Unidades', w: 12, r: 1 }, { h: mesP, w: 14, r: 1 }, { h: 'Facturado', w: 20, r: 1 }],
+        R.top_units.map((p, i) => [i + 1, p.name || '-', p.sku || '-', p.units, p.prev_units, $m(p.gross)]));
+    }
+    if ((R.expenses || []).length) {
+      h2('Gastos del local');
+      const te = R.expenses.reduce((t, e) => t + e.amount, 0);
+      table([{ h: 'Categoría', w: 60 }, { h: 'Monto', w: 25, r: 1 }, { h: '% de los gastos', w: 20, r: 1 }],
+        R.expenses.map(e => [e.category || 'Sin categoría', $m(e.amount), te ? Math.round(e.amount / te * 100) + '%' : '-']).concat([['Total', $m(te), '100%']]), { total: 1 });
+    }
+    // Pie con número de página
+    const pages = doc.getNumberOfPages();
+    for (let i = 1; i <= pages; i++) { doc.setPage(i); doc.setFont('helvetica', 'normal'); doc.setFontSize(7.5); doc.setTextColor(...GRAY); doc.text(`Biogate · Informe ${mesN}`, M, H - 8); doc.text(`Página ${i} de ${pages}`, W - M, H - 8, { align: 'right' }); }
+    const fname = ('Informe ' + mesN).normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^\w ]+/g, '').trim() + '.pdf';
+    doc.save(fname);
+  } catch (e) { alert('No se pudo armar el informe: ' + e.message); }
+  finally { btn.disabled = false; btn.textContent = old; }
 };
 
 // Traer historial de 12 meses

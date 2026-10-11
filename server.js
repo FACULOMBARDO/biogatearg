@@ -615,6 +615,7 @@ app.get('/api/clips', (req, res) => {
 });
 
 // ---------- Resultado del mes ----------
+app.get('/api/report', (req, res) => res.json(insights.report(req.query.month)));
 app.get('/api/results', (req, res) => res.json(insights.results(req.query.month, Math.min(24, Math.max(3, Number(req.query.months) || 12)), { accounts: String(req.query.accounts || ''), web: req.query.web !== '0', quotes: req.query.quotes !== '0' })));
 app.post('/api/results/fetch-month', (req, res) => {
   const m = String(req.body.month || '');
