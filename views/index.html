@@ -2910,6 +2910,7 @@ function renderResults() {
     head('Total del mes'),
     line('Facturación total (bruto)', ml.gross + (tu.gross || 0) + wb.gross + qt.gross, 'plus', 'sin canceladas ni devueltas'),
     line('Neto de todas las ventas', c.profit, 'plus', 'después de comisiones, envíos, impuestos y costos'),
+    line('Neto (+ comisiones ML)', c.profit + (ml.fee || 0) + (tu.on ? (tu.fee || 0) : 0), 'plus net-fee', `neto de todas las ventas + ${money((ml.fee || 0) + (tu.on ? (tu.fee || 0) : 0))} de comisiones de Mercado Libre`),
     line('Gastos del local', c.expenses, 'minus', `${c.expenses_n} gastos cargados`),
     line('NETO NETO', c.net_net, 'total'),
   ].join('');
