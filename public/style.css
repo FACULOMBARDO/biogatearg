@@ -471,3 +471,9 @@ button.un-chip { font: inherit; font-size: 13.5px; color: var(--text); }
 .acc-pop { position: absolute; z-index: 30; top: calc(100% + 6px); left: 0; min-width: 260px; background: var(--card); border: 1px solid var(--line); border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,.15); padding: 10px; }
 .acc-opt { display: flex; align-items: center; gap: 8px; padding: 6px 4px; border-radius: 8px; cursor: pointer; }
 .acc-opt:hover { background: var(--card-2); }
+
+/* Resultado: neto por cuenta (ganancia + comisiones ML) */
+.rs-acc-v { display: flex; align-items: center; gap: 12px; flex-wrap: nowrap; justify-content: flex-end; text-align: right; flex-shrink: 0; }
+@media (max-width: 640px) { .rs-acc-v { flex-direction: column; align-items: flex-end; gap: 4px; } }
+.rs-acc-net { font-size: 12.5px; color: var(--muted); background: color-mix(in srgb, var(--brand) 10%, transparent); border-radius: 8px; padding: 3px 9px; white-space: nowrap; }
+.rs-acc-net b { color: var(--text, inherit); margin-left: 4px; }

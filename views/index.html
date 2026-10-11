@@ -2873,7 +2873,7 @@ function renderResults() {
   $('rsWater').innerHTML = [
     head('Mercado Libre'),
     line('Ventas brutas', ml.gross_all, 'plus', `${ml.sales + ml.cancelled_n + ml.returned_n} ventas`),
-    ...(ml.by_account || []).map(a => `<div class="rs-line ch"><span>↳ ${esc(a.nickname)}<small>${a.sales} venta${a.sales === 1 ? '' : 's'} · ${a.units} unidades · neto ${sgn(a.profit)}${a.cancelled_n ? ` · ${a.cancelled_n} cancelada${a.cancelled_n === 1 ? '' : 's'}/devuelta${a.cancelled_n === 1 ? '' : 's'}` : ''}</small></span><b>${money(a.gross)}</b></div>`),
+    ...(ml.by_account || []).map(a => `<div class="rs-line ch"><span>↳ ${esc(a.nickname)}<small>${a.sales} venta${a.sales === 1 ? '' : 's'} · ${a.units} unidades · ganancia ${sgn(a.profit)} · comisiones ML ${money(a.fee || 0)}${a.cancelled_n ? ` · ${a.cancelled_n} cancelada${a.cancelled_n === 1 ? '' : 's'}/devuelta${a.cancelled_n === 1 ? '' : 's'}` : ''}</small></span><span class="rs-acc-v"><b>${money(a.gross)}</b><span class="rs-acc-net" title="Ganancia + comisiones de Mercado Libre">Neto <b>${sgn(a.net_fee ?? ((a.profit || 0) + (a.fee || 0)))}</b></span></span></div>`),
     line('Canceladas y devueltas', ml.cancelled + ml.returned, 'minus', `${ml.cancelled_n} canceladas · ${ml.returned_n} devueltas`),
     line('Comisiones de Mercado Libre', ml.fee, 'minus'),
     line('Envíos (Mercado Libre y tu Flex)', ml.ship, 'minus'),
@@ -3076,9 +3076,9 @@ $('rsPdf').onclick = async () => {
     if ((N.ml.by_account || []).length) {
       h2('Mercado Libre por cuenta');
       const pa = {}; for (const a of P.ml.by_account || []) pa[a.account_id] = a;
-      table([{ h: 'Cuenta', w: 30 }, { h: 'Ventas', w: 11, r: 1 }, { h: 'Unidades', w: 12, r: 1 }, { h: 'Facturado', w: 20, r: 1 }, { h: '% ML', w: 10, r: 1 }, { h: 'Ganancia', w: 20, r: 1 }, { h: mesP, w: 20, r: 1 }, { h: 'Var.', w: 11, r: 1 }],
-        N.ml.by_account.map(a => [a.nickname, a.sales, a.units, $m(a.gross), N.ml.gross ? Math.round(a.gross / N.ml.gross * 100) + '%' : '-', $m(a.profit), $m((pa[a.account_id] || {}).gross), ch(a.gross, (pa[a.account_id] || {}).gross)])
-          .concat([['Total', N.ml.sales, N.ml.units, $m(N.ml.gross), '100%', $m(N.ml.profit), $m(P.ml.gross), ch(N.ml.gross, P.ml.gross)]]), { total: 1 });
+      table([{ h: 'Cuenta', w: 30 }, { h: 'Ventas', w: 11, r: 1 }, { h: 'Unid.', w: 12, r: 1 }, { h: 'Facturado', w: 20, r: 1 }, { h: '% ML', w: 9, r: 1 }, { h: 'Ganancia', w: 19, r: 1 }, { h: 'Neto (+com. ML)', w: 21, r: 1 }, { h: mesP, w: 19, r: 1 }, { h: 'Var.', w: 9, r: 1 }],
+        N.ml.by_account.map(a => [a.nickname, a.sales, a.units, $m(a.gross), N.ml.gross ? Math.round(a.gross / N.ml.gross * 100) + '%' : '-', $m(a.profit), $m(a.profit + (a.fee || 0)), $m((pa[a.account_id] || {}).gross), ch(a.gross, (pa[a.account_id] || {}).gross)])
+          .concat([['Total', N.ml.sales, N.ml.units, $m(N.ml.gross), '100%', $m(N.ml.profit), $m(N.ml.profit + N.ml.fee), $m(P.ml.gross), ch(N.ml.gross, P.ml.gross)]]), { total: 1 });
     }
     if ((R.top_units || []).length) {
       h2('Los más vendidos');
