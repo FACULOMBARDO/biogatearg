@@ -33,6 +33,7 @@ const insights = require('./lib/insights');
 const manuals = require('./lib/manuals');
 const deliveries = require('./lib/deliveries');
 const tuyo = require('./lib/tuyo');
+const tasks = require('./lib/tasks');
 
 const MISSING = ['ML_CLIENT_ID', 'ML_CLIENT_SECRET', 'BASE_URL', 'ADMIN_PASSWORD'].filter(k => !process.env[k]);
 if (onVercel && !store.REMOTE) MISSING.push('KV_REST_API_URL / KV_REST_API_TOKEN (conectá la base Upstash Redis al proyecto)');
@@ -735,6 +736,40 @@ app.post('/api/manuals/config', (req, res) => {
   if (u && !/docs\.google\.com\/spreadsheets\/d\//.test(u)) return res.status(400).json({ ok: false, error: 'Pegá el link de Google Sheets.' });
   store.saveSettings({ manuals_sheet_url: u, manuals_tab: t.slice(0, 60) });
   res.json({ ok: manuals.sync({}) || false });
+});
+
+// ---------- Tareas del equipo ----------
+const tkErr = (res, e) => res.status(400).json({ ok: false, error: e.message });
+app.get('/api/tasks', (req, res) => res.json({ items: tasks.list(), people: tasks.people(), blob_uploads: files.BLOB }));
+app.post('/api/tasks', (req, res) => { try { res.json({ ok: true, task: tasks.create(req.body || {}) }); } catch (e) { tkErr(res, e); } });
+app.put('/api/tasks/people', (req, res) => { try { res.json({ ok: true, people: tasks.savePeople((req.body || {}).people) }); } catch (e) { tkErr(res, e); } });
+app.put('/api/tasks/:id', (req, res) => { try { res.json({ ok: true, task: tasks.update(req.params.id, req.body || {}) }); } catch (e) { tkErr(res, e); } });
+app.delete('/api/tasks/:id', async (req, res) => { try { await tasks.remove(req.params.id); res.json({ ok: true }); } catch (e) { tkErr(res, e); } });
+app.post('/api/tasks/:id/comments', (req, res) => { try { res.json({ ok: true, task: tasks.comment(req.params.id, req.body || {}) }); } catch (e) { tkErr(res, e); } });
+app.delete('/api/tasks/:id/att/:aid', async (req, res) => { try { res.json({ ok: true, task: await tasks.removeAtt(req.params.id, req.params.aid) }); } catch (e) { tkErr(res, e); } });
+// Subir foto/archivo: en la PC (o si es chico) va al servidor; en Vercel, si es grande, el navegador lo sube directo a Blob.
+app.post('/api/tasks/upload', express.raw({ type: () => true, limit: '80mb' }), async (req, res) => {
+  try { res.json({ ok: true, att: await tasks.upload({ name: req.query.name, type: req.query.type, buf: req.body }) }); } catch (e) { tkErr(res, e); }
+});
+app.post('/api/tasks/blob-token', async (req, res) => {
+  if (!files.BLOB) return res.status(400).json({ error: 'No hay Vercel Blob configurado.' });
+  if (!req.body || req.body.type !== 'blob.generate-client-token') return res.status(400).json({ error: 'Pedido inválido.' });
+  try {
+    const { handleUpload } = require('@vercel/blob/client');
+    res.json(await handleUpload({
+      body: req.body, request: req,
+      onBeforeGenerateToken: async (pathname) => {
+        if (!/^tareas\/[\w.-]+$/.test(pathname)) throw new Error('Nombre de archivo inválido.');
+        return { maximumSizeInBytes: 200 * 1024 * 1024, addRandomSuffix: true };
+      },
+    }));
+  } catch (e) { res.status(400).json({ error: e.message }); }
+});
+app.post('/api/tasks/blob-att', (req, res) => { try { res.json({ ok: true, att: tasks.blobAtt(req.body || {}) }); } catch (e) { tkErr(res, e); } });
+app.get('/api/tasks/file/:aid/:name?', (req, res) => {
+  const a = tasks.findAtt(String(req.params.aid));
+  if (!a || !a.ref || !files.exists(a.ref)) return res.status(404).send('El archivo ya no está.');
+  files.send(res, a.ref, { type: a.type || undefined, name: a.name, download: req.query.dl === '1' });
 });
 
 // ---------- Sugerencias ----------

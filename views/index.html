@@ -30,6 +30,7 @@
 <aside class="side">
   <a href="#ventas" class="nav" data-view="ventas"><span class="ic">💰</span><span>Ventas</span></a>
   <a href="#resultado" class="nav" data-view="resultado"><span class="ic">📊</span><span>Resultado del mes</span></a>
+  <a href="#tareas" class="nav" data-view="tareas"><span class="ic">✅</span><span>Tareas</span></a>
   <a href="#horarios" class="nav" data-view="horarios"><span class="ic">🕐</span><span>Horarios de compra</span></a>
   <a href="#stock" class="nav" data-view="stock"><span class="ic">📦</span><span>Stock</span></a>
   <a href="#full" class="nav" data-view="full"><span class="ic">⚡</span><span>Full</span></a>
@@ -344,6 +345,28 @@
       <tbody id="fsRows"></tbody>
     </table></div></div>
   </div>
+</section>
+
+<section id="viewTasks" hidden>
+  <div class="row" style="justify-content:space-between;margin-bottom:12px">
+    <h1 class="page-title">Tareas</h1>
+    <div class="row">
+      <label class="muted" style="font-size:13px;display:flex;gap:6px;align-items:center" title="Queda guardado en este equipo: se usa para firmar comentarios y cambios de estado">Soy <select id="tkMe"></select></label>
+      <button class="btn" id="tkPeopleBtn">👥 Encargados</button>
+      <button class="btn primary" id="tkNew">+ Nueva tarea</button>
+    </div>
+  </div>
+  <div class="stats" id="tkStats"></div>
+  <div class="card" style="padding:12px 14px">
+    <div class="row">
+      <input type="search" id="tkQ" placeholder="Buscar tarea…" style="max-width:280px">
+      <select id="tkWho"></select>
+      <div class="seg" id="tkMode"><button data-m="board" class="on">Por estado</button><button data-m="people">Por empleado</button></div>
+      <label class="muted" style="margin-left:auto;font-size:13px;display:flex;gap:6px;align-items:center"><input type="checkbox" id="tkHideDone"> Ocultar terminadas</label>
+    </div>
+  </div>
+  <div id="tkEmpty"></div>
+  <div class="tk-board" id="tkBoard"></div>
 </section>
 
 <section id="viewResults" hidden>
@@ -907,6 +930,61 @@
 </div>
 
 <!-- Editor de presupuesto -->
+<!-- Tarea (nueva / ver y editar) -->
+<div class="modal-bg" id="tkModal">
+  <div class="modal" style="max-width:640px">
+    <h3 id="tkMTitle">Nueva tarea</h3>
+    <label class="tk-lbl">Qué hay que hacer<input type="text" id="tkTitle" maxlength="200" placeholder="Ej: Armar exhibidor nuevo de PETGO"></label>
+    <label class="tk-lbl">Detalle<textarea id="tkDetail" style="min-height:70px" placeholder="Explicá lo que haga falta…"></textarea></label>
+    <div class="grid2" style="margin-top:10px">
+      <label>Encargado<select id="tkAssignee" style="width:100%"></select></label>
+      <label>Prioridad<div class="seg" id="tkPrio" style="width:100%"><button data-p="baja" style="flex:1">Baja</button><button data-p="media" style="flex:1">Media</button><button data-p="alta" style="flex:1">Alta</button></div></label>
+    </div>
+    <div class="tk-due">
+      <label class="tk-chk"><input type="checkbox" id="tkHasDue"> Tiene fecha límite</label>
+      <span id="tkDueBox" hidden><input type="date" id="tkDue"> <input type="time" id="tkDueTime" title="Hora (opcional)"> <span class="muted" style="font-size:12px">hora opcional</span></span>
+    </div>
+    <div class="tk-lbl" style="margin-top:12px">Estado</div>
+    <div class="st-btns" id="tkStatus"><button data-s="new" class="s1">⚪ Sin revisar</button><button data-s="doing" class="s2">🟡 En proceso</button><button data-s="done" class="s3">🟢 Terminada</button></div>
+    <div class="tk-lbl" style="margin-top:14px">Fotos, archivos y links</div>
+    <div id="tkAtts" class="tk-atts"></div>
+    <div class="row" style="gap:8px;margin-top:6px">
+      <button class="btn small" id="tkAddPhoto">📷 Fotos</button>
+      <button class="btn small" id="tkAddFile">📎 Archivos</button>
+      <button class="btn small" id="tkAddLink">🔗 Pegar link</button>
+      <span id="tkUpMsg" class="muted" style="font-size:12.5px"></span>
+    </div>
+    <div id="tkLinkBox" class="row" style="gap:6px;margin-top:8px" hidden><input type="text" id="tkLinkUrl" placeholder="https://docs.google.com/…" style="flex:2;min-width:180px"><input type="text" id="tkLinkName" placeholder="Nombre (opcional)" style="flex:1;min-width:120px"><button class="btn small primary" id="tkLinkOk">Agregar</button></div>
+    <input type="file" id="tkPhotoIn" accept="image/*" multiple hidden>
+    <input type="file" id="tkFileIn" multiple hidden>
+    <div id="tkCmtBox" hidden>
+      <div class="tk-lbl" style="margin-top:16px">Comentarios</div>
+      <div id="tkCmts"></div>
+      <div class="row" style="gap:6px;margin-top:8px"><input type="text" id="tkCmtTxt" placeholder="Escribí un comentario…" style="flex:1;min-width:160px"><button class="btn" id="tkCmtPhoto" title="Adjuntar foto">📷</button><button class="btn primary" id="tkCmtSend">Enviar</button></div>
+      <div id="tkCmtPend" class="muted" style="font-size:12.5px;margin-top:4px"></div>
+      <input type="file" id="tkCmtIn" accept="image/*" multiple hidden>
+      <details style="margin-top:10px"><summary class="muted" style="font-size:12.5px;cursor:pointer">Historial</summary><div id="tkHist" style="font-size:12.5px;margin-top:6px"></div></details>
+    </div>
+    <div id="tkMsg" style="margin-top:10px"></div>
+    <div class="row" style="justify-content:space-between;margin-top:14px">
+      <button class="btn" id="tkDel" style="color:var(--err)" hidden>Eliminar</button>
+      <div class="row" style="margin-left:auto"><button class="btn" id="tkClose">Cerrar</button><button class="btn primary" id="tkSave">Guardar</button></div>
+    </div>
+  </div>
+</div>
+
+<!-- Encargados -->
+<div class="modal-bg" id="tkPeopleModal">
+  <div class="modal" style="max-width:460px">
+    <h3>Encargados</h3>
+    <div class="muted" style="font-size:13px;margin-bottom:10px">Las personas a las que les asignás tareas. Cada una entra al panel con la contraseña y elige su nombre en "Soy".</div>
+    <div id="tkPeopleList"></div>
+    <div class="row" style="gap:6px;margin-top:8px"><input type="text" id="tkPersonName" placeholder="Nombre" style="flex:1"><button class="btn" id="tkPersonAdd">+ Agregar</button></div>
+    <div id="tkPeopleMsg" style="margin-top:8px"></div>
+    <div class="row" style="justify-content:flex-end;margin-top:14px"><button class="btn" id="tkPeopleClose">Cerrar</button><button class="btn primary" id="tkPeopleSave">Guardar</button></div>
+  </div>
+</div>
+
 <div class="modal-bg" id="qModal">
   <div class="modal" style="max-width:860px">
     <h3 id="qTitle">Nuevo presupuesto</h3>
@@ -1422,12 +1500,12 @@ $('impFile').onchange = async (e) => {
 
 // ---------- Vistas (panel lateral) ----------
 function showView() {
-  const v = ({ '#ventas': 'ventas', '#ranking': 'ranking', '#precios': 'precios', '#presupuestos': 'presupuestos', '#estados': 'estados', '#gastos': 'gastos', '#full': 'full', '#flex': 'flex', '#resultado': 'resultado', '#stock': 'stock', '#sugerencias': 'sugerencias', '#web': 'web', '#horarios': 'horarios', '#manuales': 'manuales', '#calculadora': 'calculadora', '#etiquetas': 'etiquetas', '#tuyo': 'tuyo' })[location.hash] || 'ventas';
+  const v = ({ '#ventas': 'ventas', '#ranking': 'ranking', '#precios': 'precios', '#presupuestos': 'presupuestos', '#estados': 'estados', '#gastos': 'gastos', '#full': 'full', '#flex': 'flex', '#resultado': 'resultado', '#tareas': 'tareas', '#stock': 'stock', '#sugerencias': 'sugerencias', '#web': 'web', '#horarios': 'horarios', '#manuales': 'manuales', '#calculadora': 'calculadora', '#etiquetas': 'etiquetas', '#tuyo': 'tuyo' })[location.hash] || 'ventas';
   $('viewQuotes').hidden = v !== 'presupuestos';
   $('viewStatus').hidden = v !== 'estados';
   $('viewExpenses').hidden = v !== 'gastos'; $('viewFull').hidden = v !== 'full';
   $('viewResults').hidden = v !== 'resultado'; $('viewStock').hidden = v !== 'stock'; $('viewSuggest').hidden = v !== 'sugerencias'; $('viewWeb').hidden = v !== 'web'; $('viewHours').hidden = v !== 'horarios'; $('viewManuals').hidden = v !== 'manuales'; $('viewCalc').hidden = v !== 'calculadora'; $('viewPLabel').hidden = v !== 'etiquetas'; $('viewTuyo').hidden = v !== 'tuyo';
-  $('viewFlex').hidden = v !== 'flex'; $('viewSales').hidden = v !== 'ventas';
+  $('viewFlex').hidden = v !== 'flex'; $('viewSales').hidden = v !== 'ventas'; $('viewTasks').hidden = v !== 'tareas';
   $('viewRanking').hidden = v !== 'ranking'; $('viewPrices').hidden = v !== 'precios';
   document.querySelectorAll('.side .nav').forEach(a => a.classList.toggle('active', a.dataset.view === v));
   if (v === 'ventas') { loadSales(); loadCosts(false); }
@@ -1446,6 +1524,7 @@ function showView() {
   if (v === 'calculadora') loadCalc();
   if (v === 'etiquetas') loadPLabel();
   if (v === 'tuyo') loadTuyo();
+  if (v === 'tareas') loadTasks();
   if (v === 'flex' && typeof scans !== 'undefined') load();
 }
 window.addEventListener('hashchange', showView);
@@ -2499,6 +2578,280 @@ $('exImpGo').onclick = async () => {
   await loadExpenses();
   $('exMsg').innerHTML = `<span style="color:var(--ok)">✓ Se agregaron <b>${d.added} gastos</b> (${money(d.total)})${ms ? ` en ${esc(ms)}` : ''}.</span>${d.dupes ? ` <span class="muted">${d.dupes} ya estaban cargados y se saltearon.</span>` : ''}${d.error_count ? ` <span class="err-t">${d.error_count} filas con error.</span>` : ''}`;
 };
+// ---------- Tareas del equipo ----------
+let tkBlob = false, tkData = { items: [], people: [] }, tkCur = null, tkDraft = null, tkCmtAtts = [], tkPeopleDraft = [];
+const TK_ST = { new: 'Sin revisar', doing: 'En proceso', done: 'Terminada' };
+const TK_DOT = { new: 'd-new', doing: 'd-doing', done: 'd-done' };
+const tkLS = (k, v) => { try { if (v === undefined) return localStorage.getItem(k); localStorage.setItem(k, v); } catch { return null; } };
+let tkMode = tkLS('tk_mode') || 'board';
+const tkMe = () => tkLS('tk_me') || '';
+const tkPerson = (id) => tkData.people.find(p => p.id === id);
+const tkAv = (p) => p ? `<span class="who"><span class="av" style="background:${esc(p.color)}">${esc((p.name || '?')[0].toUpperCase())}</span>${esc(p.name)}</span>` : '<span class="who muted">Sin asignar</span>';
+// Vencimiento: fecha + hora (si no hay hora, vence al final del día).
+function tkDueInfo(t) {
+  if (!t.due) return null;
+  const end = new Date(`${t.due}T${t.due_time || '23:59'}:00`), today = ymd(new Date());
+  const d = new Date(t.due + 'T12:00:00');
+  const dias = ['dom', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb'];
+  let label = t.due === today ? 'hoy' : t.due === ymd(new Date(Date.now() + 86400e3)) ? 'mañana' : `${dias[d.getDay()]} ${t.due.slice(8)}/${t.due.slice(5, 7)}`;
+  if (t.due_time) label += ' ' + t.due_time;
+  const late = t.status !== 'done' && end < new Date();
+  return { label, late, today: t.status !== 'done' && t.due === today && !late };
+}
+const tkFileUrl = (a) => a._preview || `/api/tasks/file/${a.id}/${encodeURIComponent(a.name || 'archivo')}`;
+const tkKb = (n) => n > 1048576 ? (n / 1048576).toFixed(1).replace('.', ',') + ' MB' : Math.max(1, Math.round(n / 1024)) + ' KB';
+
+async function loadTasks() {
+  const d = await (await fetch('/api/tasks')).json().catch(() => null);
+  if (!d) { $('tkEmpty').innerHTML = '<div class="msg">No se pudieron cargar las tareas. Revisá que esté subido server.js.</div>'; return; }
+  tkData = d; tkBlob = !!d.blob_uploads;
+  const me = tkMe(), opts = tkData.people.map(p => `<option value="${esc(p.id)}">${esc(p.name)}</option>`).join('');
+  $('tkMe').innerHTML = `<option value="">Dueño / administrador</option>${opts}`; $('tkMe').value = tkPerson(me) ? me : '';
+  const who = tkLS('tk_who') || '';
+  $('tkWho').innerHTML = `<option value="">Todos los encargados</option>${opts}<option value="-">Sin asignar</option>`; $('tkWho').value = (who === '-' || tkPerson(who)) ? who : '';
+  $('tkHideDone').checked = tkLS('tk_hide') === '1';
+  document.querySelectorAll('#tkMode button').forEach(b => b.classList.toggle('on', b.dataset.m === tkMode));
+  renderTasks();
+}
+function renderTasks() {
+  const q = $('tkQ').value.trim().toLowerCase(), who = $('tkWho').value, hide = $('tkHideDone').checked;
+  const all = tkData.items;
+  let list = all.filter(t => (!who || (who === '-' ? !tkPerson(t.assignee) : t.assignee === who)) && (!q || (t.title + ' ' + t.detail).toLowerCase().includes(q)));
+  const week = Date.now() - 7 * 86400e3;
+  const cnt = (st) => list.filter(t => t.status === st).length;
+  const late = list.filter(t => (tkDueInfo(t) || {}).late).length, today = list.filter(t => (tkDueInfo(t) || {}).today).length;
+  $('tkStats').innerHTML = [
+    `<div class="stat"><div class="k"><span class="dot d-new"></span>Sin revisar</div><div class="v">${cnt('new')}</div><div class="sub">todavía no la empezaron</div></div>`,
+    `<div class="stat"><div class="k"><span class="dot d-doing"></span>En proceso</div><div class="v">${cnt('doing')}</div><div class="sub">${today ? `${today} vence${today === 1 ? '' : 'n'} hoy` : 'en marcha'}</div></div>`,
+    `<div class="stat"><div class="k"><span class="dot d-done"></span>Terminadas</div><div class="v">${cnt('done')}</div><div class="sub">${list.filter(t => t.status === 'done' && new Date(t.done_at || 0) > week).length} en los últimos 7 días</div></div>`,
+    `<div class="stat"><div class="k">⚠️ Vencidas</div><div class="v" style="color:${late ? 'var(--err)' : 'inherit'}">${late}</div><div class="sub">pasó la fecha límite</div></div>`,
+  ].join('');
+  if (hide) list = list.filter(t => t.status !== 'done');
+  const order = { new: 0, doing: 1, done: 2 }, prio = { alta: 0, media: 1, baja: 2 };
+  const sortFn = (a, b) => (a.status === 'done' && b.status === 'done') ? String(b.done_at || '').localeCompare(String(a.done_at || ''))
+    : ((a.due ? 0 : 1) - (b.due ? 0 : 1)) || String(a.due + a.due_time).localeCompare(String(b.due + b.due_time)) || (prio[a.priority] - prio[b.priority]) || String(b.created_at).localeCompare(String(a.created_at));
+  $('tkEmpty').innerHTML = !all.length ? `<div class="msg">Todavía no hay tareas. ${tkData.people.length ? '' : 'Primero cargá los <b>Encargados</b> y después '}tocá <b>+ Nueva tarea</b>.</div>` : '';
+  const card = (t, showSt) => {
+    const di = tkDueInfo(t), photos = t.attachments.filter(a => a.kind === 'photo'), nf = t.attachments.filter(a => a.kind === 'file').length, nl = t.attachments.filter(a => a.kind === 'link').length;
+    const icons = [photos.length ? `📷 ${photos.length}` : '', nf ? `📎 ${nf}` : '', nl ? `🔗 ${nl}` : '', t.comments.length ? `💬 ${t.comments.length}` : ''].filter(Boolean).join(' · ');
+    return `<div class="tk${t.status === 'done' ? ' done' : ''}${di && di.late ? ' late' : ''}" data-tk="${esc(t.id)}">
+      ${showSt ? `<div class="tk-st"><span class="dot ${TK_DOT[t.status]}"></span>${TK_ST[t.status]}</div>` : ''}
+      <div class="t">${esc(t.title)}</div>${t.detail ? `<div class="d">${esc(t.detail)}</div>` : ''}
+      ${photos.length ? `<div class="thumbs">${photos.slice(0, 3).map(a => `<img class="thumb" loading="lazy" src="${tkFileUrl(a)}" alt="">`).join('')}${photos.length > 3 ? `<span class="muted" style="font-size:12px;align-self:center">+${photos.length - 3}</span>` : ''}</div>` : ''}
+      <div class="meta">${showSt ? '' : tkAv(tkPerson(t.assignee)) + ' · '}${t.status === 'done' ? `<span>✓ terminada ${t.done_at ? new Date(t.done_at).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' }) : ''}</span>` : di ? `<span class="due${di.late ? ' late' : di.today ? ' today' : ''}">📅 ${esc(di.label)}${di.late ? ' · vencida' : ''}</span>` : '<span>sin fecha límite</span>'}${t.priority !== 'media' && t.status !== 'done' ? `<span class="prio ${esc(t.priority)}">${t.priority[0].toUpperCase() + t.priority.slice(1)}</span>` : ''}${icons ? `<span style="margin-left:auto">${icons}</span>` : ''}</div>
+    </div>`;
+  };
+  let cols;
+  if (tkMode === 'people') {
+    const groups = tkData.people.filter(p => !who || who === p.id).map(p => ({ key: p.id, head: tkAv(p), list: list.filter(t => t.assignee === p.id) }));
+    const none = list.filter(t => !tkPerson(t.assignee));
+    if (none.length) groups.push({ key: '-', head: '<span class="who muted">Sin asignar</span>', list: none });
+    cols = groups.map(g => {
+      const l = g.list.slice().sort((a, b) => order[a.status] - order[b.status] || sortFn(a, b));
+      const pend = g.list.filter(t => t.status !== 'done').length;
+      return `<div class="tk-col"><h3>${g.head}<span class="n">${pend} pendiente${pend === 1 ? '' : 's'}</span></h3>${l.map(t => card(t, true)).join('') || '<div class="muted" style="font-size:13px;padding:6px">Sin tareas</div>'}</div>`;
+    });
+  } else {
+    cols = ['new', 'doing', 'done'].filter(st => !(hide && st === 'done')).map(st => {
+      const l = list.filter(t => t.status === st).sort(sortFn);
+      return `<div class="tk-col"><h3><span class="dot ${TK_DOT[st]}"></span>${({ new: 'Sin revisar', doing: 'En proceso', done: 'Terminadas' })[st]}<span class="n">${l.length}</span></h3>${l.map(t => card(t, false)).join('') || '<div class="muted" style="font-size:13px;padding:6px">Nada por acá</div>'}</div>`;
+    });
+  }
+  $('tkBoard').className = 'tk-board' + (tkMode === 'people' ? ' people' : '');
+  $('tkBoard').style.setProperty('--tk-cols', cols.length || 1);
+  $('tkBoard').innerHTML = all.length ? cols.join('') : '';
+}
+$('tkQ').oninput = renderTasks;
+$('tkWho').onchange = () => { tkLS('tk_who', $('tkWho').value); renderTasks(); };
+$('tkHideDone').onchange = () => { tkLS('tk_hide', $('tkHideDone').checked ? '1' : '0'); renderTasks(); };
+$('tkMe').onchange = () => tkLS('tk_me', $('tkMe').value);
+$('tkMode').onclick = (e) => { const b = e.target.closest('[data-m]'); if (!b) return; tkMode = b.dataset.m; tkLS('tk_mode', tkMode); document.querySelectorAll('#tkMode button').forEach(x => x.classList.toggle('on', x === b)); renderTasks(); };
+$('tkBoard').onclick = (e) => { const c = e.target.closest('[data-tk]'); if (c) tkOpen(c.dataset.tk); };
+const tkByName = () => (tkPerson(tkMe()) || {}).name || 'Dueño';
+
+// --- Modal de tarea ---
+function tkOpen(id) {
+  tkCur = id ? tkData.items.find(t => t.id === id) : null;
+  tkDraft = tkCur ? { ...tkCur, attachments: tkCur.attachments.slice() } : { title: '', detail: '', assignee: $('tkWho').value && $('tkWho').value !== '-' ? $('tkWho').value : '', due: '', due_time: '', priority: 'media', status: 'new', attachments: [] };
+  tkCmtAtts = [];
+  $('tkMTitle').textContent = tkCur ? 'Tarea' : 'Nueva tarea';
+  $('tkTitle').value = tkDraft.title; $('tkDetail').value = tkDraft.detail;
+  $('tkAssignee').innerHTML = `<option value="">Sin asignar</option>${tkData.people.map(p => `<option value="${esc(p.id)}">${esc(p.name)}</option>`).join('')}`;
+  $('tkAssignee').value = tkPerson(tkDraft.assignee) ? tkDraft.assignee : '';
+  $('tkHasDue').checked = !!tkDraft.due; $('tkDueBox').hidden = !tkDraft.due;
+  $('tkDue').value = tkDraft.due || ''; $('tkDueTime').value = tkDraft.due_time || '';
+  tkSetPrio(tkDraft.priority); tkSetStatus(tkDraft.status);
+  $('tkLinkBox').hidden = true; $('tkLinkUrl').value = ''; $('tkLinkName').value = '';
+  $('tkCmtBox').hidden = !tkCur; $('tkDel').hidden = !tkCur; $('tkMsg').innerHTML = ''; $('tkUpMsg').textContent = ''; $('tkCmtPend').textContent = ''; $('tkCmtTxt').value = '';
+  tkRenderAtts(); tkRenderCmts();
+  $('tkModal').classList.add('show');
+  if (!tkCur) $('tkTitle').focus();
+}
+const tkSetPrio = (p) => { tkDraft.priority = p; document.querySelectorAll('#tkPrio button').forEach(b => b.classList.toggle('on', b.dataset.p === p)); };
+const tkSetStatus = (s) => { tkDraft.status = s; document.querySelectorAll('#tkStatus button').forEach(b => b.classList.toggle('on', b.dataset.s === s)); };
+$('tkPrio').onclick = (e) => { const b = e.target.closest('[data-p]'); if (b) { e.preventDefault(); tkSetPrio(b.dataset.p); } };
+$('tkStatus').onclick = async (e) => {
+  const b = e.target.closest('[data-s]'); if (!b) return;
+  tkSetStatus(b.dataset.s);
+  if (tkCur && tkCur.status !== b.dataset.s) { // el estado se guarda al toque
+    const d = await tkPut({ status: b.dataset.s });
+    if (d) $('tkMsg').innerHTML = `<span class="ok-t">✓ Quedó como "${TK_ST[b.dataset.s]}".</span>`;
+  }
+};
+$('tkHasDue').onchange = () => { $('tkDueBox').hidden = !$('tkHasDue').checked; if ($('tkHasDue').checked && !$('tkDue').value) $('tkDue').value = ymd(new Date(Date.now() + 86400e3)); };
+function tkRenderAtts() {
+  const a = tkDraft.attachments;
+  $('tkAtts').innerHTML = !a.length ? '<div class="muted" style="font-size:13px">Nada adjunto.</div>' : `
+    <div class="tk-photos">${a.filter(x => x.kind === 'photo').map(x => `<div class="tk-ph"><a href="${tkFileUrl(x)}" target="_blank" rel="noopener"><img src="${tkFileUrl(x)}" alt=""></a><button class="x" data-tkdel="${esc(x.id)}" title="Quitar">✕</button></div>`).join('')}</div>
+    ${a.filter(x => x.kind !== 'photo').map(x => `<div class="file">${x.kind === 'link' ? '🔗' : '📎'} <a class="lnk" href="${x.kind === 'link' ? esc(x.url) : tkFileUrl(x)}" target="_blank" rel="noopener">${esc(x.name || x.url)}</a>${x.size ? `<span class="muted"> · ${tkKb(x.size)}</span>` : ''}${x.kind === 'file' ? ` <a class="muted" style="font-size:12px" href="${tkFileUrl(x)}?dl=1">descargar</a>` : ''}<button class="x" data-tkdel="${esc(x.id)}" title="Quitar">✕</button></div>`).join('')}`;
+}
+$('tkAtts').onclick = async (e) => {
+  const b = e.target.closest('[data-tkdel]'); if (!b) return;
+  if (!confirm('¿Quitar este adjunto?')) return;
+  if (tkCur) {
+    const d = await (await fetch(`/api/tasks/${tkCur.id}/att/${b.dataset.tkdel}`, { method: 'DELETE' })).json().catch(() => ({}));
+    if (d.ok) { tkSync(d.task); tkDraft.attachments = d.task.attachments.slice(); }
+  } else tkDraft.attachments = tkDraft.attachments.filter(x => x.id !== b.dataset.tkdel);
+  tkRenderAtts();
+};
+function tkRenderCmts() {
+  if (!tkCur) return;
+  $('tkCmts').innerHTML = tkCur.comments.map(c => `<div class="cmt"><b>${esc(c.by || 'Alguien')} · ${new Date(c.at).toLocaleString('es-AR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}</b>${c.text ? `<div>${esc(c.text)}</div>` : ''}${(c.attachments || []).length ? `<div class="tk-photos" style="margin-top:6px">${c.attachments.map(a => a.kind === 'photo' ? `<div class="tk-ph sm"><a href="${tkFileUrl(a)}" target="_blank" rel="noopener"><img src="${tkFileUrl(a)}" alt=""></a></div>` : `<a class="lnk" href="${tkFileUrl(a)}" target="_blank">📎 ${esc(a.name)}</a>`).join('')}</div>` : ''}</div>`).join('') || '<div class="muted" style="font-size:13px">Sin comentarios todavía.</div>';
+  $('tkHist').innerHTML = (tkCur.history || []).slice().reverse().map(h => `<div>${new Date(h.at).toLocaleString('es-AR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })} · <b>${esc(h.by || 'Alguien')}</b> ${esc(h.what)}</div>`).join('');
+}
+function tkSync(t) { const i = tkData.items.findIndex(x => x.id === t.id); if (i >= 0) tkData.items[i] = t; else tkData.items.unshift(t); if (tkCur && tkCur.id === t.id) tkCur = t; renderTasks(); }
+async function tkPut(body) {
+  const d = await (await fetch('/api/tasks/' + tkCur.id, { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ ...body, by: tkByName() }) })).json().catch(() => ({}));
+  if (!d.ok) { $('tkMsg').innerHTML = `<span class="err-t">${esc(d.error || 'No se pudo guardar.')}</span>`; return null; }
+  tkSync(d.task); tkRenderCmts(); return d.task;
+}
+
+// --- Subir fotos y archivos ---
+// Achica las fotos (máx. 1600 px) para que suban rápido.
+function tkShrink(f) {
+  return new Promise((ok) => {
+    if (!/^image\/(jpeg|png|webp)$/.test(f.type) || f.size < 350e3) return ok(f);
+    const img = new Image(), u = URL.createObjectURL(f);
+    img.onload = () => {
+      const k = Math.min(1, 1600 / Math.max(img.naturalWidth, img.naturalHeight));
+      const c = document.createElement('canvas'); c.width = Math.round(img.naturalWidth * k); c.height = Math.round(img.naturalHeight * k);
+      c.getContext('2d').drawImage(img, 0, 0, c.width, c.height); URL.revokeObjectURL(u);
+      c.toBlob(b => ok(b && b.size < f.size ? new File([b], f.name.replace(/\.\w+$/, '') + '.jpg', { type: 'image/jpeg' }) : f), 'image/jpeg', 0.85);
+    };
+    img.onerror = () => { URL.revokeObjectURL(u); ok(f); };
+    img.src = u;
+  });
+}
+async function tkUpload(f) {
+  if (f.type.startsWith('image/')) f = await tkShrink(f);
+  const att = await tkUploadRaw(f);
+  if (att && att.kind === 'photo') Object.defineProperty(att, '_preview', { value: URL.createObjectURL(f), enumerable: false }); // vista previa antes de guardar
+  return att;
+}
+async function tkUploadRaw(f) {
+  if (tkBlob && f.size > 4e6) { // en Vercel: los archivos grandes van directo a Blob
+    const { upload } = await import('/vendor/blob-client.js');
+    const clean = f.name.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^\w.-]+/g, '-').replace(/-+/g, '-').slice(-90) || 'archivo';
+    const b = await upload('tareas/' + clean, f, { access: 'public', handleUploadUrl: '/api/tasks/blob-token', contentType: f.type || undefined });
+    const d = await (await fetch('/api/tasks/blob-att', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ url: b.url, name: f.name, type: f.type, size: f.size }) })).json();
+    if (!d.ok) throw new Error(d.error || 'No se pudo registrar el archivo.');
+    return d.att;
+  }
+  const r = await fetch('/api/tasks/upload?' + new URLSearchParams({ name: f.name, type: f.type || '' }), { method: 'POST', headers: { 'content-type': 'application/octet-stream' }, body: f });
+  const d = await r.json().catch(() => ({ ok: false, error: r.status === 413 ? 'Archivo demasiado grande.' : 'Error al subir.' }));
+  if (!d.ok) throw new Error(d.error);
+  return d.att;
+}
+async function tkUploadMany(list, msgEl) {
+  const out = [], errs = [];
+  for (const [i, f] of list.entries()) {
+    msgEl.textContent = `Subiendo ${i + 1} de ${list.length}…`;
+    try { out.push(await tkUpload(f)); } catch (e) { errs.push(`${f.name}: ${e.message || e}`); }
+  }
+  msgEl.textContent = errs.length ? '⚠️ ' + errs.join(' · ') : '';
+  return out;
+}
+async function tkAddAtts(atts) {
+  if (!atts.length) return;
+  if (tkCur) { const t = await tkPut({ add_attachments: atts }); if (t) tkDraft.attachments = t.attachments.slice(); }
+  else tkDraft.attachments.push(...atts);
+  tkRenderAtts();
+}
+$('tkAddPhoto').onclick = () => $('tkPhotoIn').click();
+$('tkAddFile').onclick = () => $('tkFileIn').click();
+for (const id of ['tkPhotoIn', 'tkFileIn']) $(id).onchange = async (e) => { const fl = [...e.target.files]; e.target.value = ''; await tkAddAtts(await tkUploadMany(fl, $('tkUpMsg'))); };
+$('tkAddLink').onclick = () => { $('tkLinkBox').hidden = !$('tkLinkBox').hidden; if (!$('tkLinkBox').hidden) $('tkLinkUrl').focus(); };
+$('tkLinkOk').onclick = async () => {
+  const url = $('tkLinkUrl').value.trim(); if (!url) return;
+  let name = $('tkLinkName').value.trim();
+  if (!name) name = /docs\.google\.com\/document/.test(url) ? 'Documento de Google' : /docs\.google\.com\/spreadsheets/.test(url) ? 'Planilla de Google' : /drive\.google\.com/.test(url) ? 'Archivo de Drive' : url.replace(/^https?:\/\//, '').slice(0, 60);
+  await tkAddAtts([{ kind: 'link', url, name }]);
+  $('tkLinkUrl').value = ''; $('tkLinkName').value = ''; $('tkLinkBox').hidden = true;
+};
+// Arrastrar fotos o archivos sobre la ventana de la tarea.
+$('tkModal').addEventListener('dragover', (e) => e.preventDefault());
+$('tkModal').addEventListener('drop', async (e) => { e.preventDefault(); const fl = [...(e.dataTransfer.files || [])]; if (fl.length) await tkAddAtts(await tkUploadMany(fl, $('tkUpMsg'))); });
+
+$('tkSave').onclick = async () => {
+  const body = { title: $('tkTitle').value.trim(), detail: $('tkDetail').value.trim(), assignee: $('tkAssignee').value, priority: tkDraft.priority, status: tkDraft.status,
+    due: $('tkHasDue').checked ? $('tkDue').value : '', due_time: $('tkHasDue').checked ? $('tkDueTime').value : '' };
+  if (!body.title) { $('tkMsg').innerHTML = '<span class="err-t">Escribí qué hay que hacer.</span>'; return; }
+  if ($('tkHasDue').checked && !body.due) { $('tkMsg').innerHTML = '<span class="err-t">Elegí la fecha límite (o destildá "Tiene fecha límite").</span>'; return; }
+  $('tkSave').disabled = true;
+  try {
+    if (tkCur) { if (await tkPut(body)) $('tkModal').classList.remove('show'); }
+    else {
+      const d = await (await fetch('/api/tasks', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ ...body, attachments: tkDraft.attachments, by: tkByName() }) })).json().catch(() => ({}));
+      if (!d.ok) { $('tkMsg').innerHTML = `<span class="err-t">${esc(d.error || 'No se pudo guardar.')}</span>`; return; }
+      tkSync(d.task); $('tkModal').classList.remove('show');
+    }
+  } finally { $('tkSave').disabled = false; }
+};
+$('tkClose').onclick = () => $('tkModal').classList.remove('show');
+$('tkDel').onclick = async () => {
+  if (!tkCur || !confirm(`¿Eliminar la tarea "${tkCur.title}"? Se borran también sus fotos y archivos.`)) return;
+  await fetch('/api/tasks/' + tkCur.id, { method: 'DELETE' });
+  tkData.items = tkData.items.filter(t => t.id !== tkCur.id); tkCur = null;
+  $('tkModal').classList.remove('show'); renderTasks();
+};
+// Comentarios (con fotos opcionales)
+$('tkCmtPhoto').onclick = () => $('tkCmtIn').click();
+$('tkCmtIn').onchange = async (e) => { const fl = [...e.target.files]; e.target.value = ''; tkCmtAtts.push(...await tkUploadMany(fl, $('tkCmtPend'))); if (tkCmtAtts.length) $('tkCmtPend').textContent = `📷 ${tkCmtAtts.length} foto${tkCmtAtts.length === 1 ? '' : 's'} lista${tkCmtAtts.length === 1 ? '' : 's'} para enviar`; };
+$('tkCmtSend').onclick = async () => {
+  if (!tkCur) return;
+  const text = $('tkCmtTxt').value.trim();
+  if (!text && !tkCmtAtts.length) return;
+  const d = await (await fetch(`/api/tasks/${tkCur.id}/comments`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ text, attachments: tkCmtAtts, by: tkByName() }) })).json().catch(() => ({}));
+  if (!d.ok) { $('tkMsg').innerHTML = `<span class="err-t">${esc(d.error || 'No se pudo enviar.')}</span>`; return; }
+  tkCmtAtts = []; $('tkCmtTxt').value = ''; $('tkCmtPend').textContent = '';
+  tkSync(d.task); tkRenderCmts();
+};
+$('tkCmtTxt').onkeydown = (e) => { if (e.key === 'Enter') $('tkCmtSend').click(); };
+$('tkNew').onclick = () => tkOpen(null);
+
+// --- Encargados ---
+const TK_COLORS = ['#0ea5e9', '#f97316', '#22c55e', '#a855f7', '#ef4444', '#eab308', '#14b8a6', '#ec4899', '#6366f1', '#84cc16'];
+function tkRenderPeople() {
+  $('tkPeopleList').innerHTML = tkPeopleDraft.map((p, i) => {
+    const n = tkData.items.filter(t => t.assignee === p.id && t.status !== 'done').length;
+    return `<div class="file"><input type="color" value="${esc(p.color)}" data-pcolor="${i}" style="width:32px;height:26px;padding:0;border:0;background:none"><input type="text" value="${esc(p.name)}" data-pname="${i}" style="flex:1"><span class="muted" style="font-size:12px;white-space:nowrap">${n} pendiente${n === 1 ? '' : 's'}</span><button class="x" data-pdel="${i}" title="Quitar">✕</button></div>`;
+  }).join('') || '<div class="muted" style="font-size:13px">Todavía no hay encargados.</div>';
+}
+$('tkPeopleBtn').onclick = () => { tkPeopleDraft = tkData.people.map(p => ({ ...p })); $('tkPeopleMsg').innerHTML = ''; tkRenderPeople(); $('tkPeopleModal').classList.add('show'); $('tkPersonName').focus(); };
+$('tkPersonAdd').onclick = () => { const n = $('tkPersonName').value.trim(); if (!n) return; tkPeopleDraft.push({ name: n, color: TK_COLORS[tkPeopleDraft.length % TK_COLORS.length] }); $('tkPersonName').value = ''; tkRenderPeople(); $('tkPersonName').focus(); };
+$('tkPersonName').onkeydown = (e) => { if (e.key === 'Enter') $('tkPersonAdd').click(); };
+$('tkPeopleList').oninput = (e) => { const i = e.target.dataset.pname ?? e.target.dataset.pcolor; if (i === undefined) return; tkPeopleDraft[i][e.target.dataset.pname !== undefined ? 'name' : 'color'] = e.target.value; };
+$('tkPeopleList').onclick = (e) => { const b = e.target.closest('[data-pdel]'); if (!b) return; const p = tkPeopleDraft[b.dataset.pdel]; const n = tkData.items.filter(t => t.assignee === p.id && t.status !== 'done').length; if (n && !confirm(`${p.name} tiene ${n} tarea${n === 1 ? '' : 's'} pendiente${n === 1 ? '' : 's'}: van a quedar sin asignar. ¿Quitarlo?`)) return; tkPeopleDraft.splice(b.dataset.pdel, 1); tkRenderPeople(); };
+$('tkPeopleSave').onclick = async () => {
+  if ($('tkPersonName').value.trim()) $('tkPersonAdd').click();
+  const d = await (await fetch('/api/tasks/people', { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ people: tkPeopleDraft }) })).json().catch(() => ({}));
+  if (!d.ok) { $('tkPeopleMsg').innerHTML = `<span class="err-t">${esc(d.error || 'No se pudo guardar.')}</span>`; return; }
+  $('tkPeopleModal').classList.remove('show'); loadTasks();
+};
+$('tkPeopleClose').onclick = () => $('tkPeopleModal').classList.remove('show');
+// Mientras está abierta la sección, se actualiza sola (para ver los cambios del resto del equipo).
+setInterval(() => { if (!$('viewTasks').hidden && !$('tkModal').classList.contains('show') && !$('tkPeopleModal').classList.contains('show') && document.visibilityState === 'visible') loadTasks(); }, 20000);
+
 // ---------- TUYO (productos de Amazon) ----------
 let tuFromD = ymd(new Date()).slice(0, 8) + '01', tuToD = ymd(new Date()), tuData = null, tuStage = '';
 try { const r = JSON.parse(localStorage.getItem('tu_range') || 'null'); if (r && r.from && r.to) { tuFromD = r.from; tuToD = r.to; } } catch { /* sin memoria */ }

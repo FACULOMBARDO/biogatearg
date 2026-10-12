@@ -249,6 +249,13 @@ Cuenta de Mercado Libre con productos comprados en Amazon: sus ventas se traen i
 6. **Cómo se pagó y cuánto queda**: facturación bruta − canceladas y devueltas − comisiones − envíos − impuestos − costo Amazon = neto después de costos. Abajo está la lista de ventas igual que en Ventas, con filtro Por enviar / En camino / Entregadas / Canceladas y devueltas.
 7. En **Resultado del mes** (y en el informe PDF) TUYO se suma solo si la tildás en el selector de cuentas.
 
+### ✅ Tareas
+Para repartir tareas al equipo (menú lateral → **Tareas**).
+1. Tocá **👥 Encargados** y cargá los nombres (cada uno con su color).
+2. **+ Nueva tarea**: qué hay que hacer, detalle, encargado, prioridad y, si querés, **fecha límite** (con hora opcional; si no la tildás, queda sin fecha). Podés sumar **fotos** (se achican solas para que suban rápido), **archivos** (PDF, Excel, etc.) y **links** (por ejemplo un Google Doc). También podés arrastrar fotos o archivos sobre la ventana.
+3. Los encargados entran al panel con la contraseña de siempre, eligen su nombre arriba en **Soy** (queda guardado en ese celular o compu) y en cada tarea tocan **Sin revisar / En proceso / Terminada**. También pueden dejar comentarios con fotos. Todo queda en el **Historial** de la tarea con quién lo hizo.
+4. Se ve **Por estado** (3 columnas) o **Por empleado** (una columna por encargado). Arriba: filtro por encargado, buscador y **Ocultar terminadas**. Las vencidas se marcan en rojo y los contadores muestran cuántas hay.
+
 ### Subir gastos desde Excel
 En **🏪 Gastos del local** → **📥 Subir Excel**. El panel reconoce solo las columnas (Fecha, Gasto/Concepto, Monto/Importe, Forma de pago, Detalle), aunque el título no esté en la primera fila. Antes de importar muestra una vista previa; si alguna columna no se reconoció, la elegís en la lista. Si la planilla tiene varias hojas (por ejemplo una por mes), podés importar **Todas las hojas**. Las filas de TOTAL se ignoran y los gastos que ya estaban cargados (misma fecha, gasto y monto) se saltean.
 
