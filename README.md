@@ -250,11 +250,12 @@ Cuenta de Mercado Libre con productos comprados en Amazon: sus ventas se traen i
 7. En **Resultado del mes** (y en el informe PDF) TUYO se suma solo si la tildás en el selector de cuentas.
 
 ### 🔔 Recompras (cuándo se le termina el suplemento al cliente)
-Usa la columna **DURACION** de la lista de precios (por ejemplo "60 DIAS"). Por cada venta de Mercado Libre, presupuesto confirmado o venta web, cruza el SKU con esa duración: fecha de compra + días (× unidades: 2 frascos de 30 días = 60 días). **1 día antes** de que se termine (se cambia en **⚙️ Mensajes y aviso**) aparece en **Para avisar**, con un numerito rojo en el menú y un cartel arriba del panel. Con **🔔 Activar avisos en esta compu** también llega una notificación del navegador cuando abrís el panel.
-- **💬 Mercado Libre**: abre el mensaje ya armado (lo podés cambiar) y lo manda por la mensajería de la venta. Mercado Libre solo permite hablar de la compra: nada de promociones ni links.
-- **🟢 WhatsApp**: aparece si tenemos el teléfono (presupuestos, web o envíos Flex escaneados); abre WhatsApp con el mensaje listo.
+Usa la columna **DURACION** de la lista de precios (por ejemplo "60 DIAS"). Por cada venta de Mercado Libre, presupuesto confirmado o venta web, cruza el SKU con esa duración: fecha de compra + días (× unidades: 2 frascos de 30 días = 60 días). En **Para avisar** aparecen los que se terminan **hoy, mañana o en los próximos 7 días** (los 7 se cambian en **⚙️ Mensajes y aviso**); los que ya se terminaron no aparecen ahí. Se ven, con un numerito rojo en el menú y un cartel arriba del panel. Con **🔔 Activar avisos en esta compu** también llega una notificación del navegador cuando abrís el panel.
+- **💬 Mercado Libre**: abre el mensaje ya armado (lo podés cambiar) y lo manda por la mensajería de la venta. Máximo 350 caracteres.
+- **🟢 WhatsApp**: aparece si tenemos el teléfono (presupuestos, web, o compradores de ML que alguna vez pasaron por un envío Flex escaneado); abre WhatsApp con el mensaje listo. Si no está, tocá **➕ Agregar WhatsApp** debajo del nombre: queda guardado para todas las compras de ese cliente (con ✏️ se cambia o se borra).
 - **✓** ya le avisaste por otro lado · **✕** no avisar. Si el cliente volvió a comprar el mismo producto antes de que se le termine, se marca solo como **🔁 volvió a comprar**.
-- Los mensajes usan {nombre}, {producto}, {fecha}, {cuando} y {dias}. Los productos sin duración en la planilla no avisan.
+- Los mensajes usan {nombre}, {producto}, {fecha}, {cuando}, {dias} y {hasta} (hoy + 7 días, para la validez del descuento). Los dos (WhatsApp y Mercado Libre) ofrecen un **cupón de 10% de descuento válido por 7 días** para reponer. En ML conviene mandarlos de a uno (Mercado Libre controla los mensajes con promociones) y, para aplicar el descuento, crear un cupón de vendedor en ML.
+- **Nombre del cliente**: en ML se busca solo en los datos de facturación de la venta; si no aparece, tocá ✏️ al lado del nombre y cargalo (queda para todas sus compras). Los productos sin duración en la planilla no avisan.
 
 ### ✅ Tareas
 Para repartir tareas al equipo (menú lateral → **Tareas**).

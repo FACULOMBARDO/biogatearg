@@ -740,8 +740,12 @@ app.post('/api/manuals/config', (req, res) => {
 });
 
 // ---------- Recompras (fin de suplemento) ----------
-app.get('/api/refill', (req, res) => { try { res.json(refill.list()); } catch (e) { res.status(500).json({ error: e.message }); } });
+app.get('/api/refill', (req, res) => {
+  try { const out = refill.list(); const p = refill.resolveMissing(); if (p) bg(p); res.json({ ...out, resolving: !!p }); } catch (e) { res.status(500).json({ error: e.message }); }
+});
+app.put('/api/refill/name', (req, res) => { try { refill.setName((req.body || {}).who, (req.body || {}).name); res.json({ ok: true }); } catch (e) { res.status(400).json({ ok: false, error: e.message }); } });
 app.get('/api/refill/count', (req, res) => { try { res.json({ due: refill.dueCount() }); } catch (e) { res.json({ due: 0 }); } });
+app.put('/api/refill/phone', (req, res) => { try { refill.setPhone((req.body || {}).who, (req.body || {}).phone); res.json({ ok: true }); } catch (e) { res.status(400).json({ ok: false, error: e.message }); } });
 app.put('/api/refill/config', (req, res) => res.json({ ok: true, config: refill.saveConfig(req.body || {}) }));
 app.post('/api/refill/mark', (req, res) => {
   const b = req.body || {};
@@ -751,10 +755,12 @@ app.post('/api/refill/mark', (req, res) => {
   res.json({ ok: true });
 });
 // Texto del mensaje ya armado (para WhatsApp o para revisar antes de mandar por ML).
-app.post('/api/refill/text', (req, res) => {
-  const it = refill.list().items.find(i => i.id === String((req.body || {}).id));
+app.post('/api/refill/text', async (req, res) => {
+  const id = String((req.body || {}).id);
+  let it = refill.list().items.find(i => i.id === id);
   if (!it) return res.status(404).json({ ok: false, error: 'No encontré ese recordatorio.' });
-  res.json({ ok: true, ml: refill.text(it, 'ml'), wa: refill.text(it, 'wa'), max_ml: ml.MAX_MSG });
+  if (!it.name && it.src === 'ml') { await refill.resolveName(it).catch(() => ''); it = refill.list().items.find(i => i.id === id) || it; } // que siempre salga el nombre
+  res.json({ ok: true, ml: refill.text(it, 'ml'), wa: refill.text(it, 'wa'), max_ml: ml.MAX_MSG, name: it.name || '' });
 });
 // Mandar por la mensajería de Mercado Libre (de a uno o varios).
 app.post('/api/refill/send-ml', async (req, res) => {

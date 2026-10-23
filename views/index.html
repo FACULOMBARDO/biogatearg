@@ -965,10 +965,10 @@
 <div class="modal-bg" id="rfCfgModal">
   <div class="modal" style="max-width:620px">
     <h3>Mensajes y aviso</h3>
-    <label class="tk-lbl">¿Cuántos días antes de que se termine avisar?<input type="number" id="rfCfgDays" min="0" max="15" style="max-width:120px"></label>
+    <label class="tk-lbl">En "Para avisar" mostrar los que se terminan hoy y en los próximos … días<input type="number" id="rfCfgDays" min="0" max="30" style="max-width:120px"></label>
     <label class="tk-lbl">Mensaje por Mercado Libre (máx. 350 caracteres)<textarea id="rfCfgMl" style="min-height:100px"></textarea></label>
     <label class="tk-lbl">Mensaje por WhatsApp<textarea id="rfCfgWa" style="min-height:100px"></textarea></label>
-    <div class="muted" style="font-size:12.5px;margin-top:6px">Se reemplazan solos: <b>{nombre}</b> (primer nombre del cliente), <b>{producto}</b>, <b>{fecha}</b> (de la compra), <b>{cuando}</b> ("mañana", "en 3 días"…), <b>{dias}</b> (lo que dura).</div>
+    <div class="muted" style="font-size:12.5px;margin-top:6px">Se reemplazan solos: <b>{nombre}</b> (primer nombre del cliente), <b>{producto}</b>, <b>{fecha}</b> (de la compra), <b>{cuando}</b> ("mañana", "en 3 días"…), <b>{dias}</b> (lo que dura), <b>{hasta}</b> (hoy + 7 días, para la validez del descuento).</div>
     <div id="rfCfgMsg" style="margin-top:8px"></div>
     <div class="row" style="justify-content:flex-end;margin-top:12px"><button class="btn" id="rfCfgReset">Volver a los mensajes originales</button><button class="btn" id="rfCfgClose">Cerrar</button><button class="btn primary" id="rfCfgSave">Guardar</button></div>
   </div>
@@ -2633,6 +2633,7 @@ async function loadRefill() {
   const d = await (await fetch('/api/refill')).json().catch(() => null);
   if (!d || d.error) { $('rfRows').innerHTML = `<tr><td colspan="5" class="err-t">No se pudieron cargar las recompras${d && d.error ? ': ' + esc(d.error) : ''}. Revisá que esté subido server.js.</td></tr>`; return; }
   rfData = d; rfSetBadge(d.due_n);
+  if (d.resolving) setTimeout(() => { if (!$('viewRefill').hidden) loadRefill(); }, 7000); // buscando nombres de compradores en Mercado Libre
   $('rfNotif').hidden = !('Notification' in window) || Notification.permission !== 'default';
   $('rfInfo').innerHTML = !d.has_days ? '<div class="msg">Todavía no se leyó la columna <b>DURACION</b> de la lista de precios. Andá a <a href="#precios">Lista de precios</a> y tocá actualizar (o esperá a que se actualice sola).</div>' : '';
   renderRefill();
@@ -2641,13 +2642,15 @@ function renderRefill() {
   if (!rfData) return;
   const q = $('rfQ').value.trim().toLowerCase(), src = $('rfSrc').value, t = rfData.today;
   const base = rfData.items.filter(i => (!src || i.src === src) && (!q || (i.client + ' ' + i.nick + ' ' + i.product + ' ' + i.sku).toLowerCase().includes(q)));
-  const due = base.filter(i => i.state === 'pending' && i.notify <= t && i.left >= -15);
-  const next = base.filter(i => i.state === 'pending' && i.notify > t && i.left <= 30);
+  const W = rfData.config.window_days ?? 7;
+  // Para avisar: se termina hoy, mañana o en los próximos W días (las que ya se terminaron no aparecen acá).
+  const due = base.filter(i => i.state === 'pending' && i.left >= 0 && i.left <= W);
+  const next = base.filter(i => i.state === 'pending' && i.left > W && i.left <= 30);
   const done = base.filter(i => i.state === 'sent' || i.state === 'dismissed').sort((a, b) => String(b.done_at || b.end).localeCompare(String(a.done_at || a.end)));
   const month = t.slice(0, 7);
   $('rfStats').innerHTML = [
-    `<div class="stat main"><div class="k">🔔 Para avisar</div><div class="v">${due.length}</div><div class="sub">se termina en ${rfData.config.notice_days === 1 ? '1 día' : rfData.config.notice_days + ' días'} o menos</div></div>`,
-    `<div class="stat"><div class="k">Próximos 7 días</div><div class="v">${next.filter(i => i.notify <= addDaysStr(t, 7)).length}</div><div class="sub">${next.length} en los próximos 30 días</div></div>`,
+    `<div class="stat main"><div class="k">🔔 Para avisar</div><div class="v">${due.length}</div><div class="sub">${due.filter(i => i.left === 0).length} hoy · ${due.filter(i => i.left === 1).length} mañana · ${due.filter(i => i.left > 1).length} en los próximos ${W} días</div></div>`,
+    `<div class="stat"><div class="k">Después</div><div class="v">${next.length}</div><div class="sub">se terminan en ${W + 1} a 30 días</div></div>`,
     `<div class="stat"><div class="k">Avisados este mes</div><div class="v">${base.filter(i => i.state === 'sent' && String(i.done_at || '').slice(0, 7) === month).length}</div><div class="sub">por ML o WhatsApp</div></div>`,
     `<div class="stat"><div class="k">Volvieron a comprar</div><div class="v">${base.filter(i => i.rebought).length}</div><div class="sub">antes de que se les termine</div></div>`,
   ].join('');
@@ -2657,10 +2660,10 @@ function renderRefill() {
   $('rfRows').innerHTML = list.map(i => {
     const st = i.state === 'sent' ? `<span class="pill" style="color:var(--ok);border-color:var(--ok)">✓ avisado${i.done_via ? ' por ' + esc(i.done_via) : ''}</span>` : i.state === 'dismissed' ? '<span class="pill">descartado</span>' : i.state === 'rebought' ? '<span class="pill" style="color:var(--brand);border-color:var(--brand)">🔁 volvió a comprar</span>' : '';
     const actions = i.state === 'pending'
-      ? `${i.src === 'ml' ? `<button class="btn small" data-rf="ml" data-id="${esc(i.id)}">💬 Mercado Libre</button>` : ''}${i.phone ? `<button class="btn small" data-rf="wa" data-id="${esc(i.id)}">🟢 WhatsApp</button>` : ''}<button class="btn small" data-rf="sent" data-id="${esc(i.id)}" title="Ya le avisé por otro lado">✓</button><button class="btn small" data-rf="dismissed" data-id="${esc(i.id)}" title="No avisar">✕</button>`
+      ? `${i.src === 'ml' ? `<button class="btn small" data-rf="ml" data-id="${esc(i.id)}">💬 Mercado Libre</button>` : ''}${i.phone ? `<button class="btn small rf-wa" data-rf="wa" data-id="${esc(i.id)}">🟢 WhatsApp</button>` : ''}<button class="btn small" data-rf="sent" data-id="${esc(i.id)}" title="Ya le avisé por otro lado">✓</button><button class="btn small" data-rf="dismissed" data-id="${esc(i.id)}" title="No avisar">✕</button>`
       : `${st}${i.state !== 'rebought' ? ` <button class="btn small" data-rf="pending" data-id="${esc(i.id)}">Deshacer</button>` : ''}`;
-    return `<tr class="${i.state === 'pending' && i.notify <= t ? 'rf-due' : ''}">
-      <td><b>${esc(i.client)}</b>${i.nick && i.nick !== i.client ? `<div class="muted" style="font-size:12px">${esc(i.nick)}</div>` : ''}<div class="muted" style="font-size:12px">${RF_SRC[i.src]}${i.account ? ' · ' + esc(i.account) : ''}${i.number ? ' · Nº ' + esc(i.number) : ''}${i.phone ? ' · 📱' : ''}</div></td>
+    return `<tr class="${i.state === 'pending' && i.left >= 0 && i.left <= 1 ? 'rf-due' : ''}">
+      <td><b>${esc(i.name || i.client)}</b> <a href="#" class="muted" style="font-size:12px" data-rfnm="${esc(i.id)}" title="Cambiar el nombre">✏️</a>${!i.name ? '<div class="err-t" style="font-size:11.5px">sin nombre: tocá ✏️ para cargarlo</div>' : ''}${i.nick && i.nick !== (i.name || i.client) ? `<div class="muted" style="font-size:12px">${esc(i.nick)}</div>` : ''}<div class="muted" style="font-size:12px">${RF_SRC[i.src]}${i.account ? ' · ' + esc(i.account) : ''}${i.number ? ' · Nº ' + esc(i.number) : ''}</div><div style="font-size:12px;margin-top:2px">${i.phone ? `📱 ${esc(i.phone)} <a href="#" class="muted" data-rfph="${esc(i.id)}" title="Cambiar el WhatsApp">✏️</a>` : `<a href="#" class="lnk" data-rfph="${esc(i.id)}">➕ Agregar WhatsApp</a>`}</div></td>
       <td>${esc(i.product)}<div class="muted" style="font-size:12px">${esc(i.sku)} · ${i.qty > 1 ? `${i.qty} u. × ${i.unit_days} días = ` : ''}${i.days} días</div></td>
       <td style="white-space:nowrap">${rfFmt(i.date)}</td>
       <td style="white-space:nowrap"><b style="color:${i.left <= 1 && i.state === 'pending' ? 'var(--err)' : 'inherit'}">${rfLeft(i.left)}</b><div class="muted" style="font-size:12px">${rfFmt(i.end)}</div></td>
@@ -2675,6 +2678,26 @@ async function rfMark(ids, state, via) {
   await loadRefill();
 }
 $('rfRows').onclick = async (e) => {
+  const nm = e.target.closest('[data-rfnm]');
+  if (nm) { // nombre del cliente para el saludo del mensaje
+    e.preventDefault();
+    const it = rfData.items.find(i => i.id === nm.dataset.rfnm); if (!it) return;
+    const v = prompt('Nombre del cliente (sale en el saludo del mensaje). Dejalo vacío para usar el de Mercado Libre.', it.name || '');
+    if (v === null) return;
+    const d = await (await fetch('/api/refill/name', { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ who: it.who, name: v }) })).json().catch(() => ({}));
+    if (!d.ok) return alert(d.error || 'No se pudo guardar.');
+    return loadRefill();
+  }
+  const ph = e.target.closest('[data-rfph]');
+  if (ph) { // cargar o cambiar el WhatsApp del cliente (queda para todas sus compras)
+    e.preventDefault();
+    const it = rfData.items.find(i => i.id === ph.dataset.rfph); if (!it) return;
+    const v = prompt(`WhatsApp de ${it.client} (con código de área, ej: 11 2345 6789). Dejalo vacío para borrarlo.`, it.phone || '');
+    if (v === null) return;
+    const d = await (await fetch('/api/refill/phone', { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ who: it.who, phone: v }) })).json().catch(() => ({}));
+    if (!d.ok) return alert(d.error || 'No se pudo guardar.');
+    return loadRefill();
+  }
   const b = e.target.closest('[data-rf]'); if (!b) return;
   const it = rfData.items.find(i => i.id === b.dataset.id); if (!it) return;
   if (['sent', 'dismissed', 'pending'].includes(b.dataset.rf)) return rfMark([it.id], b.dataset.rf, b.dataset.rf === 'sent' ? 'a mano' : '');
@@ -2684,7 +2707,8 @@ $('rfRows').onclick = async (e) => {
   $('rfMTitle').textContent = 'Avisar a ' + it.client;
   $('rfMSub').textContent = `${it.product} · compró el ${rfFmt(it.date)} · se termina ${rfLeft(it.left)}`;
   document.querySelectorAll('#rfMKind button').forEach(x => { x.hidden = x.dataset.k === 'ml' ? it.src !== 'ml' : !it.phone; });
-  rfSetKind(rfKind); $('rfMMsg').innerHTML = '';
+  rfSetKind(rfKind); $('rfMMsg').innerHTML = rfTexts.name ? '' : '<span class="err-t">No encontramos el nombre del comprador: escribilo en el saludo o cargalo con ✏️ en la lista.</span>';
+  $('rfMTitle').textContent = 'Avisar a ' + (rfTexts.name || it.client);
   $('rfModal').classList.add('show');
 };
 function rfSetKind(k) {
@@ -2694,7 +2718,7 @@ function rfSetKind(k) {
   $('rfMSend').textContent = k === 'wa' ? 'Abrir WhatsApp' : 'Enviar por Mercado Libre';
   rfCount();
 }
-function rfCount() { const n = $('rfMText').value.trim().length; $('rfMCount').innerHTML = rfKind === 'ml' ? `<span class="${n > rfTexts.max_ml ? 'err-t' : ''}">${n} de ${rfTexts.max_ml} caracteres</span> · Mercado Libre solo permite hablar de la compra: evitá promociones o links.` : `${n} caracteres`; }
+function rfCount() { const n = $('rfMText').value.trim().length; $('rfMCount').innerHTML = rfKind === 'ml' ? `<span class="${n > rfTexts.max_ml ? 'err-t' : ''}">${n} de ${rfTexts.max_ml} caracteres</span> · Mandalo de a uno: muchos mensajes con descuentos juntos pueden traer problemas con Mercado Libre.` : `${n} caracteres`; }
 $('rfMText').oninput = rfCount;
 $('rfMKind').onclick = (e) => { const b = e.target.closest('[data-k]'); if (b) rfSetKind(b.dataset.k); };
 $('rfMClose').onclick = () => $('rfModal').classList.remove('show');
@@ -2716,11 +2740,11 @@ $('rfMSend').onclick = async () => {
   $('rfModal').classList.remove('show'); loadRefill();
 };
 // Configuración
-$('rfCfgBtn').onclick = () => { const c = rfData ? rfData.config : {}; $('rfCfgDays').value = c.notice_days ?? 1; $('rfCfgMl').value = c.msg_ml || ''; $('rfCfgWa').value = c.msg_wa || ''; $('rfCfgMsg').innerHTML = ''; $('rfCfgModal').classList.add('show'); };
+$('rfCfgBtn').onclick = () => { const c = rfData ? rfData.config : {}; $('rfCfgDays').value = c.window_days ?? 7; $('rfCfgMl').value = c.msg_ml || ''; $('rfCfgWa').value = c.msg_wa || ''; $('rfCfgMsg').innerHTML = ''; $('rfCfgModal').classList.add('show'); };
 $('rfCfgClose').onclick = () => $('rfCfgModal').classList.remove('show');
 $('rfCfgReset').onclick = () => { $('rfCfgMl').value = ''; $('rfCfgWa').value = ''; $('rfCfgMsg').innerHTML = '<span class="muted">Al guardar vuelven los mensajes originales.</span>'; };
 $('rfCfgSave').onclick = async () => {
-  const d = await (await fetch('/api/refill/config', { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ notice_days: Number($('rfCfgDays').value), msg_ml: $('rfCfgMl').value, msg_wa: $('rfCfgWa').value }) })).json().catch(() => ({}));
+  const d = await (await fetch('/api/refill/config', { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ window_days: Number($('rfCfgDays').value), msg_ml: $('rfCfgMl').value, msg_wa: $('rfCfgWa').value }) })).json().catch(() => ({}));
   if (!d.ok) { $('rfCfgMsg').innerHTML = '<span class="err-t">No se pudo guardar.</span>'; return; }
   $('rfCfgModal').classList.remove('show'); loadRefill();
 };

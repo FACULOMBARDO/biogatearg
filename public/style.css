@@ -539,3 +539,6 @@ input[type=time], input[type=url] { font: inherit; padding: 9px 11px; border: 1p
 .rf-banner { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .rf-banner .x { margin-left: auto; border: 0; background: none; color: var(--muted); cursor: pointer; font-size: 14px; }
 #rfTab { max-width: 100%; overflow-x: auto; }
+.rf-wa { border-color: #22c55e !important; color: #16a34a; font-weight: 700; }
+:root[data-theme="dark"] .rf-wa { color: #4ade80; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .rf-wa { color: #4ade80; } }
