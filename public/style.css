@@ -530,3 +530,12 @@ input[type=time], input[type=url] { font: inherit; padding: 9px 11px; border: 1p
 #tkModal .grid2 { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
 #tkPrio { display: flex; } #tkPrio button { padding: 8px 4px; min-width: 0; }
 .tk-lbl input, .tk-lbl textarea { font-weight: 400; }
+
+/* ---------- Recompras ---------- */
+.nav-badge { margin-left: auto; background: var(--err); color: #fff; font-size: 11.5px; font-weight: 800; min-width: 20px; height: 20px; padding: 0 6px; border-radius: 99px; display: inline-grid; place-items: center; }
+.nav-badge[hidden] { display: none; }
+.rf-tbl td { vertical-align: top; }
+.rf-tbl tr.rf-due td:first-child { box-shadow: inset 3px 0 0 var(--err); }
+.rf-banner { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.rf-banner .x { margin-left: auto; border: 0; background: none; color: var(--muted); cursor: pointer; font-size: 14px; }
+#rfTab { max-width: 100%; overflow-x: auto; }

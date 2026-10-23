@@ -31,6 +31,7 @@
   <a href="#ventas" class="nav" data-view="ventas"><span class="ic">💰</span><span>Ventas</span></a>
   <a href="#resultado" class="nav" data-view="resultado"><span class="ic">📊</span><span>Resultado del mes</span></a>
   <a href="#tareas" class="nav" data-view="tareas"><span class="ic">✅</span><span>Tareas</span></a>
+  <a href="#recompras" class="nav" data-view="recompras"><span class="ic">🔔</span><span>Recompras</span><span class="nav-badge" id="rfBadge" hidden></span></a>
   <a href="#horarios" class="nav" data-view="horarios"><span class="ic">🕐</span><span>Horarios de compra</span></a>
   <a href="#stock" class="nav" data-view="stock"><span class="ic">📦</span><span>Stock</span></a>
   <a href="#full" class="nav" data-view="full"><span class="ic">⚡</span><span>Full</span></a>
@@ -50,6 +51,7 @@
 </aside>
 <main>
 <div id="reconnectBanner"></div>
+<div id="rfBanner"></div>
 <section id="viewFlex">
   <div class="row" style="justify-content:space-between;margin-bottom:12px">
     <h1 class="page-title">Envíos Flex</h1>
@@ -345,6 +347,23 @@
       <tbody id="fsRows"></tbody>
     </table></div></div>
   </div>
+</section>
+
+<section id="viewRefill" hidden>
+  <div class="row" style="justify-content:space-between;margin-bottom:12px">
+    <h1 class="page-title">Recompras <span class="muted" style="font-size:15px;font-weight:500">· a quién se le termina el suplemento</span></h1>
+    <div class="row"><button class="btn" id="rfNotif" hidden>🔔 Activar avisos en esta compu</button><button class="btn" id="rfCfgBtn">⚙️ Mensajes y aviso</button></div>
+  </div>
+  <div id="rfInfo"></div>
+  <div class="stats" id="rfStats"></div>
+  <div class="card" style="padding:12px 14px">
+    <div class="row">
+      <div class="seg" id="rfTab"><button data-t="due" class="on">Para avisar</button><button data-t="next">Próximos</button><button data-t="done">Avisados</button><button data-t="all">Todos</button></div>
+      <select id="rfSrc"><option value="">Todas las ventas</option><option value="ml">Mercado Libre</option><option value="quote">Presupuestos</option><option value="web">Ventas web</option></select>
+      <input type="search" id="rfQ" placeholder="Buscar cliente o producto…" style="max-width:260px">
+    </div>
+  </div>
+  <div class="card" style="padding:0"><div class="table-wrap"><table class="tbl rf-tbl"><thead><tr><th>Cliente</th><th>Producto</th><th>Compró</th><th>Se termina</th><th style="text-align:right">Avisar</th></tr></thead><tbody id="rfRows"></tbody></table></div></div>
 </section>
 
 <section id="viewTasks" hidden>
@@ -930,6 +949,31 @@
 </div>
 
 <!-- Editor de presupuesto -->
+<!-- Recompras: mandar mensaje -->
+<div class="modal-bg" id="rfModal">
+  <div class="modal" style="max-width:560px">
+    <h3 id="rfMTitle">Avisar al cliente</h3>
+    <div class="muted" id="rfMSub" style="font-size:13px;margin-bottom:10px"></div>
+    <div class="seg" id="rfMKind" style="margin-bottom:8px"><button data-k="ml">Mercado Libre</button><button data-k="wa">WhatsApp</button></div>
+    <textarea id="rfMText" style="min-height:140px"></textarea>
+    <div class="muted" id="rfMCount" style="font-size:12.5px;margin-top:4px"></div>
+    <div id="rfMMsg" style="margin-top:8px"></div>
+    <div class="row" style="justify-content:flex-end;margin-top:12px"><button class="btn" id="rfMClose">Cerrar</button><button class="btn primary" id="rfMSend">Enviar</button></div>
+  </div>
+</div>
+<!-- Recompras: configuración -->
+<div class="modal-bg" id="rfCfgModal">
+  <div class="modal" style="max-width:620px">
+    <h3>Mensajes y aviso</h3>
+    <label class="tk-lbl">¿Cuántos días antes de que se termine avisar?<input type="number" id="rfCfgDays" min="0" max="15" style="max-width:120px"></label>
+    <label class="tk-lbl">Mensaje por Mercado Libre (máx. 350 caracteres)<textarea id="rfCfgMl" style="min-height:100px"></textarea></label>
+    <label class="tk-lbl">Mensaje por WhatsApp<textarea id="rfCfgWa" style="min-height:100px"></textarea></label>
+    <div class="muted" style="font-size:12.5px;margin-top:6px">Se reemplazan solos: <b>{nombre}</b> (primer nombre del cliente), <b>{producto}</b>, <b>{fecha}</b> (de la compra), <b>{cuando}</b> ("mañana", "en 3 días"…), <b>{dias}</b> (lo que dura).</div>
+    <div id="rfCfgMsg" style="margin-top:8px"></div>
+    <div class="row" style="justify-content:flex-end;margin-top:12px"><button class="btn" id="rfCfgReset">Volver a los mensajes originales</button><button class="btn" id="rfCfgClose">Cerrar</button><button class="btn primary" id="rfCfgSave">Guardar</button></div>
+  </div>
+</div>
+
 <!-- Tarea (nueva / ver y editar) -->
 <div class="modal-bg" id="tkModal">
   <div class="modal" style="max-width:640px">
@@ -1500,12 +1544,12 @@ $('impFile').onchange = async (e) => {
 
 // ---------- Vistas (panel lateral) ----------
 function showView() {
-  const v = ({ '#ventas': 'ventas', '#ranking': 'ranking', '#precios': 'precios', '#presupuestos': 'presupuestos', '#estados': 'estados', '#gastos': 'gastos', '#full': 'full', '#flex': 'flex', '#resultado': 'resultado', '#tareas': 'tareas', '#stock': 'stock', '#sugerencias': 'sugerencias', '#web': 'web', '#horarios': 'horarios', '#manuales': 'manuales', '#calculadora': 'calculadora', '#etiquetas': 'etiquetas', '#tuyo': 'tuyo' })[location.hash] || 'ventas';
+  const v = ({ '#ventas': 'ventas', '#ranking': 'ranking', '#precios': 'precios', '#presupuestos': 'presupuestos', '#estados': 'estados', '#gastos': 'gastos', '#full': 'full', '#flex': 'flex', '#resultado': 'resultado', '#tareas': 'tareas', '#recompras': 'recompras', '#stock': 'stock', '#sugerencias': 'sugerencias', '#web': 'web', '#horarios': 'horarios', '#manuales': 'manuales', '#calculadora': 'calculadora', '#etiquetas': 'etiquetas', '#tuyo': 'tuyo' })[location.hash] || 'ventas';
   $('viewQuotes').hidden = v !== 'presupuestos';
   $('viewStatus').hidden = v !== 'estados';
   $('viewExpenses').hidden = v !== 'gastos'; $('viewFull').hidden = v !== 'full';
   $('viewResults').hidden = v !== 'resultado'; $('viewStock').hidden = v !== 'stock'; $('viewSuggest').hidden = v !== 'sugerencias'; $('viewWeb').hidden = v !== 'web'; $('viewHours').hidden = v !== 'horarios'; $('viewManuals').hidden = v !== 'manuales'; $('viewCalc').hidden = v !== 'calculadora'; $('viewPLabel').hidden = v !== 'etiquetas'; $('viewTuyo').hidden = v !== 'tuyo';
-  $('viewFlex').hidden = v !== 'flex'; $('viewSales').hidden = v !== 'ventas'; $('viewTasks').hidden = v !== 'tareas';
+  $('viewFlex').hidden = v !== 'flex'; $('viewSales').hidden = v !== 'ventas'; $('viewTasks').hidden = v !== 'tareas'; $('viewRefill').hidden = v !== 'recompras';
   $('viewRanking').hidden = v !== 'ranking'; $('viewPrices').hidden = v !== 'precios';
   document.querySelectorAll('.side .nav').forEach(a => a.classList.toggle('active', a.dataset.view === v));
   if (v === 'ventas') { loadSales(); loadCosts(false); }
@@ -1525,6 +1569,7 @@ function showView() {
   if (v === 'etiquetas') loadPLabel();
   if (v === 'tuyo') loadTuyo();
   if (v === 'tareas') loadTasks();
+  if (v === 'recompras') loadRefill();
   if (v === 'flex' && typeof scans !== 'undefined') load();
 }
 window.addEventListener('hashchange', showView);
@@ -2578,6 +2623,127 @@ $('exImpGo').onclick = async () => {
   await loadExpenses();
   $('exMsg').innerHTML = `<span style="color:var(--ok)">✓ Se agregaron <b>${d.added} gastos</b> (${money(d.total)})${ms ? ` en ${esc(ms)}` : ''}.</span>${d.dupes ? ` <span class="muted">${d.dupes} ya estaban cargados y se saltearon.</span>` : ''}${d.error_count ? ` <span class="err-t">${d.error_count} filas con error.</span>` : ''}`;
 };
+// ---------- Recompras (fin de suplemento) ----------
+let rfData = null, rfTab = 'due', rfCur = null, rfKind = 'ml', rfTexts = null;
+const RF_SRC = { ml: 'Mercado Libre', quote: 'Presupuesto', web: 'Web' };
+const rfFmt = (d) => `${d.slice(8)}/${d.slice(5, 7)}/${d.slice(2, 4)}`;
+const rfLeft = (n) => n > 1 ? `en ${n} días` : n === 1 ? 'mañana' : n === 0 ? 'hoy' : n === -1 ? 'ayer' : `hace ${-n} días`;
+const rfBy = () => { try { const me = localStorage.getItem('tk_me'); const p = (tkData.people || []).find(x => x.id === me); return p ? p.name : 'Dueño'; } catch { return 'Dueño'; } };
+async function loadRefill() {
+  const d = await (await fetch('/api/refill')).json().catch(() => null);
+  if (!d || d.error) { $('rfRows').innerHTML = `<tr><td colspan="5" class="err-t">No se pudieron cargar las recompras${d && d.error ? ': ' + esc(d.error) : ''}. Revisá que esté subido server.js.</td></tr>`; return; }
+  rfData = d; rfSetBadge(d.due_n);
+  $('rfNotif').hidden = !('Notification' in window) || Notification.permission !== 'default';
+  $('rfInfo').innerHTML = !d.has_days ? '<div class="msg">Todavía no se leyó la columna <b>DURACION</b> de la lista de precios. Andá a <a href="#precios">Lista de precios</a> y tocá actualizar (o esperá a que se actualice sola).</div>' : '';
+  renderRefill();
+}
+function renderRefill() {
+  if (!rfData) return;
+  const q = $('rfQ').value.trim().toLowerCase(), src = $('rfSrc').value, t = rfData.today;
+  const base = rfData.items.filter(i => (!src || i.src === src) && (!q || (i.client + ' ' + i.nick + ' ' + i.product + ' ' + i.sku).toLowerCase().includes(q)));
+  const due = base.filter(i => i.state === 'pending' && i.notify <= t && i.left >= -15);
+  const next = base.filter(i => i.state === 'pending' && i.notify > t && i.left <= 30);
+  const done = base.filter(i => i.state === 'sent' || i.state === 'dismissed').sort((a, b) => String(b.done_at || b.end).localeCompare(String(a.done_at || a.end)));
+  const month = t.slice(0, 7);
+  $('rfStats').innerHTML = [
+    `<div class="stat main"><div class="k">🔔 Para avisar</div><div class="v">${due.length}</div><div class="sub">se termina en ${rfData.config.notice_days === 1 ? '1 día' : rfData.config.notice_days + ' días'} o menos</div></div>`,
+    `<div class="stat"><div class="k">Próximos 7 días</div><div class="v">${next.filter(i => i.notify <= addDaysStr(t, 7)).length}</div><div class="sub">${next.length} en los próximos 30 días</div></div>`,
+    `<div class="stat"><div class="k">Avisados este mes</div><div class="v">${base.filter(i => i.state === 'sent' && String(i.done_at || '').slice(0, 7) === month).length}</div><div class="sub">por ML o WhatsApp</div></div>`,
+    `<div class="stat"><div class="k">Volvieron a comprar</div><div class="v">${base.filter(i => i.rebought).length}</div><div class="sub">antes de que se les termine</div></div>`,
+  ].join('');
+  document.querySelectorAll('#rfTab button').forEach(b => { b.classList.toggle('on', b.dataset.t === rfTab); const n = { due: due.length, next: next.length, done: done.length }[b.dataset.t]; b.textContent = b.textContent.replace(/ \(\d+\)$/, '') + (n !== undefined ? ` (${n})` : ''); });
+  const list = rfTab === 'due' ? due : rfTab === 'next' ? next : rfTab === 'done' ? done : base;
+  const empty = { due: '¡Nada para avisar hoy! 🎉', next: 'No hay recompras en los próximos 30 días.', done: 'Todavía no avisaste a nadie.', all: 'No hay compras de productos con duración cargada.' }[rfTab];
+  $('rfRows').innerHTML = list.map(i => {
+    const st = i.state === 'sent' ? `<span class="pill" style="color:var(--ok);border-color:var(--ok)">✓ avisado${i.done_via ? ' por ' + esc(i.done_via) : ''}</span>` : i.state === 'dismissed' ? '<span class="pill">descartado</span>' : i.state === 'rebought' ? '<span class="pill" style="color:var(--brand);border-color:var(--brand)">🔁 volvió a comprar</span>' : '';
+    const actions = i.state === 'pending'
+      ? `${i.src === 'ml' ? `<button class="btn small" data-rf="ml" data-id="${esc(i.id)}">💬 Mercado Libre</button>` : ''}${i.phone ? `<button class="btn small" data-rf="wa" data-id="${esc(i.id)}">🟢 WhatsApp</button>` : ''}<button class="btn small" data-rf="sent" data-id="${esc(i.id)}" title="Ya le avisé por otro lado">✓</button><button class="btn small" data-rf="dismissed" data-id="${esc(i.id)}" title="No avisar">✕</button>`
+      : `${st}${i.state !== 'rebought' ? ` <button class="btn small" data-rf="pending" data-id="${esc(i.id)}">Deshacer</button>` : ''}`;
+    return `<tr class="${i.state === 'pending' && i.notify <= t ? 'rf-due' : ''}">
+      <td><b>${esc(i.client)}</b>${i.nick && i.nick !== i.client ? `<div class="muted" style="font-size:12px">${esc(i.nick)}</div>` : ''}<div class="muted" style="font-size:12px">${RF_SRC[i.src]}${i.account ? ' · ' + esc(i.account) : ''}${i.number ? ' · Nº ' + esc(i.number) : ''}${i.phone ? ' · 📱' : ''}</div></td>
+      <td>${esc(i.product)}<div class="muted" style="font-size:12px">${esc(i.sku)} · ${i.qty > 1 ? `${i.qty} u. × ${i.unit_days} días = ` : ''}${i.days} días</div></td>
+      <td style="white-space:nowrap">${rfFmt(i.date)}</td>
+      <td style="white-space:nowrap"><b style="color:${i.left <= 1 && i.state === 'pending' ? 'var(--err)' : 'inherit'}">${rfLeft(i.left)}</b><div class="muted" style="font-size:12px">${rfFmt(i.end)}</div></td>
+      <td style="text-align:right"><div class="row" style="gap:6px;justify-content:flex-end;flex-wrap:wrap">${actions}</div></td></tr>`;
+  }).join('') || `<tr><td colspan="5" class="muted" style="padding:18px">${empty}</td></tr>`;
+}
+const addDaysStr = (ymd0, n) => { const d = new Date(ymd0 + 'T12:00:00Z'); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); };
+$('rfTab').onclick = (e) => { const b = e.target.closest('[data-t]'); if (!b) return; rfTab = b.dataset.t; renderRefill(); };
+$('rfSrc').onchange = renderRefill; $('rfQ').oninput = renderRefill;
+async function rfMark(ids, state, via) {
+  await fetch('/api/refill/mark', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ ids, state, by: rfBy(), via }) });
+  await loadRefill();
+}
+$('rfRows').onclick = async (e) => {
+  const b = e.target.closest('[data-rf]'); if (!b) return;
+  const it = rfData.items.find(i => i.id === b.dataset.id); if (!it) return;
+  if (['sent', 'dismissed', 'pending'].includes(b.dataset.rf)) return rfMark([it.id], b.dataset.rf, b.dataset.rf === 'sent' ? 'a mano' : '');
+  rfCur = it; rfKind = b.dataset.rf;
+  rfTexts = await (await fetch('/api/refill/text', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ id: it.id }) })).json().catch(() => null);
+  if (!rfTexts || !rfTexts.ok) return alert('No se pudo armar el mensaje.');
+  $('rfMTitle').textContent = 'Avisar a ' + it.client;
+  $('rfMSub').textContent = `${it.product} · compró el ${rfFmt(it.date)} · se termina ${rfLeft(it.left)}`;
+  document.querySelectorAll('#rfMKind button').forEach(x => { x.hidden = x.dataset.k === 'ml' ? it.src !== 'ml' : !it.phone; });
+  rfSetKind(rfKind); $('rfMMsg').innerHTML = '';
+  $('rfModal').classList.add('show');
+};
+function rfSetKind(k) {
+  rfKind = k;
+  document.querySelectorAll('#rfMKind button').forEach(x => x.classList.toggle('on', x.dataset.k === k));
+  $('rfMText').value = k === 'wa' ? rfTexts.wa : rfTexts.ml;
+  $('rfMSend').textContent = k === 'wa' ? 'Abrir WhatsApp' : 'Enviar por Mercado Libre';
+  rfCount();
+}
+function rfCount() { const n = $('rfMText').value.trim().length; $('rfMCount').innerHTML = rfKind === 'ml' ? `<span class="${n > rfTexts.max_ml ? 'err-t' : ''}">${n} de ${rfTexts.max_ml} caracteres</span> · Mercado Libre solo permite hablar de la compra: evitá promociones o links.` : `${n} caracteres`; }
+$('rfMText').oninput = rfCount;
+$('rfMKind').onclick = (e) => { const b = e.target.closest('[data-k]'); if (b) rfSetKind(b.dataset.k); };
+$('rfMClose').onclick = () => $('rfModal').classList.remove('show');
+$('rfMSend').onclick = async () => {
+  const text = $('rfMText').value.trim(); if (!text) return;
+  if (rfKind === 'wa') {
+    const u = waLink(rfCur.phone);
+    if (!u) { $('rfMMsg').innerHTML = '<span class="err-t">El teléfono no parece válido.</span>'; return; }
+    window.open(u + '?text=' + encodeURIComponent(text), 'whatsapp');
+    $('rfModal').classList.remove('show');
+    return rfMark([rfCur.id], 'sent', 'WhatsApp');
+  }
+  if (text.length > rfTexts.max_ml) { $('rfMMsg').innerHTML = `<span class="err-t">Es muy largo para Mercado Libre (máx. ${rfTexts.max_ml}).</span>`; return; }
+  $('rfMSend').disabled = true; $('rfMMsg').textContent = 'Enviando…';
+  const d = await (await fetch('/api/refill/send-ml', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ items: [{ id: rfCur.id, text }], by: rfBy() }) })).json().catch(() => ({}));
+  $('rfMSend').disabled = false;
+  const r = (d.results || [])[0];
+  if (!r || !r.ok) { $('rfMMsg').innerHTML = `<span class="err-t">No se pudo enviar: ${esc((r && r.error) || d.error || 'error')}</span>`; return; }
+  $('rfModal').classList.remove('show'); loadRefill();
+};
+// Configuración
+$('rfCfgBtn').onclick = () => { const c = rfData ? rfData.config : {}; $('rfCfgDays').value = c.notice_days ?? 1; $('rfCfgMl').value = c.msg_ml || ''; $('rfCfgWa').value = c.msg_wa || ''; $('rfCfgMsg').innerHTML = ''; $('rfCfgModal').classList.add('show'); };
+$('rfCfgClose').onclick = () => $('rfCfgModal').classList.remove('show');
+$('rfCfgReset').onclick = () => { $('rfCfgMl').value = ''; $('rfCfgWa').value = ''; $('rfCfgMsg').innerHTML = '<span class="muted">Al guardar vuelven los mensajes originales.</span>'; };
+$('rfCfgSave').onclick = async () => {
+  const d = await (await fetch('/api/refill/config', { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ notice_days: Number($('rfCfgDays').value), msg_ml: $('rfCfgMl').value, msg_wa: $('rfCfgWa').value }) })).json().catch(() => ({}));
+  if (!d.ok) { $('rfCfgMsg').innerHTML = '<span class="err-t">No se pudo guardar.</span>'; return; }
+  $('rfCfgModal').classList.remove('show'); loadRefill();
+};
+// Aviso: numerito en el menú, cartel arriba y notificación del navegador (si la activaste).
+function rfSetBadge(n) {
+  $('rfBadge').hidden = !n; $('rfBadge').textContent = n > 99 ? '99+' : n;
+  const today = ymd(new Date());
+  let closed = ''; try { closed = sessionStorage.getItem('rf_banner') || ''; } catch { /* nada */ }
+  $('rfBanner').innerHTML = n && closed !== today && location.hash !== '#recompras' ? `<div class="msg rf-banner">🔔 Hoy tenés <b>${n} cliente${n === 1 ? '' : 's'}</b> a los que se les termina el suplemento. <a href="#recompras">Ver y avisarles</a><button class="x" id="rfBannerX" title="Cerrar">✕</button></div>` : '';
+  if ($('rfBannerX')) $('rfBannerX').onclick = () => { try { sessionStorage.setItem('rf_banner', today); } catch { /* nada */ } $('rfBanner').innerHTML = ''; };
+  try {
+    if (n && 'Notification' in window && Notification.permission === 'granted' && localStorage.getItem('rf_notified') !== today) {
+      const nt = new Notification('Biogate · Recompras', { body: `Hoy tenés ${n} cliente${n === 1 ? '' : 's'} para avisar que se les termina el suplemento.`, icon: '/logo' });
+      nt.onclick = () => { window.focus(); location.hash = '#recompras'; };
+      localStorage.setItem('rf_notified', today);
+    }
+  } catch { /* sin notificaciones */ }
+}
+async function rfCheck() { const d = await (await fetch('/api/refill/count')).json().catch(() => null); if (d) rfSetBadge(d.due || 0); }
+$('rfNotif').onclick = async () => { try { await Notification.requestPermission(); } catch { /* nada */ } $('rfNotif').hidden = Notification.permission !== 'default'; try { localStorage.removeItem('rf_notified'); } catch { /* nada */ } rfCheck(); };
+window.addEventListener('hashchange', () => { if (location.hash === '#recompras') $('rfBanner').innerHTML = ''; });
+setTimeout(rfCheck, 2500); setInterval(rfCheck, 15 * 60e3);
+
 // ---------- Tareas del equipo ----------
 let tkBlob = false, tkData = { items: [], people: [] }, tkCur = null, tkDraft = null, tkCmtAtts = [], tkPeopleDraft = [];
 const TK_ST = { new: 'Sin revisar', doing: 'En proceso', done: 'Terminada' };

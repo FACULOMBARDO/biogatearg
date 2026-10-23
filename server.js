@@ -34,6 +34,7 @@ const manuals = require('./lib/manuals');
 const deliveries = require('./lib/deliveries');
 const tuyo = require('./lib/tuyo');
 const tasks = require('./lib/tasks');
+const refill = require('./lib/refill');
 
 const MISSING = ['ML_CLIENT_ID', 'ML_CLIENT_SECRET', 'BASE_URL', 'ADMIN_PASSWORD'].filter(k => !process.env[k]);
 if (onVercel && !store.REMOTE) MISSING.push('KV_REST_API_URL / KV_REST_API_TOKEN (conectá la base Upstash Redis al proyecto)');
@@ -736,6 +737,40 @@ app.post('/api/manuals/config', (req, res) => {
   if (u && !/docs\.google\.com\/spreadsheets\/d\//.test(u)) return res.status(400).json({ ok: false, error: 'Pegá el link de Google Sheets.' });
   store.saveSettings({ manuals_sheet_url: u, manuals_tab: t.slice(0, 60) });
   res.json({ ok: manuals.sync({}) || false });
+});
+
+// ---------- Recompras (fin de suplemento) ----------
+app.get('/api/refill', (req, res) => { try { res.json(refill.list()); } catch (e) { res.status(500).json({ error: e.message }); } });
+app.get('/api/refill/count', (req, res) => { try { res.json({ due: refill.dueCount() }); } catch (e) { res.json({ due: 0 }); } });
+app.put('/api/refill/config', (req, res) => res.json({ ok: true, config: refill.saveConfig(req.body || {}) }));
+app.post('/api/refill/mark', (req, res) => {
+  const b = req.body || {};
+  const ids = [].concat(b.ids || b.id || []).map(String).slice(0, 200);
+  if (!['sent', 'dismissed', 'pending'].includes(b.state)) return res.status(400).json({ ok: false, error: 'Estado inválido.' });
+  for (const id of ids) refill.mark(id, b.state, b.by, b.via);
+  res.json({ ok: true });
+});
+// Texto del mensaje ya armado (para WhatsApp o para revisar antes de mandar por ML).
+app.post('/api/refill/text', (req, res) => {
+  const it = refill.list().items.find(i => i.id === String((req.body || {}).id));
+  if (!it) return res.status(404).json({ ok: false, error: 'No encontré ese recordatorio.' });
+  res.json({ ok: true, ml: refill.text(it, 'ml'), wa: refill.text(it, 'wa'), max_ml: ml.MAX_MSG });
+});
+// Mandar por la mensajería de Mercado Libre (de a uno o varios).
+app.post('/api/refill/send-ml', async (req, res) => {
+  const b = req.body || {}, all = refill.list().items, results = [];
+  for (const r of (Array.isArray(b.items) ? b.items : []).slice(0, 50)) {
+    const it = all.find(i => i.id === String(r.id));
+    if (!it || it.src !== 'ml') { results.push({ id: r.id, ok: false, error: 'No es una venta de Mercado Libre.' }); continue; }
+    const text = String(r.text || refill.text(it, 'ml')).trim();
+    try {
+      const out = await ml.sendMessage({ account_id: it.account_id, order_id: it.order_id, pack_id: it.pack_id || '' }, text);
+      refill.mark(it.id, 'sent', b.by, 'Mercado Libre (' + out.via + ')');
+      results.push({ id: it.id, ok: true });
+    } catch (e) { results.push({ id: it.id, ok: false, error: e.message }); }
+    await new Promise(r => setTimeout(r, 400));
+  }
+  res.json({ ok: true, sent: results.filter(r => r.ok).length, results });
 });
 
 // ---------- Tareas del equipo ----------

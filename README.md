@@ -249,6 +249,13 @@ Cuenta de Mercado Libre con productos comprados en Amazon: sus ventas se traen i
 6. **Cómo se pagó y cuánto queda**: facturación bruta − canceladas y devueltas − comisiones − envíos − impuestos − costo Amazon = neto después de costos. Abajo está la lista de ventas igual que en Ventas, con filtro Por enviar / En camino / Entregadas / Canceladas y devueltas.
 7. En **Resultado del mes** (y en el informe PDF) TUYO se suma solo si la tildás en el selector de cuentas.
 
+### 🔔 Recompras (cuándo se le termina el suplemento al cliente)
+Usa la columna **DURACION** de la lista de precios (por ejemplo "60 DIAS"). Por cada venta de Mercado Libre, presupuesto confirmado o venta web, cruza el SKU con esa duración: fecha de compra + días (× unidades: 2 frascos de 30 días = 60 días). **1 día antes** de que se termine (se cambia en **⚙️ Mensajes y aviso**) aparece en **Para avisar**, con un numerito rojo en el menú y un cartel arriba del panel. Con **🔔 Activar avisos en esta compu** también llega una notificación del navegador cuando abrís el panel.
+- **💬 Mercado Libre**: abre el mensaje ya armado (lo podés cambiar) y lo manda por la mensajería de la venta. Mercado Libre solo permite hablar de la compra: nada de promociones ni links.
+- **🟢 WhatsApp**: aparece si tenemos el teléfono (presupuestos, web o envíos Flex escaneados); abre WhatsApp con el mensaje listo.
+- **✓** ya le avisaste por otro lado · **✕** no avisar. Si el cliente volvió a comprar el mismo producto antes de que se le termine, se marca solo como **🔁 volvió a comprar**.
+- Los mensajes usan {nombre}, {producto}, {fecha}, {cuando} y {dias}. Los productos sin duración en la planilla no avisan.
+
 ### ✅ Tareas
 Para repartir tareas al equipo (menú lateral → **Tareas**).
 1. Tocá **👥 Encargados** y cargá los nombres (cada uno con su color).
