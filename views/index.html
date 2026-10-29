@@ -1149,6 +1149,7 @@
     </div>
     <h3 style="margin-top:20px;font-size:15px">Impuestos sobre las ventas</h3>
     <label style="font-size:13px;color:var(--muted);display:grid;gap:4px;max-width:260px">IVA + Ingresos Brutos (% del precio de venta)<input type="number" min="0" max="100" step="0.5" id="taxPct"></label>
+    <label style="font-size:13px;color:var(--muted);display:grid;gap:4px;max-width:420px;margin-top:10px">Envío Flex: ventas de menos de este precio el envío lo paga el comprador (no se descuenta tu reparto)<input type="number" min="0" step="500" id="freeShipMin" style="max-width:260px"></label>
     <h3 style="margin-top:20px;font-size:15px">Planilla de costos (Google Sheets)</h3>
     <input type="text" id="costsUrl" placeholder="https://docs.google.com/spreadsheets/d/…">
     <div class="muted" style="font-size:12.5px;margin-top:4px">Se toman las columnas "SKU" y "C TOTAL $PESO". La planilla tiene que estar compartida como "Cualquier persona con el enlace: Lector".</div>
@@ -1507,6 +1508,7 @@ async function openSettings() {
   const st = await (await fetch('/api/settings')).json();
   for (const z of Object.keys(ZN)) $('p-' + z).value = st.prices[z];
   $('taxPct').value = st.tax_pct;
+  $('freeShipMin').value = st.free_ship_min ?? 33000;
   $('costsUrl').value = st.costs_sheet_url || '';
   $('welcomeText').value = st.welcome || ''; welcomeCount();
   $('waWelcomeText').value = st.wa_welcome || '';
@@ -1527,7 +1529,7 @@ $('setCancel').onclick = () => $('setModal').classList.remove('show');
 document.querySelectorAll('input[name=th]').forEach(r => r.onchange = () => setTheme(r.value));
 $('setSave').onclick = async () => {
   const prices = {}; for (const z of Object.keys(ZN)) prices[z] = $('p-' + z).value;
-  const r = await fetch('/api/settings', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prices, tax_pct: $('taxPct').value, costs_sheet_url: $('costsUrl').value, welcome: $('welcomeText').value, wa_welcome: $('waWelcomeText').value }) });
+  const r = await fetch('/api/settings', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prices, tax_pct: $('taxPct').value, free_ship_min: $('freeShipMin').value, costs_sheet_url: $('costsUrl').value, welcome: $('welcomeText').value, wa_welcome: $('waWelcomeText').value }) });
   if (r.ok) { welcome = $('welcomeText').value.trim() || welcome; waWelcome = $('waWelcomeText').value.trim() || waWelcome; }
   $('setResult').innerHTML = r.ok ? '<span class="ok-t">Guardado.</span>' : '<span class="err-t">No se pudo guardar.</span>';
   if (r.ok) { taxPctSetting = Number($('taxPct').value) || taxPctSetting; if (!$('viewSales').hidden) loadSales(); }
@@ -1715,7 +1717,7 @@ function saleRow(s) {
       ${cell(s.gross)}${cell(s.fee, true)}
       ${s.is_flex ? '<td class="price" style="text-align:right" title="Venta Flex: se descuenta solo tu envío Flex"><span class="muted">—</span></td>' : cell(s.ship_ml_deducted, true)}
       ${cell(s.tax, true)}
-      <td class="price" style="text-align:right;font-weight:500">${s.flex_cost ? `<span class="zone z-${s.zone}" style="font-size:10.5px">${ZN[s.zone] || ''}</span><div style="color:var(--err)">− ${money(s.flex_cost)}</div>` : (s.is_flex && s.first_of_shipment && !s.cancelled ? '<span class="muted" style="font-size:12px">sin zona</span>' : '<span class="muted">—</span>')}</td>
+      <td class="price" style="text-align:right;font-weight:500">${s.buyer_pays_ship && s.is_flex && s.first_of_shipment && !s.cancelled ? `${s.zone ? `<span class="zone z-${s.zone}" style="font-size:10.5px">${ZN[s.zone] || ''}</span>` : ''}<div class="muted" style="font-size:12px;font-weight:400">lo paga el comprador</div>` : s.flex_cost ? `<span class="zone z-${s.zone}" style="font-size:10.5px">${ZN[s.zone] || ''}</span><div style="color:var(--err)">− ${money(s.flex_cost)}</div>` : (s.is_flex && s.first_of_shipment && !s.cancelled ? '<span class="muted" style="font-size:12px">sin zona</span>' : '<span class="muted">—</span>')}</td>
       <td class="price" style="text-align:right;font-weight:500">${costHtml}</td>
       <td class="price" style="text-align:right;font-weight:400" title="Lo que informa Mercado Pago (solo referencia)">${s.mp_received === null || s.mp_received === undefined ? '<span class="muted">—</span>' : `<span class="muted">${money(s.mp_received)}</span>`}</td>
       <td class="price col-net" style="text-align:right;font-size:15px">${money(s.net)}</td>

@@ -177,6 +177,11 @@ Cada envío muestra su zona (Capital, GBA 1, GBA 2, GBA 3) y lo que te cuesta, s
 - Con "cambiar" podés corregir la zona de un envío puntual.
 - Los precios se cambian en el engranaje (Configuración).
 
+### Envío Flex que paga el comprador
+En Mercado Libre, las ventas Flex de menos de **$ 33.000** tienen el envío a cargo del comprador. En esas ventas el panel **no descuenta tu costo de reparto** del neto: en la columna de envío se sigue viendo la zona, con el texto "lo paga el comprador". Las ventas de $ 33.000 o más siguen descontando el reparto según la zona, como siempre.
+- El monto se cambia en el engranaje (Configuración), debajo del % de impuestos. Si ML cambia el mínimo de envío gratis, lo actualizás ahí y se recalculan todas las ventas.
+- Si lo ponés en 0, se descuenta el reparto en todas las ventas Flex.
+
 ### Apariencia y logo
 Con el botón de sol/luna cambiás entre modo claro y oscuro. En Configuración podés subir el logo de tu negocio (PNG, JPG, WEBP o SVG, hasta 2 MB): aparece en el panel, el escáner y el login.
 
