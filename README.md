@@ -114,6 +114,14 @@ En **Presupuestos**, cada recibo tiene la columna **Envío** con el botón **�
 ### 🏷️ Etiquetas de envío (10 × 15, horizontal)
 Para los recibos/presupuestos y pedidos web que tienen **Envío** (no para los Flex de Mercado Libre, que ya traen su etiqueta). Botón **🏷️ Etiqueta** en Presupuestos, en Ventas web y en Envíos Flex. Se abre una vista previa con destinatario, teléfono, dirección, localidad y CP, aclaraciones y el teléfono del local; lo que corrijas queda guardado en el envío. **Descargar etiqueta (PDF)** baja un PDF de 15 × 10 cm en blanco y negro, con el logo de Biogate. En Envíos Flex, **🏷️ Etiquetas del período** junta en un PDF todas las de ese día, semana o mes (una por página).
 
+### 🖨️ Impresión de etiquetas (Mercado Libre, todas las cuentas)
+En el menú lateral, **Impresión de etiquetas** junta los pedidos **listos para despachar** de todas las cuentas de Mercado Libre: Flex, Colecta y Drop off (Full no, porque lo despacha ML). Se ve la cuenta, el número de venta, el comprador, los productos, el tipo de envío, el destino, hasta cuándo hay que despacharlo y si la etiqueta ya se imprimió.
+- Por defecto están todas marcadas. Podés filtrar por cuenta, tipo de envío o "Por imprimir / Ya impresas" y destildar las que no quieras.
+- **⬇️ Descargar etiquetas** baja en **un solo PDF** las etiquetas oficiales de Mercado Libre (las mismas que da ML), de todas las cuentas juntas. Mercado Libre las marca como impresas.
+- Los carritos (varias ventas en un mismo envío) llevan una sola etiqueta.
+- Los pedidos que esperan la factura no aparecen hasta que ML habilita la etiqueta. Si ML no da alguna, el resto baja igual y arriba se avisa cuál faltó.
+- Se miran las ventas de los últimos 20 días.
+
 ### 🧮 Calculadora
 Para productos de Amazon: cargás el precio en dólares y el peso (kg, onzas o libras). Envío = peso en kg × costo por kilo (US$ 35); costo total = (precio + envío) × tipo de cambio. El precio de venta sale de: precio − 23% de IVA + IIBB − costo total = 40% del precio (ganancia neta). Costo por kilo, tipo de cambio, % de impuestos, % de ganancia y redondeo se pueden cambiar y quedan guardados. Con "Vender en Mercado Libre" también descuenta la comisión y el envío de ML y te dice a cuánto publicarlo. "Copiar resumen" copia el resultado.
 

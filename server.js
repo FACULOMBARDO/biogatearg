@@ -781,6 +781,20 @@ async function refillPush(force) {
 }
 
 // ---------- Preguntas de compradores ----------
+// Impresión de etiquetas de Mercado Libre (todas las cuentas)
+const shipLabels = require('./lib/shiplabels');
+app.get('/api/ship-labels', async (req, res) => { try { res.json({ ok: true, ...(await shipLabels.list()) }); } catch (e) { res.status(400).json({ ok: false, error: e.message }); } });
+app.post('/api/ship-labels/pdf', async (req, res) => {
+  try {
+    const r = await shipLabels.pdf((req.body || {}).items);
+    res.json({ ok: true, count: r.count, errors: r.errors, url: files.BLOB ? r.ref.url + '?download=1' : '/api/ship-labels/file', name: r.name });
+  } catch (e) { res.status(400).json({ ok: false, error: e.message }); }
+});
+app.get('/api/ship-labels/file', (req, res) => {
+  const ref = store.getSettings().ship_labels_ref;
+  if (!ref || !files.exists(ref)) return res.status(404).send('No hay etiquetas descargadas.');
+  files.send(res, ref, { type: 'application/pdf', name: 'Etiquetas de envío.pdf', download: true });
+});
 app.get('/api/questions', (req, res) => res.json(questions.list()));
 app.get('/api/questions/count', (req, res) => res.json(questions.count()));
 app.post('/api/questions/sync', async (req, res) => {

@@ -38,6 +38,7 @@
   <a href="#full" class="nav" data-view="full"><span class="ic">⚡</span><span>Full</span></a>
   <a href="#tuyo" class="nav" data-view="tuyo"><span class="ic">🛒</span><span>TUYO</span></a>
   <a href="#flex" class="nav" data-view="flex"><span class="ic">🛵</span><span>Envíos Flex</span></a>
+  <a href="#impresion" class="nav" data-view="impresion"><span class="ic">🖨️</span><span>Impresión de etiquetas</span></a>
   <a href="#ranking" class="nav" data-view="ranking"><span class="ic">🏆</span><span>Ranking</span></a>
   <a href="#precios" class="nav" data-view="precios"><span class="ic">📋</span><span>Lista de precios</span></a>
   <a href="#presupuestos" class="nav" data-view="presupuestos"><span class="ic">🧾</span><span>Presupuestos</span></a>
@@ -595,6 +596,29 @@
   <div class="mn-vbody" id="mnVBody"></div>
 </div>
 
+<section id="viewShipLabels" hidden>
+  <div class="row" style="justify-content:space-between;margin-bottom:12px">
+    <h1 class="page-title">Impresión de etiquetas</h1>
+    <div class="row"><button class="btn" id="slReload">Actualizar</button><button class="btn primary" id="slDownload" disabled>Descargar etiquetas</button></div>
+  </div>
+  <div class="card">
+    <div class="row" style="gap:10px;flex-wrap:wrap">
+      <div class="seg" id="slState"><button data-s="" class="on">Todas</button><button data-s="new">Por imprimir</button><button data-s="printed">Ya impresas</button></div>
+      <select id="slAcc"><option value="">Todas las cuentas</option></select>
+      <select id="slType"><option value="">Todos los envíos</option></select>
+    </div>
+    <div id="slInfo" class="muted" style="font-size:12.5px;margin-top:8px">Pedidos listos para despachar de todas las cuentas de Mercado Libre. Las etiquetas son las oficiales de ML y bajan todas juntas en un solo PDF.</div>
+    <div id="slMsg" style="font-size:13px;margin-top:6px"></div>
+  </div>
+  <div class="card" style="padding:0">
+    <div class="table-wrap">
+      <table class="sales-table">
+        <thead><tr><th style="width:30px"><input type="checkbox" id="slAll" checked title="Marcar o desmarcar todas"></th><th>Cuenta</th><th>Venta</th><th>Comprador</th><th>Productos</th><th>Envío</th><th>Destino</th><th>Despachar antes de</th><th>Estado</th></tr></thead>
+        <tbody id="slRows"><tr><td colspan="9" class="muted" style="padding:16px">Cargando…</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+</section>
 <section id="viewPLabel" hidden>
   <div class="row" style="justify-content:space-between;margin-bottom:12px">
     <h1 class="page-title">Etiquetas de producto</h1>
@@ -1612,12 +1636,74 @@ $('impFile').onchange = async (e) => {
 };
 
 // ---------- Vistas (panel lateral) ----------
+// ---------- Impresión de etiquetas (Mercado Libre, todas las cuentas) ----------
+let slData = null, slOff = new Set(), slState = '', slBusy = false;
+const slKey = (x) => x.account_id + ':' + x.shipment_id;
+function slVisible() {
+  const acc = $('slAcc').value, ty = $('slType').value;
+  return (slData ? slData.items : []).filter(x => (!acc || x.account_id === acc) && (!ty || x.type === ty) && (!slState || (slState === 'printed') === x.printed));
+}
+async function loadShipLabels() {
+  if (slBusy) return; slBusy = true;
+  $('slRows').innerHTML = '<tr><td colspan="9" class="muted" style="padding:16px">Buscando pedidos para despachar en todas las cuentas… (puede tardar unos segundos)</td></tr>';
+  $('slDownload').disabled = true; $('slReload').disabled = true;
+  const d = await (await fetch('/api/ship-labels')).json().catch(() => ({ ok: false, error: 'Sin conexión.' }));
+  slBusy = false; $('slReload').disabled = false;
+  if (!d.ok) { $('slRows').innerHTML = `<tr><td colspan="9" class="err-t" style="padding:16px">${esc(d.error || 'No se pudo cargar.')}</td></tr>`; return; }
+  slData = d; slOff = new Set();
+  const accs = {}, types = {};
+  for (const x of d.items) { accs[x.account_id] = x.account; types[x.type] = x.type_label; }
+  const a0 = $('slAcc').value, t0 = $('slType').value;
+  $('slAcc').innerHTML = '<option value="">Todas las cuentas</option>' + Object.entries(accs).map(([k, v]) => `<option value="${esc(k)}">${esc(v)} (${d.items.filter(x => x.account_id === k).length})</option>`).join('');
+  $('slType').innerHTML = '<option value="">Todos los envíos</option>' + Object.entries(types).map(([k, v]) => `<option value="${esc(k)}">${esc(v)} (${d.items.filter(x => x.type === k).length})</option>`).join('');
+  if (accs[a0]) $('slAcc').value = a0; if (types[t0]) $('slType').value = t0;
+  $('slMsg').innerHTML = d.errors.length ? `<span class="err-t">⚠️ ${esc(d.errors.join(' · '))}</span>` : '';
+  renderShipLabels();
+}
+function renderShipLabels() {
+  const list = slVisible(), sel = list.filter(x => !slOff.has(slKey(x)));
+  const all = slData ? slData.items : [], pend = all.filter(x => !x.printed).length;
+  $('slInfo').textContent = `${all.length} ${all.length === 1 ? 'pedido listo' : 'pedidos listos'} para despachar · ${pend} por imprimir · ${all.length - pend} ya ${all.length - pend === 1 ? 'impresa' : 'impresas'}. Las etiquetas son las oficiales de Mercado Libre y bajan todas juntas en un solo PDF.`;
+  $('slDownload').disabled = !sel.length;
+  $('slDownload').textContent = sel.length ? `⬇️ Descargar ${sel.length} ${sel.length === 1 ? 'etiqueta' : 'etiquetas'}` : 'Descargar etiquetas';
+  $('slAll').checked = !!list.length && sel.length === list.length;
+  const dt = (v, t) => v ? new Date(v).toLocaleString('es-AR', t ? { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' } : { day: '2-digit', month: '2-digit' }) : '';
+  $('slRows').innerHTML = list.map(x => `<tr>
+    <td><input type="checkbox" data-slk="${esc(slKey(x))}" ${slOff.has(slKey(x)) ? '' : 'checked'}></td>
+    <td><span class="pill" style="color:var(--brand);border-color:var(--brand)">${esc(x.account)}</span></td>
+    <td><a class="lnk" href="https://www.mercadolibre.com.ar/ventas/${esc(x.order_id)}/detalle" target="_blank" rel="noopener">${esc(x.order_id)}</a><div class="muted" style="font-size:12px">${dt(x.date)}</div></td>
+    <td>${esc(x.buyer)}</td>
+    <td style="max-width:320px">${esc(x.items)}</td>
+    <td>${esc(x.type_label)}</td>
+    <td>${esc([x.city, x.state].filter(Boolean).join(', '))}</td>
+    <td>${x.deadline ? dt(x.deadline, true) : '<span class="muted">—</span>'}</td>
+    <td>${x.printed ? '<span class="pill">ya impresa</span>' : '<span class="pill" style="color:var(--ok);border-color:var(--ok)">por imprimir</span>'}</td>
+  </tr>`).join('') || `<tr><td colspan="9" class="muted" style="padding:16px">${slData && slData.items.length ? 'No hay pedidos con ese filtro.' : '¡No hay pedidos para despachar! 🎉'}</td></tr>`;
+}
+$('slReload').onclick = loadShipLabels;
+$('slAcc').onchange = renderShipLabels; $('slType').onchange = renderShipLabels;
+$('slState').onclick = (e) => { const b = e.target.closest('[data-s]'); if (!b) return; slState = b.dataset.s; $('slState').querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b)); renderShipLabels(); };
+$('slAll').onchange = () => { for (const x of slVisible()) $('slAll').checked ? slOff.delete(slKey(x)) : slOff.add(slKey(x)); renderShipLabels(); };
+$('slRows').onchange = (e) => { const k = e.target.dataset.slk; if (!k) return; e.target.checked ? slOff.delete(k) : slOff.add(k); renderShipLabels(); };
+$('slDownload').onclick = async () => {
+  const sel = slVisible().filter(x => !slOff.has(slKey(x)));
+  if (!sel.length) return;
+  const b = $('slDownload'); b.disabled = true; b.textContent = 'Armando el PDF…';
+  $('slMsg').textContent = '';
+  const d = await (await fetch('/api/ship-labels/pdf', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ items: sel.map(x => ({ account_id: x.account_id, shipment_id: x.shipment_id })) }) })).json().catch(() => ({ ok: false, error: 'Sin conexión.' }));
+  if (!d.ok) { $('slMsg').innerHTML = `<span class="err-t">${esc(d.error)}</span>`; renderShipLabels(); return; }
+  const a = document.createElement('a'); a.href = d.url; a.download = d.name || 'Etiquetas.pdf'; document.body.appendChild(a); a.click(); a.remove();
+  for (const x of sel) x.printed = true;
+  $('slMsg').innerHTML = `<span style="color:var(--ok)">✓ Se bajaron ${d.count} ${d.count === 1 ? 'etiqueta' : 'etiquetas'} en un PDF.</span> <a class="lnk" href="${esc(d.url)}" target="_blank" rel="noopener">Abrir de nuevo</a>` + (d.errors && d.errors.length ? `<div class="err-t" style="margin-top:4px">⚠️ ${esc(d.errors.join(' · '))}</div>` : '');
+  renderShipLabels();
+};
+
 function showView() {
-  const v = ({ '#ventas': 'ventas', '#ranking': 'ranking', '#precios': 'precios', '#presupuestos': 'presupuestos', '#estados': 'estados', '#gastos': 'gastos', '#full': 'full', '#flex': 'flex', '#resultado': 'resultado', '#tareas': 'tareas', '#recompras': 'recompras', '#preguntas': 'preguntas', '#stock': 'stock', '#sugerencias': 'sugerencias', '#web': 'web', '#horarios': 'horarios', '#manuales': 'manuales', '#calculadora': 'calculadora', '#etiquetas': 'etiquetas', '#tuyo': 'tuyo' })[location.hash] || 'ventas';
+  const v = ({ '#ventas': 'ventas', '#ranking': 'ranking', '#precios': 'precios', '#presupuestos': 'presupuestos', '#estados': 'estados', '#gastos': 'gastos', '#full': 'full', '#flex': 'flex', '#resultado': 'resultado', '#tareas': 'tareas', '#recompras': 'recompras', '#preguntas': 'preguntas', '#stock': 'stock', '#sugerencias': 'sugerencias', '#web': 'web', '#horarios': 'horarios', '#manuales': 'manuales', '#calculadora': 'calculadora', '#etiquetas': 'etiquetas', '#impresion': 'impresion', '#tuyo': 'tuyo' })[location.hash] || 'ventas';
   $('viewQuotes').hidden = v !== 'presupuestos';
   $('viewStatus').hidden = v !== 'estados';
   $('viewExpenses').hidden = v !== 'gastos'; $('viewFull').hidden = v !== 'full';
-  $('viewResults').hidden = v !== 'resultado'; $('viewStock').hidden = v !== 'stock'; $('viewSuggest').hidden = v !== 'sugerencias'; $('viewWeb').hidden = v !== 'web'; $('viewHours').hidden = v !== 'horarios'; $('viewManuals').hidden = v !== 'manuales'; $('viewCalc').hidden = v !== 'calculadora'; $('viewPLabel').hidden = v !== 'etiquetas'; $('viewTuyo').hidden = v !== 'tuyo';
+  $('viewResults').hidden = v !== 'resultado'; $('viewStock').hidden = v !== 'stock'; $('viewSuggest').hidden = v !== 'sugerencias'; $('viewWeb').hidden = v !== 'web'; $('viewHours').hidden = v !== 'horarios'; $('viewManuals').hidden = v !== 'manuales'; $('viewCalc').hidden = v !== 'calculadora'; $('viewPLabel').hidden = v !== 'etiquetas'; $('viewShipLabels').hidden = v !== 'impresion'; $('viewTuyo').hidden = v !== 'tuyo';
   $('viewFlex').hidden = v !== 'flex'; $('viewSales').hidden = v !== 'ventas'; $('viewTasks').hidden = v !== 'tareas'; $('viewRefill').hidden = v !== 'recompras'; $('viewQuestions').hidden = v !== 'preguntas';
   $('viewRanking').hidden = v !== 'ranking'; $('viewPrices').hidden = v !== 'precios';
   document.querySelectorAll('.side .nav').forEach(a => a.classList.toggle('active', a.dataset.view === v));
@@ -1636,6 +1722,7 @@ function showView() {
   if (v === 'manuales') loadManuals();
   if (v === 'calculadora') loadCalc();
   if (v === 'etiquetas') loadPLabel();
+  if (v === 'impresion') loadShipLabels();
   if (v === 'tuyo') loadTuyo();
   if (v === 'tareas') loadTasks();
   if (v === 'recompras') loadRefill();
