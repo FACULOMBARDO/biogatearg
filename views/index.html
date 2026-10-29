@@ -609,6 +609,7 @@
     </div>
     <div id="slInfo" class="muted" style="font-size:12.5px;margin-top:8px">Pedidos listos para despachar de todas las cuentas de Mercado Libre. Las etiquetas son las oficiales de ML y bajan todas juntas en un solo PDF.</div>
     <div id="slMsg" style="font-size:13px;margin-top:6px"></div>
+    <details id="slDiagBox" style="margin-top:6px;font-size:12.5px" hidden><summary class="lnk" style="cursor:pointer">Ver detalle de la búsqueda</summary><div id="slDiag" class="muted" style="margin-top:6px;line-height:1.6"></div></details>
   </div>
   <div class="card" style="padding:0">
     <div class="table-wrap">
@@ -1657,6 +1658,10 @@ async function loadShipLabels() {
   $('slAcc').innerHTML = '<option value="">Todas las cuentas</option>' + Object.entries(accs).map(([k, v]) => `<option value="${esc(k)}">${esc(v)} (${d.items.filter(x => x.account_id === k).length})</option>`).join('');
   $('slType').innerHTML = '<option value="">Todos los envíos</option>' + Object.entries(types).map(([k, v]) => `<option value="${esc(k)}">${esc(v)} (${d.items.filter(x => x.type === k).length})</option>`).join('');
   if (accs[a0]) $('slAcc').value = a0; if (types[t0]) $('slType').value = t0;
+  const ST = { ready_to_print: 'para imprimir', printed: 'impresa', invoice_pending: 'falta factura', shipped: 'enviado', delivered: 'entregado', ready_to_ship: 'listo para despachar', handling: 'en preparación', pending: 'pendiente', cancelled: 'cancelado', not_delivered: 'no entregado', self_service: 'Flex', cross_docking: 'Colecta', xd_drop_off: 'Places', drop_off: 'Drop off', fulfillment: 'Full' };
+  const tr = (k) => k.split(/( · | \/ )/).map(w => ST[w] || w).join('');
+  $('slDiagBox').hidden = !(d.diag || []).length;
+  $('slDiag').innerHTML = (d.diag || []).map(g => `<div><b>${esc(g.account)}</b>: ${g.orders} ventas en 30 días · ${g.shipments} envíos sin entregar revisados${g.failed.length ? ` · <span class="err-t">${g.failed.length} sin respuesta de ML</span>` : ''}<br>${Object.entries(g.states).sort((a, b) => b[1] - a[1]).map(([k, n]) => `${n} × ${esc(tr(k))}`).join(' · ') || '—'}</div>`).join('');
   $('slMsg').innerHTML = d.errors.length ? `<span class="err-t">⚠️ ${esc(d.errors.join(' · '))}</span>` : '';
   renderShipLabels();
 }

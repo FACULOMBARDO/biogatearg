@@ -120,7 +120,7 @@ En el menú lateral, **Impresión de etiquetas** junta los pedidos **listos para
 - **⬇️ Descargar etiquetas** baja en **un solo PDF** las etiquetas oficiales de Mercado Libre (las mismas que da ML), de todas las cuentas juntas. Mercado Libre las marca como impresas.
 - Los carritos (varias ventas en un mismo envío) llevan una sola etiqueta.
 - Los pedidos que esperan la factura no aparecen hasta que ML habilita la etiqueta. Si ML no da alguna, el resto baja igual y arriba se avisa cuál faltó.
-- Se miran las ventas de los últimos 20 días.
+- Se miran las ventas de los últimos 30 días. Si Mercado Libre se satura, el panel reintenta solo; en "Ver detalle de la búsqueda" se ve qué encontró en cada cuenta.
 
 ### 🧮 Calculadora
 Para productos de Amazon: cargás el precio en dólares y el peso (kg, onzas o libras). Envío = peso en kg × costo por kilo (US$ 35); costo total = (precio + envío) × tipo de cambio. El precio de venta sale de: precio − 23% de IVA + IIBB − costo total = 40% del precio (ganancia neta). Costo por kilo, tipo de cambio, % de impuestos, % de ganancia y redondeo se pueden cambiar y quedan guardados. Con "Vender en Mercado Libre" también descuenta la comisión y el envío de ML y te dice a cuánto publicarlo. "Copiar resumen" copia el resultado.
