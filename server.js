@@ -282,7 +282,7 @@ app.put('/api/woo/orders/:id/ship', (req, res) => { try { const sh = deliveries.
 app.get('/api/settings', (req, res) => {
   waWelcomeUpgrade();
   const st = store.getSettings();
-  res.json({ costs_sheet_url: st.costs_sheet_url || costs.DEFAULT_SHEET_URL, tax_pct: st.tax_pct ?? sales.DEFAULT_TAX_PCT, free_ship_min: st.free_ship_min ?? sales.FREE_SHIP_MIN, prices: { ...zones.DEFAULT_PRICES, ...(st.prices || {}) }, zones: zones.ZONES, has_logo: hasLogo(), welcome: st.welcome || DEFAULT_WELCOME, wa_welcome: st.wa_welcome || DEFAULT_WA_WELCOME, max_msg: ml.MAX_MSG, blob_uploads: files.BLOB });
+  res.json({ costs_sheet_url: st.costs_sheet_url || costs.DEFAULT_SHEET_URL, tax_pct: st.tax_pct ?? sales.DEFAULT_TAX_PCT, free_ship_min: st.free_ship_min ?? sales.FREE_SHIP_MIN, ai_notes: st.ai_notes || '', ai_ready: require('./lib/ai').ready(), prices: { ...zones.DEFAULT_PRICES, ...(st.prices || {}) }, zones: zones.ZONES, has_logo: hasLogo(), welcome: st.welcome || DEFAULT_WELCOME, wa_welcome: st.wa_welcome || DEFAULT_WA_WELCOME, max_msg: ml.MAX_MSG, blob_uploads: files.BLOB });
 });
 app.put('/api/settings', (req, res) => {
   const prices = {};
@@ -299,6 +299,7 @@ app.put('/api/settings', (req, res) => {
     const f = Number(String(req.body.free_ship_min).replace(/\D/g, '')); // entero: '33.000' = 33000
     if (Number.isFinite(f) && f >= 0) upd.free_ship_min = Math.round(f);
   }
+  if (typeof req.body.ai_notes === 'string') upd.ai_notes = req.body.ai_notes.trim().slice(0, 2000);
   if (typeof req.body.costs_sheet_url === 'string') upd.costs_sheet_url = req.body.costs_sheet_url.trim() || costs.DEFAULT_SHEET_URL;
   if (typeof req.body.wa_welcome === 'string') upd.wa_welcome = req.body.wa_welcome.trim().slice(0, 2000) || DEFAULT_WA_WELCOME;
   if (typeof req.body.welcome === 'string') upd.welcome = req.body.welcome.trim().slice(0, 500) || DEFAULT_WELCOME;
@@ -789,6 +790,11 @@ app.post('/api/questions/sync', async (req, res) => {
 });
 app.post('/api/questions/:id/answer', async (req, res) => {
   try { res.json({ ok: true, question: await questions.answer(req.params.id, (req.body || {}).text, (req.body || {}).by) }); }
+  catch (e) { res.status(400).json({ ok: false, error: e.message }); }
+});
+// Sugerencia de respuesta con IA (Gemini). No responde: devuelve un borrador para revisar.
+app.post('/api/questions/:id/suggest', async (req, res) => {
+  try { res.json({ ok: true, ...(await require('./lib/ai').suggest(req.params.id)) }); }
   catch (e) { res.status(400).json({ ok: false, error: e.message }); }
 });
 app.get('/api/questions/:id/history', async (req, res) => { try { res.json({ ok: true, ...(await questions.history(req.params.id)) }); } catch (e) { res.status(400).json({ ok: false, error: e.message }); } });

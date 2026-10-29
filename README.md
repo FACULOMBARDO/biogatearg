@@ -264,6 +264,21 @@ Menú lateral → **Preguntas**: las preguntas de los compradores de todas tus c
 - **⚡ Respuestas rápidas**: textos guardados que se insertan con un toque (ej. Stock, Envío, Cómo se toma).
 - **👤 Historial del comprador**: otras preguntas que te hizo y si ya te compró.
 
+### ✨ Sugerencias de respuesta con IA (Preguntas)
+En cada pregunta sin responder hay un botón **"✨ Sugerir respuesta"**. Lo tocás y en unos segundos el cuadro se completa con un borrador. **No se envía nada solo**: lo revisás, lo corregís y tocás "Responder" como siempre.
+- La IA mira la publicación de esa pregunta: título, precio, stock, variantes, ficha técnica, descripción y hasta 3 fotos (puede leer la etiqueta o la tabla nutricional). También las respuestas que ya diste en esa publicación (copia tu forma de contestar), lo que ya preguntó ese comprador y la duración del producto de la lista de precios.
+- Si le falta un dato, no lo inventa: abajo aparece "⚠️ Revisá: …" con lo que no encontró.
+- No promete efectos de salud y no pone teléfonos, links ni contactos.
+- En el engranaje (Configuración) → "Sugerencias de respuesta con IA" podés escribir datos fijos que no están en las publicaciones (despacho, factura, garantía…). Ahí también ves si la IA está conectada.
+
+**Cómo se activa (gratis, una sola vez):** usa Gemini, la IA de Google, con su plan gratuito.
+1. Entrá a aistudio.google.com con tu cuenta de Google → "Get API key" → "Create API key". No pide tarjeta.
+2. Copiá la clave y pegala en Vercel → proyecto biogatearg → Settings → Environment Variables, con el nombre `GEMINI_API_KEY`. No la mandes por chat.
+3. En Vercel → Deployments, tocá los tres puntos del último → "Redeploy" para que tome la clave.
+- El plan gratis tiene un límite por minuto y por día. Si lo pasás, el botón avisa "Llegaste al límite gratis" y en un rato vuelve a andar.
+- En el plan gratis Google puede usar lo que se le manda para mejorar sus productos. Solo viajan los datos de la publicación y la pregunta, que ya son públicos.
+- Si Google cambia el nombre del modelo, se puede forzar otro con la variable `GEMINI_MODEL` (opcional).
+
 ### 🔔 Recompras (cuándo se le termina el suplemento al cliente)
 Usa la columna **DURACION** de la lista de precios (por ejemplo "60 DIAS"). Por cada venta de Mercado Libre, presupuesto confirmado o venta web, cruza el SKU con esa duración: fecha de compra + días (× unidades: 2 frascos de 30 días = 60 días). **Aviso del día:** a cada cliente le toca avisarle **1 día antes** de que se le termine; si ese día cae **sábado o domingo, el aviso pasa al lunes** (todos juntos). El numerito rojo del menú, el cartel de arriba y la notificación del navegador (🔔 Activar avisos en esta compu) cuentan **solo los de hoy**. Las dos cosas se cambian en **⚙️ Mensajes y aviso**.
 - Pestañas: **Hoy** · **Próximos 7 días** (se terminan hoy, mañana o en los próximos días) · **Después** · **Avisados** · **Todos**, y **Día de aviso** para ver cualquier fecha.

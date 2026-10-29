@@ -1150,6 +1150,10 @@
     <h3 style="margin-top:20px;font-size:15px">Impuestos sobre las ventas</h3>
     <label style="font-size:13px;color:var(--muted);display:grid;gap:4px;max-width:260px">IVA + Ingresos Brutos (% del precio de venta)<input type="number" min="0" max="100" step="0.5" id="taxPct"></label>
     <label style="font-size:13px;color:var(--muted);display:grid;gap:4px;max-width:420px;margin-top:10px">Envío Flex: ventas de menos de este precio el envío lo paga el comprador (no se descuenta tu reparto)<input type="number" min="0" step="500" id="freeShipMin" style="max-width:260px"></label>
+    <h3 style="margin-top:20px;font-size:15px">Sugerencias de respuesta con IA (Preguntas)</h3>
+    <div class="muted" style="font-size:12.5px;margin-bottom:4px" id="aiState"></div>
+    <textarea id="aiNotes" style="min-height:90px" maxlength="2000" placeholder="Datos fijos que la IA puede usar al responder. Ej: Despachamos en el día si comprás antes de las 13 h. Todos los productos son originales con fecha de vencimiento larga. Hacemos factura A y B."></textarea>
+    <div class="muted" style="font-size:12.5px;margin-top:4px">La IA ya lee la ficha, descripción, fotos, precio, stock y tus respuestas anteriores de cada publicación. Acá poné lo que no está en las publicaciones (envíos, factura, garantía, etc.). No pongas teléfonos ni links: Mercado Libre no los permite.</div>
     <h3 style="margin-top:20px;font-size:15px">Planilla de costos (Google Sheets)</h3>
     <input type="text" id="costsUrl" placeholder="https://docs.google.com/spreadsheets/d/…">
     <div class="muted" style="font-size:12.5px;margin-top:4px">Se toman las columnas "SKU" y "C TOTAL $PESO". La planilla tiene que estar compartida como "Cualquier persona con el enlace: Lector".</div>
@@ -1509,6 +1513,8 @@ async function openSettings() {
   for (const z of Object.keys(ZN)) $('p-' + z).value = st.prices[z];
   $('taxPct').value = st.tax_pct;
   $('freeShipMin').value = st.free_ship_min ?? 33000;
+  $('aiNotes').value = st.ai_notes || '';
+  $('aiState').innerHTML = st.ai_ready ? '<span style="color:var(--ok)">✓ IA conectada (Gemini).</span>' : '<span class="err-t">IA sin configurar: falta GEMINI_API_KEY en Vercel.</span>';
   $('costsUrl').value = st.costs_sheet_url || '';
   $('welcomeText').value = st.welcome || ''; welcomeCount();
   $('waWelcomeText').value = st.wa_welcome || '';
@@ -1529,7 +1535,7 @@ $('setCancel').onclick = () => $('setModal').classList.remove('show');
 document.querySelectorAll('input[name=th]').forEach(r => r.onchange = () => setTheme(r.value));
 $('setSave').onclick = async () => {
   const prices = {}; for (const z of Object.keys(ZN)) prices[z] = $('p-' + z).value;
-  const r = await fetch('/api/settings', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prices, tax_pct: $('taxPct').value, free_ship_min: $('freeShipMin').value, costs_sheet_url: $('costsUrl').value, welcome: $('welcomeText').value, wa_welcome: $('waWelcomeText').value }) });
+  const r = await fetch('/api/settings', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prices, tax_pct: $('taxPct').value, free_ship_min: $('freeShipMin').value, ai_notes: $('aiNotes').value, costs_sheet_url: $('costsUrl').value, welcome: $('welcomeText').value, wa_welcome: $('waWelcomeText').value }) });
   if (r.ok) { welcome = $('welcomeText').value.trim() || welcome; waWelcome = $('waWelcomeText').value.trim() || waWelcome; }
   $('setResult').innerHTML = r.ok ? '<span class="ok-t">Guardado.</span>' : '<span class="err-t">No se pudo guardar.</span>';
   if (r.ok) { taxPctSetting = Number($('taxPct').value) || taxPctSetting; if (!$('viewSales').hidden) loadSales(); }
@@ -2796,7 +2802,7 @@ function renderQuestions() {
       ${open ? `<div class="qs-answer">
         ${quick.length ? `<div class="qs-quick">${quick.map(r => `<button class="btn small" data-qquick="${esc(r.id)}" data-qid="${esc(x.id)}" title="${esc(r.text)}">⚡ ${esc(r.title)}</button>`).join('')}</div>` : ''}
         <textarea id="qsa-${esc(x.id)}" placeholder="Escribí la respuesta…" maxlength="${qsMax}">${esc(qsDrafts[x.id] || '')}</textarea>
-        <div class="row" style="justify-content:space-between;margin-top:6px"><span class="muted" style="font-size:12px" id="qsc-${esc(x.id)}">${(qsDrafts[x.id] || '').length} / ${qsMax}</span><div class="row" style="gap:6px"><span id="qsm-${esc(x.id)}" style="font-size:13px"></span><button class="btn primary" data-qsend="${esc(x.id)}">Responder</button></div></div>
+        <div class="row" style="justify-content:space-between;margin-top:6px"><span class="muted" style="font-size:12px" id="qsc-${esc(x.id)}">${(qsDrafts[x.id] || '').length} / ${qsMax}</span><div class="row" style="gap:6px"><span id="qsm-${esc(x.id)}" style="font-size:13px"></span><button class="btn" data-qai="${esc(x.id)}" title="Arma un borrador con los datos de la publicación. Lo revisás antes de responder.">✨ Sugerir respuesta</button><button class="btn primary" data-qsend="${esc(x.id)}">Responder</button></div></div>
       </div>` : x.answer ? `<div class="qs-ans"><div class="muted" style="font-size:12px">✓ Respondida ${qsAgo(x.answer.date)}${x.answer.by ? ' por ' + esc(x.answer.by) : ''}</div>${esc(x.answer.text)}</div>` : `<div class="muted" style="font-size:12.5px">${esc(x.status)}</div>`}
     </div>`;
   }).join('') || `<div class="card muted" style="padding:20px">${empty}</div>`;
@@ -2824,6 +2830,18 @@ $('qsList').onclick = async (e) => {
     qsHist[id] = d;
     box.innerHTML = `${d.bought.length ? `<div style="margin-bottom:6px">🛒 <b>Ya te compró ${d.bought.length} ${d.bought.length === 1 ? 'vez' : 'veces'}:</b> ${d.bought.map(b => `${esc(b.title)} (${new Date(b.date).toLocaleDateString('es-AR')})`).join(' · ')}</div>` : '<div class="muted" style="margin-bottom:6px">No tiene compras guardadas en el panel.</div>'}` +
       (d.questions.length ? d.questions.map(h => `<div class="qs-hq"><div class="muted" style="font-size:12px">${new Date(h.date).toLocaleDateString('es-AR')}${h.item_title ? ' · ' + esc(h.item_title) : ''}${h.account ? ' · ' + esc(h.account) : ''}</div>❓ ${esc(h.text)}${h.answer ? `<div style="margin-top:2px">💬 ${esc(h.answer.text)}</div>` : '<div class="muted">sin responder</div>'}</div>`).join('') : '<div class="muted">No hizo otras preguntas.</div>');
+    return;
+  }
+  const ai = e.target.closest('[data-qai]');
+  if (ai) { // borrador con IA: completa el cuadro, no envía nada
+    const id = ai.dataset.qai, ta = $('qsa-' + id), m = $('qsm-' + id);
+    if (ta.value.trim() && !confirm('¿Reemplazar lo que escribiste por la sugerencia de la IA?')) return;
+    ai.disabled = true; ai.textContent = '✨ Pensando…'; m.textContent = '';
+    const d = await (await fetch(`/api/questions/${id}/suggest`, { method: 'POST' })).json().catch(() => ({ ok: false, error: 'Sin conexión.' }));
+    ai.disabled = false; ai.textContent = '✨ Sugerir respuesta';
+    if (!d.ok) { m.innerHTML = `<span class="err-t">${esc(d.error)}</span>`; return; }
+    ta.value = d.text.slice(0, qsMax); ta.dispatchEvent(new Event('input', { bubbles: true })); ta.focus();
+    m.innerHTML = d.missing ? `<span style="color:var(--warn, #b7791f)">⚠️ Revisá: ${esc(d.missing)}</span>` : '<span class="muted">Revisala antes de responder.</span>';
     return;
   }
   const sb = e.target.closest('[data-qsend]');
