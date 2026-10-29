@@ -13,6 +13,7 @@
   "dependencies": {
     "@vercel/blob": "^2.8.0",
     "@vercel/functions": "^3.9.9",
-    "express": "^4.21.2"
+    "express": "^4.21.2",
+    "web-push": "^3.6.7"
   }
 }

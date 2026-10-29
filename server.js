@@ -35,6 +35,8 @@ const deliveries = require('./lib/deliveries');
 const tuyo = require('./lib/tuyo');
 const tasks = require('./lib/tasks');
 const refill = require('./lib/refill');
+const questions = require('./lib/questions');
+const push = require('./lib/push');
 
 const MISSING = ['ML_CLIENT_ID', 'ML_CLIENT_SECRET', 'BASE_URL', 'ADMIN_PASSWORD'].filter(k => !process.env[k]);
 if (onVercel && !store.REMOTE) MISSING.push('KV_REST_API_URL / KV_REST_API_TOKEN (conectá la base Upstash Redis al proyecto)');
@@ -154,11 +156,27 @@ app.get('/api/cron/daily', async (req, res) => {
   const okAuth = secret ? req.headers.authorization === `Bearer ${secret}` : /vercel-cron/i.test(req.headers['user-agent'] || '');
   if (!okAuth) return res.status(401).json({ ok: false });
   const runs = autoTasks(true);
+  runs.push(bg(refillPush(false).catch(e => console.log('Push recompras:', e.message))));
   await Promise.race([Promise.allSettled(runs), new Promise(r => setTimeout(r, 250e3))]);
   await store.flush();
   res.json({ ok: true, ran: runs.length });
 });
 
+
+// Service worker de las notificaciones (tiene que estar en la raíz y sin login).
+app.get('/sw.js', (req, res) => { res.setHeader('Content-Type', 'application/javascript'); res.setHeader('Cache-Control', 'no-cache'); res.setHeader('Service-Worker-Allowed', '/'); res.sendFile(path.join(__dirname, 'public', 'sw.js')); });
+
+// Notificaciones de Mercado Libre (sin login: las manda Mercado Libre). Hay que contestar rápido (200)
+// y después traer la pregunta. En developers de ML: URL de notificaciones = <tu panel>/api/ml/notify, tópico "Questions".
+app.post('/api/ml/notify', (req, res) => {
+  const b = req.body || {};
+  const mine = !process.env.ML_CLIENT_ID || String(b.application_id || '') === String(process.env.ML_CLIENT_ID);
+  if (mine && String(b.topic || '').startsWith('questions') && store.getAccount(String(b.user_id))) {
+    questions.markWebhook();
+    bg(questions.onNotify(b).then(() => store.flush()).catch(e => console.log('Pregunta:', e.message)));
+  }
+  res.status(200).json({ ok: true });
+});
 
 // ---------- Conectar cuentas de Mercado Libre ----------
 // /connect la usás vos (logueado). /vincular/<código> es un link que le podés pasar
@@ -739,6 +757,40 @@ app.post('/api/manuals/config', (req, res) => {
   res.json({ ok: manuals.sync({}) || false });
 });
 
+// ---------- Notificaciones push (escritorio / celular) ----------
+app.get('/api/push/key', (req, res) => res.json({ key: push.publicKey() }));
+app.post('/api/push/subscribe', (req, res) => { try { const b = req.body || {}; const r = push.subscribe(b.sub, b.label, b.topics); res.json({ ok: true, topics: r.topics }); } catch (e) { res.status(400).json({ ok: false, error: e.message }); } });
+app.post('/api/push/unsubscribe', (req, res) => { push.unsubscribe(String((req.body || {}).endpoint || '')); res.json({ ok: true }); });
+app.post('/api/push/status', (req, res) => { const s = push.find(String((req.body || {}).endpoint || '')); res.json({ on: !!s, topics: s ? s.topics : null }); });
+app.post('/api/push/test', async (req, res) => {
+  const r = await push.send('test', { title: 'Biogate · prueba', body: 'Las notificaciones de esta compu funcionan ✓', tag: 'test', url: '/' }, String((req.body || {}).endpoint || '')).catch(e => ({ error: e.message }));
+  res.json({ ok: !r.error && r.sent > 0, ...r });
+});
+// Aviso de Recompras del día (una vez por día, desde las 9 de la mañana).
+async function refillPush(force) {
+  const P = store.getPush(), today = refill.arDay(Date.now()), hour = new Date(Date.now() - 3 * 3600e3).getUTCHours();
+  if (!force && (P.last_refill_day === today || hour < 9)) return;
+  P.last_refill_day = today; store.savePush();
+  const n = refill.list().today_n;
+  if (n) await push.send('refill', { title: 'Biogate · Recompras', body: `Hoy tenés ${n} cliente${n === 1 ? '' : 's'} para avisar que se les termina el suplemento.`, tag: 'refill-' + today, url: '/#recompras' });
+}
+
+// ---------- Preguntas de compradores ----------
+app.get('/api/questions', (req, res) => res.json(questions.list()));
+app.get('/api/questions/count', (req, res) => res.json(questions.count()));
+app.post('/api/questions/sync', async (req, res) => {
+  const p = bg(questions.syncAll());
+  const r = await Promise.race([p, new Promise(ok => setTimeout(() => ok({ ok: true, pending: true }), 25e3))]).catch(e => ({ ok: false, errors: [e.message] }));
+  res.json({ ...r, ...questions.list() });
+});
+app.post('/api/questions/:id/answer', async (req, res) => {
+  try { res.json({ ok: true, question: await questions.answer(req.params.id, (req.body || {}).text, (req.body || {}).by) }); }
+  catch (e) { res.status(400).json({ ok: false, error: e.message }); }
+});
+app.get('/api/questions/:id/history', async (req, res) => { try { res.json({ ok: true, ...(await questions.history(req.params.id)) }); } catch (e) { res.status(400).json({ ok: false, error: e.message }); } });
+app.put('/api/questions/quick', (req, res) => res.json({ ok: true, quick: questions.saveQuick((req.body || {}).quick) }));
+app.get('/api/questions/webhook-url', (req, res) => res.json({ url: process.env.BASE_URL.replace(/\/$/, '') + '/api/ml/notify', app_id: process.env.ML_CLIENT_ID || '' }));
+
 // ---------- Recompras (fin de suplemento) ----------
 app.get('/api/refill', (req, res) => {
   try { const out = refill.list(); const p = refill.resolveMissing(); if (p) bg(p); res.json({ ...out, resolving: !!p }); } catch (e) { res.status(500).json({ error: e.message }); }
@@ -762,13 +814,27 @@ app.post('/api/refill/text', async (req, res) => {
   if (!it.name && it.src === 'ml') { await refill.resolveName(it).catch(() => ''); it = refill.list().items.find(i => i.id === id) || it; } // que siempre salga el nombre
   res.json({ ok: true, ml: refill.text(it, 'ml'), wa: refill.text(it, 'wa'), max_ml: ml.MAX_MSG, name: it.name || '' });
 });
-// Mandar por la mensajería de Mercado Libre (de a uno o varios).
+// Mensajes armados para varios a la vez (el mismo texto, con el nombre y producto de cada uno).
+app.post('/api/refill/texts', async (req, res) => {
+  const b = req.body || {}, ids = [].concat(b.ids || []).map(String).slice(0, 100);
+  const out = [];
+  for (const id of ids) {
+    let it = refill.list().items.find(i => i.id === id);
+    if (!it) continue;
+    if (!it.name && it.src === 'ml') { await refill.resolveName(it).catch(() => ''); it = refill.list().items.find(i => i.id === id) || it; }
+    out.push({ id, name: it.name || '', client: it.client, phone: it.phone || '', src: it.src, text: refill.text(it, b.kind === 'ml' ? 'ml' : 'wa', b.template) });
+  }
+  res.json({ ok: true, items: out, max_ml: ml.MAX_MSG });
+});
+// Mandar por la mensajería de Mercado Libre (de a uno o varios; con "template" se arma el texto de cada uno).
 app.post('/api/refill/send-ml', async (req, res) => {
   const b = req.body || {}, all = refill.list().items, results = [];
   for (const r of (Array.isArray(b.items) ? b.items : []).slice(0, 50)) {
     const it = all.find(i => i.id === String(r.id));
     if (!it || it.src !== 'ml') { results.push({ id: r.id, ok: false, error: 'No es una venta de Mercado Libre.' }); continue; }
-    const text = String(r.text || refill.text(it, 'ml')).trim();
+    let cur = it;
+    if (b.template && !cur.name) { await refill.resolveName(cur).catch(() => ''); cur = refill.list().items.find(i => i.id === it.id) || cur; } // que salga el nombre
+    const text = String(r.text || refill.text(cur, 'ml', b.template)).trim();
     try {
       const out = await ml.sendMessage({ account_id: it.account_id, order_id: it.order_id, pack_id: it.pack_id || '' }, text);
       refill.mark(it.id, 'sent', b.by, 'Mercado Libre (' + out.via + ')');
@@ -1208,7 +1274,7 @@ async function backfillSaleDates(until = Infinity) {
   }
 }
 // En Vercel: cada vez que alguien usa el panel se fija qué toca actualizar (con la última vez guardada en la base).
-const EVERY = { sales: 15 * 60e3, woo: 15 * 60e3, costs: 6 * 3600e3, web: 6 * 3600e3, manuals: 24 * 3600e3, backfill: 24 * 3600e3 };
+const EVERY = { questions: 10 * 60e3, sales: 15 * 60e3, woo: 15 * 60e3, costs: 6 * 3600e3, web: 6 * 3600e3, manuals: 24 * 3600e3, backfill: 24 * 3600e3 };
 let autoBusy = false;
 function autoTasks(force = false) {
   if (autoBusy || MISSING.length) return [];
@@ -1219,6 +1285,8 @@ function autoTasks(force = false) {
     const stamp = {};
     if (j.sales_resume && !salesJob.running) { if (resumeSales()) stamp.last_sales = new Date().toISOString(); }
     else if (due('sales') && !salesJob.running) { stamp.last_sales = new Date().toISOString(); autoSales(); }
+    if (due('questions')) { stamp.last_questions = new Date().toISOString(); runs.push(bg(questions.syncAll().catch(e => console.log('Preguntas:', e.message)))); }
+    runs.push(bg(refillPush(false).catch(() => {})));
     if (due('woo')) { stamp.last_woo = new Date().toISOString(); wooAuto(); }
     if (due('costs')) { stamp.last_costs = new Date().toISOString(); runs.push(bg(costs.syncFromSheet().catch(e => console.log('Costos:', e.message)))); }
     if (due('web')) { stamp.last_web = new Date().toISOString(); runs.push(bg(web.sync().catch(e => console.log('Web:', e.message)))); }
@@ -1234,6 +1302,9 @@ if (!onVercel) {
     console.log(`Flex Scanner escuchando en el puerto ${PORT}`);
     startupTasks();
     setTimeout(wooAuto, 5000); setInterval(wooAuto, 15 * 60e3);
+    // Preguntas: en la PC no llegan las notificaciones de ML, se revisan cada 2 minutos.
+    setInterval(() => refillPush(false).catch(() => {}), 30 * 60e3);
+    setTimeout(() => questions.syncAll().catch(() => {}), 8000); setInterval(() => questions.syncAll().catch(() => {}), 2 * 60e3);
     setTimeout(autoSales, 20000);
     // Manuales: se leen al arrancar (solo baja los archivos nuevos o cambiados).
     setTimeout(() => manuals.sync(), 8000);

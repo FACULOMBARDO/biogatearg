@@ -29,6 +29,7 @@
 <div class="layout">
 <aside class="side">
   <a href="#ventas" class="nav" data-view="ventas"><span class="ic">💰</span><span>Ventas</span></a>
+  <a href="#preguntas" class="nav" data-view="preguntas"><span class="ic">💬</span><span>Preguntas</span><span class="nav-badge" id="qsBadge" hidden></span></a>
   <a href="#resultado" class="nav" data-view="resultado"><span class="ic">📊</span><span>Resultado del mes</span></a>
   <a href="#tareas" class="nav" data-view="tareas"><span class="ic">✅</span><span>Tareas</span></a>
   <a href="#recompras" class="nav" data-view="recompras"><span class="ic">🔔</span><span>Recompras</span><span class="nav-badge" id="rfBadge" hidden></span></a>
@@ -349,21 +350,40 @@
   </div>
 </section>
 
+<section id="viewQuestions" hidden>
+  <div class="row" style="justify-content:space-between;margin-bottom:12px">
+    <h1 class="page-title">Preguntas <span class="muted" style="font-size:15px;font-weight:500">· de todas tus cuentas</span></h1>
+    <div class="row"><button class="btn" id="qsNotif" hidden>🔔 Activar notificaciones</button><button class="btn" id="qsSound" title="Sonido cuando entra una pregunta"></button><button class="btn" id="qsQuickBtn">⚡ Respuestas rápidas</button><button class="btn" id="qsSyncBtn">↻ Actualizar</button></div>
+  </div>
+  <div id="qsInfo"></div>
+  <div class="card" style="padding:12px 14px">
+    <div class="row">
+      <div class="seg" id="qsTab"><button data-t="un" class="on">Sin responder</button><button data-t="ans">Respondidas</button><button data-t="all">Todas</button></div>
+      <details class="acc-pick" id="qsAccBox"></details>
+      <input type="search" id="qsQ" placeholder="Buscar pregunta, producto o comprador…" style="max-width:300px">
+      <span class="muted" id="qsStatus" style="margin-left:auto;font-size:12.5px"></span>
+    </div>
+  </div>
+  <div id="qsList"></div>
+</section>
+
 <section id="viewRefill" hidden>
   <div class="row" style="justify-content:space-between;margin-bottom:12px">
     <h1 class="page-title">Recompras <span class="muted" style="font-size:15px;font-weight:500">· a quién se le termina el suplemento</span></h1>
-    <div class="row"><button class="btn" id="rfNotif" hidden>🔔 Activar avisos en esta compu</button><button class="btn" id="rfCfgBtn">⚙️ Mensajes y aviso</button></div>
+    <div class="row"><button class="btn" id="rfNotif" hidden>🔔 Activar notificaciones</button><button class="btn" id="rfCfgBtn">⚙️ Mensajes y aviso</button></div>
   </div>
   <div id="rfInfo"></div>
   <div class="stats" id="rfStats"></div>
   <div class="card" style="padding:12px 14px">
     <div class="row">
-      <div class="seg" id="rfTab"><button data-t="due" class="on">Para avisar</button><button data-t="next">Próximos</button><button data-t="done">Avisados</button><button data-t="all">Todos</button></div>
+      <div class="seg" id="rfTab"><button data-t="today" class="on">Hoy</button><button data-t="due">Próximos 7 días</button><button data-t="next">Después</button><button data-t="done">Avisados</button><button data-t="all">Todos</button></div>
+      <label class="muted" style="font-size:13px;display:flex;gap:6px;align-items:center" title="Ver a quién hay que avisar un día puntual">Día de aviso <input type="date" id="rfDay" style="width:auto"></label>
       <select id="rfSrc"><option value="">Todas las ventas</option><option value="ml">Mercado Libre</option><option value="quote">Presupuestos</option><option value="web">Ventas web</option></select>
       <input type="search" id="rfQ" placeholder="Buscar cliente o producto…" style="max-width:260px">
     </div>
   </div>
-  <div class="card" style="padding:0"><div class="table-wrap"><table class="tbl rf-tbl"><thead><tr><th>Cliente</th><th>Producto</th><th>Compró</th><th>Se termina</th><th style="text-align:right">Avisar</th></tr></thead><tbody id="rfRows"></tbody></table></div></div>
+  <div class="rf-bulk" id="rfBulk" hidden><b id="rfBulkN"></b><button class="btn small primary" id="rfBulkSend">✉️ Mandar el mismo mensaje</button><button class="btn small" id="rfBulkDone">✓ Marcar avisados</button><button class="btn small" id="rfBulkDis">✕ No avisar</button><button class="btn small" id="rfBulkClear">Quitar selección</button></div>
+  <div class="card" style="padding:0"><div class="table-wrap"><table class="tbl rf-tbl"><thead><tr><th style="width:34px"><input type="checkbox" id="rfAll" title="Seleccionar todos"></th><th>Cliente</th><th>Producto</th><th>Compró</th><th>Se termina</th><th style="text-align:right">Avisar</th></tr></thead><tbody id="rfRows"></tbody></table></div></div>
 </section>
 
 <section id="viewTasks" hidden>
@@ -949,6 +969,32 @@
 </div>
 
 <!-- Editor de presupuesto -->
+<!-- Notificaciones push en esta compu -->
+<div class="modal-bg" id="pushModal">
+  <div class="modal" style="max-width:480px">
+    <h3>🔔 Notificaciones en esta compu</h3>
+    <div class="muted" style="font-size:13px;margin-bottom:10px">Te llegan al escritorio (abajo a la derecha en Windows) <b>aunque el panel esté cerrado</b>, mientras el navegador esté abierto o corriendo en segundo plano. Activalo en cada compu o celular donde las quieras.</div>
+    <div id="pushState" style="margin-bottom:10px"></div>
+    <label class="tk-chk"><input type="checkbox" id="pushQ" checked> 💬 Cuando entra una pregunta nueva</label>
+    <label class="tk-chk" style="margin-top:6px"><input type="checkbox" id="pushR" checked> 🔔 Recompras del día (a las 9 de la mañana)</label>
+    <div id="pushMsg" style="margin-top:10px;font-size:13.5px"></div>
+    <div class="row" style="justify-content:space-between;margin-top:14px">
+      <button class="btn" id="pushOff" style="color:var(--err)">Desactivar en esta compu</button>
+      <div class="row"><button class="btn" id="pushTest">Probar</button><button class="btn" id="pushClose">Cerrar</button><button class="btn primary" id="pushOn">Activar</button></div>
+    </div>
+  </div>
+</div>
+<!-- Preguntas: respuestas rápidas -->
+<div class="modal-bg" id="qsQuickModal">
+  <div class="modal" style="max-width:620px">
+    <h3>Respuestas rápidas</h3>
+    <div class="muted" style="font-size:13px;margin-bottom:10px">Textos que insertás con un toque al responder. Ej.: "Stock", "Envío", "Cómo se toma".</div>
+    <div id="qsQuickList"></div>
+    <button class="btn small" id="qsQuickAdd" style="margin-top:6px">+ Agregar</button>
+    <div id="qsQuickMsg" style="margin-top:8px"></div>
+    <div class="row" style="justify-content:flex-end;margin-top:12px"><button class="btn" id="qsQuickClose">Cerrar</button><button class="btn primary" id="qsQuickSave">Guardar</button></div>
+  </div>
+</div>
 <!-- Recompras: mandar mensaje -->
 <div class="modal-bg" id="rfModal">
   <div class="modal" style="max-width:560px">
@@ -961,11 +1007,26 @@
     <div class="row" style="justify-content:flex-end;margin-top:12px"><button class="btn" id="rfMClose">Cerrar</button><button class="btn primary" id="rfMSend">Enviar</button></div>
   </div>
 </div>
+<!-- Recompras: el mismo mensaje a varios -->
+<div class="modal-bg" id="rfBulkModal">
+  <div class="modal" style="max-width:640px">
+    <h3>Mandar el mismo mensaje</h3>
+    <div class="muted" id="rfBkSum" style="font-size:13px;margin-bottom:6px"></div>
+    <label class="tk-lbl">¿Por dónde?<select id="rfBkWay" style="width:100%"><option value="auto">Mercado Libre a los de ML y WhatsApp a los demás</option><option value="wa">WhatsApp a todos los que lo tienen (el resto de ML, por Mercado Libre)</option><option value="ml">Solo por Mercado Libre</option></select></label>
+    <label class="tk-lbl">Mensaje (a cada uno le cambia {nombre}, {producto} y {hasta})<textarea id="rfBkText" style="min-height:130px"></textarea></label>
+    <div class="muted" id="rfBkPrev" style="font-size:12.5px;margin-top:6px"></div>
+    <div id="rfBkMsg" style="margin-top:8px"></div>
+    <div id="rfBkWa" class="rf-bkwa" hidden></div>
+    <div class="row" style="justify-content:flex-end;margin-top:12px"><button class="btn" id="rfBkClose">Cerrar</button><button class="btn primary" id="rfBkSend">Enviar</button></div>
+  </div>
+</div>
 <!-- Recompras: configuración -->
 <div class="modal-bg" id="rfCfgModal">
   <div class="modal" style="max-width:620px">
     <h3>Mensajes y aviso</h3>
-    <label class="tk-lbl">En "Para avisar" mostrar los que se terminan hoy y en los próximos … días<input type="number" id="rfCfgDays" min="0" max="30" style="max-width:120px"></label>
+    <div class="grid2" style="grid-template-columns:1fr 1fr"><label class="tk-lbl">Avisarme … días antes de que se termine<input type="number" id="rfCfgSend" min="0" max="15" style="max-width:120px"></label>
+    <label class="tk-lbl">En "Próximos" mostrar los que se terminan en los próximos … días<input type="number" id="rfCfgDays" min="0" max="30" style="max-width:120px"></label></div>
+    <label class="tk-chk" style="margin-top:8px"><input type="checkbox" id="rfCfgWknd"> Si el aviso cae sábado o domingo, avisarme todos juntos el lunes</label>
     <label class="tk-lbl">Mensaje por Mercado Libre (máx. 350 caracteres)<textarea id="rfCfgMl" style="min-height:100px"></textarea></label>
     <label class="tk-lbl">Mensaje por WhatsApp<textarea id="rfCfgWa" style="min-height:100px"></textarea></label>
     <div class="muted" style="font-size:12.5px;margin-top:6px">Se reemplazan solos: <b>{nombre}</b> (primer nombre del cliente), <b>{producto}</b>, <b>{fecha}</b> (de la compra), <b>{cuando}</b> ("mañana", "en 3 días"…), <b>{dias}</b> (lo que dura), <b>{hasta}</b> (hoy + 7 días, para la validez del descuento).</div>
@@ -1544,12 +1605,12 @@ $('impFile').onchange = async (e) => {
 
 // ---------- Vistas (panel lateral) ----------
 function showView() {
-  const v = ({ '#ventas': 'ventas', '#ranking': 'ranking', '#precios': 'precios', '#presupuestos': 'presupuestos', '#estados': 'estados', '#gastos': 'gastos', '#full': 'full', '#flex': 'flex', '#resultado': 'resultado', '#tareas': 'tareas', '#recompras': 'recompras', '#stock': 'stock', '#sugerencias': 'sugerencias', '#web': 'web', '#horarios': 'horarios', '#manuales': 'manuales', '#calculadora': 'calculadora', '#etiquetas': 'etiquetas', '#tuyo': 'tuyo' })[location.hash] || 'ventas';
+  const v = ({ '#ventas': 'ventas', '#ranking': 'ranking', '#precios': 'precios', '#presupuestos': 'presupuestos', '#estados': 'estados', '#gastos': 'gastos', '#full': 'full', '#flex': 'flex', '#resultado': 'resultado', '#tareas': 'tareas', '#recompras': 'recompras', '#preguntas': 'preguntas', '#stock': 'stock', '#sugerencias': 'sugerencias', '#web': 'web', '#horarios': 'horarios', '#manuales': 'manuales', '#calculadora': 'calculadora', '#etiquetas': 'etiquetas', '#tuyo': 'tuyo' })[location.hash] || 'ventas';
   $('viewQuotes').hidden = v !== 'presupuestos';
   $('viewStatus').hidden = v !== 'estados';
   $('viewExpenses').hidden = v !== 'gastos'; $('viewFull').hidden = v !== 'full';
   $('viewResults').hidden = v !== 'resultado'; $('viewStock').hidden = v !== 'stock'; $('viewSuggest').hidden = v !== 'sugerencias'; $('viewWeb').hidden = v !== 'web'; $('viewHours').hidden = v !== 'horarios'; $('viewManuals').hidden = v !== 'manuales'; $('viewCalc').hidden = v !== 'calculadora'; $('viewPLabel').hidden = v !== 'etiquetas'; $('viewTuyo').hidden = v !== 'tuyo';
-  $('viewFlex').hidden = v !== 'flex'; $('viewSales').hidden = v !== 'ventas'; $('viewTasks').hidden = v !== 'tareas'; $('viewRefill').hidden = v !== 'recompras';
+  $('viewFlex').hidden = v !== 'flex'; $('viewSales').hidden = v !== 'ventas'; $('viewTasks').hidden = v !== 'tareas'; $('viewRefill').hidden = v !== 'recompras'; $('viewQuestions').hidden = v !== 'preguntas';
   $('viewRanking').hidden = v !== 'ranking'; $('viewPrices').hidden = v !== 'precios';
   document.querySelectorAll('.side .nav').forEach(a => a.classList.toggle('active', a.dataset.view === v));
   if (v === 'ventas') { loadSales(); loadCosts(false); }
@@ -1570,6 +1631,7 @@ function showView() {
   if (v === 'tuyo') loadTuyo();
   if (v === 'tareas') loadTasks();
   if (v === 'recompras') loadRefill();
+  if (v === 'preguntas') loadQuestions(true);
   if (v === 'flex' && typeof scans !== 'undefined') load();
 }
 window.addEventListener('hashchange', showView);
@@ -2623,18 +2685,222 @@ $('exImpGo').onclick = async () => {
   await loadExpenses();
   $('exMsg').innerHTML = `<span style="color:var(--ok)">✓ Se agregaron <b>${d.added} gastos</b> (${money(d.total)})${ms ? ` en ${esc(ms)}` : ''}.</span>${d.dupes ? ` <span class="muted">${d.dupes} ya estaban cargados y se saltearon.</span>` : ''}${d.error_count ? ` <span class="err-t">${d.error_count} filas con error.</span>` : ''}`;
 };
+// ---------- Notificaciones push (escritorio / celular, aunque el panel esté cerrado) ----------
+const pushOk = 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window && window.isSecureContext;
+let pushReg = null, pushSub = null;
+const pushB64 = (b) => { const p = '='.repeat((4 - b.length % 4) % 4), r = atob((b + p).replace(/-/g, '+').replace(/_/g, '/')); return Uint8Array.from([...r].map(c => c.charCodeAt(0))); };
+const pushLabel = () => { const u = navigator.userAgent; const os = /Windows/.test(u) ? 'Windows' : /Android/.test(u) ? 'Android' : /iPhone|iPad/.test(u) ? 'iPhone' : /Mac/.test(u) ? 'Mac' : 'Linux'; const br = /Edg\//.test(u) ? 'Edge' : /Chrome\//.test(u) ? 'Chrome' : /Firefox\//.test(u) ? 'Firefox' : /Safari\//.test(u) ? 'Safari' : 'Navegador'; return `${os} · ${br}`; };
+function pushBtns() {
+  for (const id of ['qsNotif', 'rfNotif']) { const b = $(id); if (!b) continue; b.hidden = !pushOk; b.textContent = pushSub ? '🔔 Notificaciones ✓' : '🔔 Activar notificaciones'; }
+}
+async function pushInit() {
+  if (!pushOk) return;
+  try { pushReg = await navigator.serviceWorker.register('/sw.js'); pushSub = await pushReg.pushManager.getSubscription(); } catch (e) { console.log('SW:', e.message); }
+  if (pushSub) { // si la base no la tiene (por ejemplo, después de mudar el panel), se vuelve a registrar
+    const st = await (await fetch('/api/push/status', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ endpoint: pushSub.endpoint }) })).json().catch(() => null);
+    if (st && !st.on) await fetch('/api/push/subscribe', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ sub: pushSub.toJSON(), label: pushLabel() }) }).catch(() => {});
+  }
+  pushBtns();
+}
+async function pushOpen() {
+  $('pushMsg').innerHTML = '';
+  let topics = null;
+  if (pushSub) { const st = await (await fetch('/api/push/status', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ endpoint: pushSub.endpoint }) })).json().catch(() => null); topics = st && st.topics; }
+  $('pushQ').checked = !topics || topics.questions !== false; $('pushR').checked = !topics || topics.refill !== false;
+  const blocked = Notification.permission === 'denied';
+  $('pushState').innerHTML = pushSub ? '<span class="ok-t">✓ Activadas en esta compu.</span>' : blocked ? '<span class="err-t">El navegador tiene bloqueadas las notificaciones de este panel: tocá el candado al lado de la dirección → Notificaciones → Permitir, y volvé a tocar Activar.</span>' : '<span class="muted">Todavía no están activadas en esta compu.</span>';
+  $('pushOn').textContent = pushSub ? 'Guardar' : 'Activar'; $('pushOff').hidden = !pushSub; $('pushTest').hidden = !pushSub;
+  $('pushModal').classList.add('show');
+}
+$('pushOn').onclick = async () => {
+  $('pushMsg').textContent = 'Activando…';
+  try {
+    if (!pushReg) pushReg = await navigator.serviceWorker.register('/sw.js');
+    if (Notification.permission !== 'granted' && await Notification.requestPermission() !== 'granted') throw new Error('No diste permiso para las notificaciones (si dice "bloqueado", tocá el candado al lado de la dirección → Notificaciones → Permitir).');
+    if (!pushSub) { const k = await (await fetch('/api/push/key')).json(); pushSub = await pushReg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: pushB64(k.key) }); }
+    const d = await (await fetch('/api/push/subscribe', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ sub: pushSub.toJSON(), label: pushLabel(), topics: { questions: $('pushQ').checked, refill: $('pushR').checked } }) })).json();
+    if (!d.ok) throw new Error(d.error || 'No se pudo guardar.');
+    $('pushMsg').innerHTML = '<span class="ok-t">✓ Listo. Tocá "Probar" para ver cómo llega.</span>';
+    $('pushOn').textContent = 'Guardar'; $('pushOff').hidden = false; $('pushTest').hidden = false; $('pushState').innerHTML = '<span class="ok-t">✓ Activadas en esta compu.</span>';
+    pushBtns();
+  } catch (e) {
+    let m = String(e.message || e);
+    if (/permission denied|denied|NotAllowed/i.test(m)) m = 'El navegador no dejó activarlas. Revisá que las notificaciones estén permitidas para este panel (candado al lado de la dirección → Notificaciones → Permitir). En Brave además hay que activar "Usar servicios de Google para mensajería push" en la configuración.';
+    else if (/push service|AbortError/i.test(m)) m = 'El servicio de notificaciones del navegador no respondió. Probá de nuevo en un rato o con Chrome/Edge actualizado.';
+    $('pushMsg').innerHTML = `<span class="err-t">${esc(m)}</span>`;
+  }
+};
+$('pushOff').onclick = async () => {
+  if (!pushSub) return;
+  await fetch('/api/push/unsubscribe', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ endpoint: pushSub.endpoint }) }).catch(() => {});
+  try { await pushSub.unsubscribe(); } catch { /* nada */ }
+  pushSub = null; pushBtns(); $('pushModal').classList.remove('show');
+};
+$('pushTest').onclick = async () => {
+  $('pushMsg').textContent = 'Mandando una prueba…';
+  const d = await (await fetch('/api/push/test', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ endpoint: pushSub && pushSub.endpoint }) })).json().catch(() => ({}));
+  $('pushMsg').innerHTML = d.ok ? '<span class="ok-t">✓ Enviada: tendría que aparecer abajo a la derecha. Si no aparece, revisá que Windows tenga activadas las notificaciones del navegador y que no esté en "No molestar".</span>' : `<span class="err-t">No se pudo mandar${d.error ? ': ' + esc(d.error) : ''}.</span>`;
+};
+$('pushClose').onclick = () => $('pushModal').classList.remove('show');
+for (const id of ['qsNotif', 'rfNotif']) $(id).onclick = pushOpen;
+if (pushOk) navigator.serviceWorker.addEventListener('message', (e) => { if (e.data && e.data.goto) location.href = e.data.goto; });
+pushInit();
+
+// ---------- Preguntas de compradores ----------
+let qsData = null, qsTab = 'un', qsMax = 2000, qsSyncAt = 0, qsHist = {}, qsDrafts = {}, qsQuickDraft = [];
+const qsLS = (k, v) => { try { if (v === undefined) return localStorage.getItem(k); localStorage.setItem(k, v); } catch { return null; } };
+const qsAcc = accPicker({ id: 'qsAccBox', key: 'qs_accounts', onChange: () => renderQuestions() });
+fetch('/api/accounts').then(r => r.json()).then(a => qsAcc.setAccounts(a)).catch(() => {}).finally(() => { qsAcc.loaded = true; });
+const qsAgo = (d) => { const m = Math.round((Date.now() - new Date(d)) / 60e3); if (m < 1) return 'recién'; if (m < 60) return `hace ${m} min`; const h = Math.round(m / 60); if (h < 24) return `hace ${h} h`; const dd = Math.round(h / 24); return dd === 1 ? 'ayer' : `hace ${dd} días`; };
+async function loadQuestions(sync) {
+  const d = await (await fetch('/api/questions')).json().catch(() => null);
+  if (!d) { $('qsList').innerHTML = '<div class="msg">No se pudieron cargar las preguntas. Revisá que esté subido server.js.</div>'; return; }
+  qsData = d; renderQuestions();
+  // Repaso con Mercado Libre al abrir (y cada 3 min), por si se perdió alguna notificación.
+  if (sync || Date.now() - qsSyncAt > 3 * 60e3) qsSync();
+}
+async function qsSync() {
+  qsSyncAt = Date.now(); $('qsSyncBtn').disabled = true; $('qsStatus').textContent = 'Buscando preguntas en Mercado Libre…';
+  const d = await (await fetch('/api/questions/sync', { method: 'POST' })).json().catch(() => null);
+  $('qsSyncBtn').disabled = false;
+  if (d && d.items) { qsData = d; renderQuestions(); }
+  qsCheck();
+}
+function renderQuestions() {
+  if (!qsData) return;
+  const q = $('qsQ').value.trim().toLowerCase();
+  const sel = qsAcc.val(), accOk = (id) => !sel || (sel !== 'ninguna' && sel.split(',').includes(id));
+  const base = qsData.items.filter(x => accOk(x.account_id) && (!q || (x.text + ' ' + (x.from_nick || '') + ' ' + ((x.item || {}).title || '') + ' ' + ((x.answer || {}).text || '')).toLowerCase().includes(q)));
+  const un = base.filter(x => x.status === 'UNANSWERED').sort((a, b) => String(a.date).localeCompare(String(b.date))); // las más viejas primero: son las más urgentes
+  const ans = base.filter(x => x.status !== 'UNANSWERED');
+  document.querySelectorAll('#qsTab button').forEach(b => { b.classList.toggle('on', b.dataset.t === qsTab); const n = { un: un.length, ans: ans.length }[b.dataset.t]; b.textContent = b.textContent.replace(/ \(\d+\)$/, '') + (n !== undefined ? ` (${n})` : ''); });
+  const list = qsTab === 'un' ? un : qsTab === 'ans' ? ans : base;
+  const st = [];
+  if (qsData.webhook_at) st.push('⚡ al instante (notificaciones de ML activas)'); else st.push('⏱ se revisa cada 3 min');
+  if (qsData.last_sync) st.push('revisado ' + qsAgo(qsData.last_sync));
+  $('qsStatus').textContent = st.join(' · ');
+  $('qsInfo').innerHTML = (qsData.last_error ? `<div class="msg" style="font-size:13px">⚠️ ${esc(qsData.last_error)}</div>` : '') + (!qsData.webhook_at ? `<details class="msg" style="font-size:13px"><summary style="cursor:pointer"><b>Activar el aviso instantáneo de Mercado Libre</b> (una sola vez)</summary><div id="qsHook" style="margin-top:8px">Cargando…</div></details>` : '');
+  if ($('qsHook')) fetch('/api/questions/webhook-url').then(r => r.json()).then(h => { $('qsHook').innerHTML = `<ol style="margin:0;padding-left:18px;line-height:1.7"><li>Entrá a <a class="lnk" href="https://developers.mercadolibre.com.ar/devcenter" target="_blank" rel="noopener">developers.mercadolibre.com.ar → Mis aplicaciones</a> y abrí tu aplicación${h.app_id ? ` (ID ${esc(h.app_id)})` : ''} → <b>Editar</b>.</li><li>En <b>"URL de retornos de llamada de notificación"</b> pegá: <code class="qs-code">${esc(h.url)}</code> <button class="btn small" id="qsHookCopy">Copiar</button></li><li>En <b>Tópicos</b> tildá <b>Questions</b> (Preguntas) y guardá.</li><li>Listo: cuando entre la primera pregunta, este cartel desaparece.</li></ol>`; $('qsHookCopy').onclick = () => { navigator.clipboard.writeText(h.url).catch(() => {}); $('qsHookCopy').textContent = '✓ Copiado'; }; }).catch(() => {});
+  const empty = { un: '¡No hay preguntas sin responder! 🎉', ans: 'Todavía no hay preguntas respondidas guardadas.', all: 'No hay preguntas.' }[qsTab];
+  const quick = qsData.quick || [];
+  $('qsList').innerHTML = list.map(x => {
+    const it = x.item || {}, open = x.status === 'UNANSWERED';
+    const stockTxt = it.stock == null ? '' : it.stock > 0 ? `<span class="pill" style="color:var(--ok);border-color:var(--ok)">${it.stock} en stock</span>` : '<span class="pill" style="color:var(--err);border-color:var(--err)">sin stock</span>';
+    return `<div class="card qs-card${open ? ' open' : ''}" data-q="${esc(x.id)}">
+      <div class="qs-head"><span class="pill" style="color:var(--brand);border-color:var(--brand)">${esc(x.account)}</span><b>${esc(x.from_nick || 'Comprador')}</b><span class="muted">· ${qsAgo(x.date)}</span>${x.from_id ? `<a href="#" class="lnk" style="margin-left:auto;font-size:12.5px" data-qhist="${esc(x.id)}">👤 Historial del comprador</a>` : ''}</div>
+      <div class="qs-item">${it.thumb ? `<img src="${esc(it.thumb)}" alt="" loading="lazy">` : '<div class="qs-noimg">📦</div>'}<div style="min-width:0"><a class="lnk qs-title" href="${esc(it.link || '#')}" target="_blank" rel="noopener">${esc(it.title || x.item_id)}</a><div class="muted" style="font-size:12.5px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:3px">${it.price ? `<b style="color:var(--text)">${money(it.price)}</b>` : ''}${stockTxt}${it.sku ? `<span>SKU ${esc(it.sku)}</span>` : ''}${it.status && it.status !== 'active' ? `<span class="pill">${it.status === 'paused' ? 'pausada' : esc(it.status)}</span>` : ''}</div></div></div>
+      <div class="qs-text">${esc(x.text)}</div>
+      <div class="qs-hist" id="qsh-${esc(x.id)}" hidden></div>
+      ${open ? `<div class="qs-answer">
+        ${quick.length ? `<div class="qs-quick">${quick.map(r => `<button class="btn small" data-qquick="${esc(r.id)}" data-qid="${esc(x.id)}" title="${esc(r.text)}">⚡ ${esc(r.title)}</button>`).join('')}</div>` : ''}
+        <textarea id="qsa-${esc(x.id)}" placeholder="Escribí la respuesta…" maxlength="${qsMax}">${esc(qsDrafts[x.id] || '')}</textarea>
+        <div class="row" style="justify-content:space-between;margin-top:6px"><span class="muted" style="font-size:12px" id="qsc-${esc(x.id)}">${(qsDrafts[x.id] || '').length} / ${qsMax}</span><div class="row" style="gap:6px"><span id="qsm-${esc(x.id)}" style="font-size:13px"></span><button class="btn primary" data-qsend="${esc(x.id)}">Responder</button></div></div>
+      </div>` : x.answer ? `<div class="qs-ans"><div class="muted" style="font-size:12px">✓ Respondida ${qsAgo(x.answer.date)}${x.answer.by ? ' por ' + esc(x.answer.by) : ''}</div>${esc(x.answer.text)}</div>` : `<div class="muted" style="font-size:12.5px">${esc(x.status)}</div>`}
+    </div>`;
+  }).join('') || `<div class="card muted" style="padding:20px">${empty}</div>`;
+}
+$('qsTab').onclick = (e) => { const b = e.target.closest('[data-t]'); if (!b) return; qsTab = b.dataset.t; renderQuestions(); };
+$('qsQ').oninput = renderQuestions;
+$('qsSyncBtn').onclick = () => qsSync();
+$('qsList').addEventListener('input', (e) => { const t = e.target; if (!t.id || !t.id.startsWith('qsa-')) return; const id = t.id.slice(4); qsDrafts[id] = t.value; $('qsc-' + id).textContent = `${t.value.length} / ${qsMax}`; });
+$('qsList').onclick = async (e) => {
+  const qk = e.target.closest('[data-qquick]');
+  if (qk) { // inserta la respuesta rápida donde está el cursor
+    const r = (qsData.quick || []).find(x => x.id === qk.dataset.qquick), ta = $('qsa-' + qk.dataset.qid); if (!r || !ta) return;
+    const a = ta.selectionStart ?? ta.value.length, b = ta.selectionEnd ?? ta.value.length;
+    ta.value = (ta.value.slice(0, a) + (a && !/\s$/.test(ta.value.slice(0, a)) ? ' ' : '') + r.text + ta.value.slice(b)).slice(0, qsMax);
+    ta.dispatchEvent(new Event('input', { bubbles: true })); ta.focus(); return;
+  }
+  const hs = e.target.closest('[data-qhist]');
+  if (hs) {
+    e.preventDefault();
+    const id = hs.dataset.qhist, box = $('qsh-' + id);
+    if (!box.hidden) { box.hidden = true; return; }
+    box.hidden = false; box.innerHTML = '<span class="muted">Buscando…</span>';
+    const d = qsHist[id] || await (await fetch(`/api/questions/${id}/history`)).json().catch(() => ({ ok: false }));
+    if (!d.ok) { box.innerHTML = `<span class="err-t">${esc(d.error || 'No se pudo traer el historial.')}</span>`; return; }
+    qsHist[id] = d;
+    box.innerHTML = `${d.bought.length ? `<div style="margin-bottom:6px">🛒 <b>Ya te compró ${d.bought.length} ${d.bought.length === 1 ? 'vez' : 'veces'}:</b> ${d.bought.map(b => `${esc(b.title)} (${new Date(b.date).toLocaleDateString('es-AR')})`).join(' · ')}</div>` : '<div class="muted" style="margin-bottom:6px">No tiene compras guardadas en el panel.</div>'}` +
+      (d.questions.length ? d.questions.map(h => `<div class="qs-hq"><div class="muted" style="font-size:12px">${new Date(h.date).toLocaleDateString('es-AR')}${h.item_title ? ' · ' + esc(h.item_title) : ''}${h.account ? ' · ' + esc(h.account) : ''}</div>❓ ${esc(h.text)}${h.answer ? `<div style="margin-top:2px">💬 ${esc(h.answer.text)}</div>` : '<div class="muted">sin responder</div>'}</div>`).join('') : '<div class="muted">No hizo otras preguntas.</div>');
+    return;
+  }
+  const sb = e.target.closest('[data-qsend]');
+  if (sb) {
+    const id = sb.dataset.qsend, text = $('qsa-' + id).value.trim();
+    if (!text) { $('qsm-' + id).innerHTML = '<span class="err-t">Escribí la respuesta.</span>'; return; }
+    sb.disabled = true; $('qsm-' + id).textContent = 'Enviando…';
+    const d = await (await fetch(`/api/questions/${id}/answer`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ text, by: rfBy() }) })).json().catch(() => ({ ok: false, error: 'Sin conexión.' }));
+    sb.disabled = false;
+    if (!d.ok) { $('qsm-' + id).innerHTML = `<span class="err-t">${esc(d.error)}</span>`; return; }
+    delete qsDrafts[id];
+    const i = qsData.items.findIndex(x => x.id === id); if (i >= 0) qsData.items[i] = d.question;
+    renderQuestions(); qsCheck();
+  }
+};
+// Respuestas rápidas
+function qsRenderQuick() {
+  $('qsQuickList').innerHTML = qsQuickDraft.map((r, i) => `<div class="qs-qrow"><input type="text" value="${esc(r.title)}" placeholder="Nombre (ej. Stock)" data-qqt="${i}"><textarea placeholder="Texto de la respuesta" data-qqx="${i}">${esc(r.text)}</textarea><button class="x" data-qqdel="${i}" title="Borrar">✕</button></div>`).join('') || '<div class="muted" style="font-size:13px">Todavía no hay respuestas rápidas.</div>';
+}
+$('qsQuickBtn').onclick = () => {
+  qsQuickDraft = (qsData && qsData.quick && qsData.quick.length ? qsData.quick : [
+    { title: 'Stock', text: 'Hola! Sí, tenemos stock disponible. Podés ofertar sin problema y lo despachamos en el día. ¡Gracias por tu consulta!' },
+    { title: 'Envío', text: 'Hola! Hacemos envíos a todo el país por Mercado Envíos. En CABA y GBA tenemos envío en el día (Flex). ¡Saludos!' },
+    { title: 'Cómo se toma', text: 'Hola! Te recomendamos seguir la dosis indicada en el envase y consultar con tu médico si tomás alguna medicación. ¡Saludos!' },
+  ]).map(r => ({ ...r }));
+  $('qsQuickMsg').innerHTML = ''; qsRenderQuick(); $('qsQuickModal').classList.add('show');
+};
+$('qsQuickAdd').onclick = () => { qsQuickDraft.push({ title: '', text: '' }); qsRenderQuick(); };
+$('qsQuickList').oninput = (e) => { const t = e.target; if (t.dataset.qqt !== undefined) qsQuickDraft[t.dataset.qqt].title = t.value; if (t.dataset.qqx !== undefined) qsQuickDraft[t.dataset.qqx].text = t.value; };
+$('qsQuickList').onclick = (e) => { const b = e.target.closest('[data-qqdel]'); if (b) { qsQuickDraft.splice(b.dataset.qqdel, 1); qsRenderQuick(); } };
+$('qsQuickClose').onclick = () => $('qsQuickModal').classList.remove('show');
+$('qsQuickSave').onclick = async () => {
+  const d = await (await fetch('/api/questions/quick', { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ quick: qsQuickDraft }) })).json().catch(() => ({}));
+  if (!d.ok) { $('qsQuickMsg').innerHTML = '<span class="err-t">No se pudo guardar.</span>'; return; }
+  if (qsData) qsData.quick = d.quick;
+  $('qsQuickModal').classList.remove('show'); renderQuestions();
+};
+// Aviso: numerito, sonido y notificación cuando entra una pregunta nueva.
+const qsSoundOn = () => qsLS('qs_sound') !== '0';
+const qsSoundLbl = () => { $('qsSound').textContent = qsSoundOn() ? '🔊 Sonido' : '🔇 Sin sonido'; };
+$('qsSound').onclick = () => { qsLS('qs_sound', qsSoundOn() ? '0' : '1'); qsSoundLbl(); if (qsSoundOn()) qsBeep(); };
+function qsBeep() {
+  try {
+    const C = window.AudioContext || window.webkitAudioContext; if (!C) return;
+    const ctx = qsBeep.ctx || (qsBeep.ctx = new C());
+    [0, 0.18].forEach((t, k) => { const o = ctx.createOscillator(), g = ctx.createGain(); o.type = 'sine'; o.frequency.value = k ? 1046 : 784; g.gain.setValueAtTime(0.0001, ctx.currentTime + t); g.gain.exponentialRampToValueAtTime(0.25, ctx.currentTime + t + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + t + 0.25); o.connect(g).connect(ctx.destination); o.start(ctx.currentTime + t); o.stop(ctx.currentTime + t + 0.3); });
+  } catch { /* sin sonido */ }
+}
+async function qsCheck() {
+  const d = await (await fetch('/api/questions/count')).json().catch(() => null);
+  if (!d) return;
+  const n = d.unanswered || 0;
+  $('qsBadge').hidden = !n; $('qsBadge').textContent = n > 99 ? '99+' : n;
+  const last = qsLS('qs_last') || '', l = d.latest;
+  if (l && l.id !== last && (!last || String(l.date) > (qsLS('qs_last_date') || ''))) {
+    if (last) { // no avisa la primera vez que se abre el panel
+      if (qsSoundOn()) qsBeep();
+      try { if ('Notification' in window && Notification.permission === 'granted' && !pushSub) { const nt = new Notification(`Nueva pregunta · ${l.account}`, { body: `${l.title ? l.title + '\n' : ''}${l.text}`, icon: '/logo', tag: 'q' + l.id }); nt.onclick = () => { window.focus(); location.hash = '#preguntas'; }; } } catch { /* nada */ }
+      if (!$('viewQuestions').hidden) loadQuestions(false);
+    }
+    qsLS('qs_last', l.id); qsLS('qs_last_date', String(l.date));
+  }
+}
+qsSoundLbl();
+setTimeout(qsCheck, 1500); setInterval(qsCheck, 15e3);
+// Con la sección abierta, la lista se refresca sola.
+setInterval(() => { if (!$('viewQuestions').hidden && document.visibilityState === 'visible') { const ta = document.activeElement; if (!(ta && ta.id && ta.id.startsWith('qsa-'))) loadQuestions(false); } }, 20e3);
+
 // ---------- Recompras (fin de suplemento) ----------
-let rfData = null, rfTab = 'due', rfCur = null, rfKind = 'ml', rfTexts = null;
+let rfSel = new Set(), rfData = null, rfTab = 'today', rfCur = null, rfKind = 'ml', rfTexts = null;
 const RF_SRC = { ml: 'Mercado Libre', quote: 'Presupuesto', web: 'Web' };
 const rfFmt = (d) => `${d.slice(8)}/${d.slice(5, 7)}/${d.slice(2, 4)}`;
 const rfLeft = (n) => n > 1 ? `en ${n} días` : n === 1 ? 'mañana' : n === 0 ? 'hoy' : n === -1 ? 'ayer' : `hace ${-n} días`;
 const rfBy = () => { try { const me = localStorage.getItem('tk_me'); const p = (tkData.people || []).find(x => x.id === me); return p ? p.name : 'Dueño'; } catch { return 'Dueño'; } };
 async function loadRefill() {
   const d = await (await fetch('/api/refill')).json().catch(() => null);
-  if (!d || d.error) { $('rfRows').innerHTML = `<tr><td colspan="5" class="err-t">No se pudieron cargar las recompras${d && d.error ? ': ' + esc(d.error) : ''}. Revisá que esté subido server.js.</td></tr>`; return; }
-  rfData = d; rfSetBadge(d.due_n);
+  if (!d || d.error) { $('rfRows').innerHTML = `<tr><td colspan="6" class="err-t">No se pudieron cargar las recompras${d && d.error ? ': ' + esc(d.error) : ''}. Revisá que esté subido server.js.</td></tr>`; return; }
+  rfData = d; rfSetBadge(d.today_n);
   if (d.resolving) setTimeout(() => { if (!$('viewRefill').hidden) loadRefill(); }, 7000); // buscando nombres de compradores en Mercado Libre
-  $('rfNotif').hidden = !('Notification' in window) || Notification.permission !== 'default';
   $('rfInfo').innerHTML = !d.has_days ? '<div class="msg">Todavía no se leyó la columna <b>DURACION</b> de la lista de precios. Andá a <a href="#precios">Lista de precios</a> y tocá actualizar (o esperá a que se actualice sola).</div>' : '';
   renderRefill();
 }
@@ -2643,35 +2909,56 @@ function renderRefill() {
   const q = $('rfQ').value.trim().toLowerCase(), src = $('rfSrc').value, t = rfData.today;
   const base = rfData.items.filter(i => (!src || i.src === src) && (!q || (i.client + ' ' + i.nick + ' ' + i.product + ' ' + i.sku).toLowerCase().includes(q)));
   const W = rfData.config.window_days ?? 7;
-  // Para avisar: se termina hoy, mañana o en los próximos W días (las que ya se terminaron no aparecen acá).
-  const due = base.filter(i => i.state === 'pending' && i.left >= 0 && i.left <= W);
-  const next = base.filter(i => i.state === 'pending' && i.left > W && i.left <= 30);
+  const pend = (i) => i.state === 'pending';
+  const today = base.filter(i => pend(i) && i.send_day === t);
+  // Próximos 7 días: se termina hoy, mañana o en los próximos W días (las que ya se terminaron no aparecen acá).
+  const due = base.filter(i => pend(i) && i.left >= 0 && i.left <= W);
+  const next = base.filter(i => pend(i) && i.left > W && i.left <= 30);
   const done = base.filter(i => i.state === 'sent' || i.state === 'dismissed').sort((a, b) => String(b.done_at || b.end).localeCompare(String(a.done_at || a.end)));
-  const month = t.slice(0, 7);
+  const day = $('rfDay').value, dayList = base.filter(i => pend(i) && i.send_day === day);
+  const month = t.slice(0, 7), monday = new Date(t + 'T12:00:00Z').getUTCDay() === 1 && rfData.config.weekend_monday;
   $('rfStats').innerHTML = [
-    `<div class="stat main"><div class="k">🔔 Para avisar</div><div class="v">${due.length}</div><div class="sub">${due.filter(i => i.left === 0).length} hoy · ${due.filter(i => i.left === 1).length} mañana · ${due.filter(i => i.left > 1).length} en los próximos ${W} días</div></div>`,
-    `<div class="stat"><div class="k">Después</div><div class="v">${next.length}</div><div class="sub">se terminan en ${W + 1} a 30 días</div></div>`,
+    `<div class="stat main"><div class="k">🔔 Avisar hoy</div><div class="v">${today.length}</div><div class="sub">${monday ? 'incluye los del sábado y domingo' : `se les termina en ${rfData.config.send_before === 1 ? '1 día' : rfData.config.send_before + ' días'}`}</div></div>`,
+    `<div class="stat"><div class="k">Próximos ${W} días</div><div class="v">${due.length}</div><div class="sub">${due.filter(i => i.left === 0).length} hoy · ${due.filter(i => i.left === 1).length} mañana · ${due.filter(i => i.left > 1).length} después</div></div>`,
     `<div class="stat"><div class="k">Avisados este mes</div><div class="v">${base.filter(i => i.state === 'sent' && String(i.done_at || '').slice(0, 7) === month).length}</div><div class="sub">por ML o WhatsApp</div></div>`,
     `<div class="stat"><div class="k">Volvieron a comprar</div><div class="v">${base.filter(i => i.rebought).length}</div><div class="sub">antes de que se les termine</div></div>`,
   ].join('');
-  document.querySelectorAll('#rfTab button').forEach(b => { b.classList.toggle('on', b.dataset.t === rfTab); const n = { due: due.length, next: next.length, done: done.length }[b.dataset.t]; b.textContent = b.textContent.replace(/ \(\d+\)$/, '') + (n !== undefined ? ` (${n})` : ''); });
-  const list = rfTab === 'due' ? due : rfTab === 'next' ? next : rfTab === 'done' ? done : base;
-  const empty = { due: '¡Nada para avisar hoy! 🎉', next: 'No hay recompras en los próximos 30 días.', done: 'Todavía no avisaste a nadie.', all: 'No hay compras de productos con duración cargada.' }[rfTab];
+  document.querySelectorAll('#rfTab button').forEach(b => { b.classList.toggle('on', b.dataset.t === rfTab); const n = { today: today.length, due: due.length, next: next.length, done: done.length }[b.dataset.t]; b.textContent = b.textContent.replace(/ \(\d+\)$/, '') + (n !== undefined ? ` (${n})` : ''); });
+  const list = rfTab === 'today' ? today : rfTab === 'day' ? dayList : rfTab === 'due' ? due : rfTab === 'next' ? next : rfTab === 'done' ? done : base;
+  const empty = { today: '¡Nada para avisar hoy! 🎉', day: 'No hay avisos para ese día.', due: 'Nadie termina su suplemento en los próximos días.', next: 'No hay recompras en los próximos 30 días.', done: 'Todavía no avisaste a nadie.', all: 'No hay compras de productos con duración cargada.' }[rfTab];
+  const ids = new Set(list.map(i => i.id));
+  for (const id of [...rfSel]) if (!ids.has(id)) rfSel.delete(id); // la selección es de lo que se ve
+  const selectable = list.filter(pend);
+  $('rfAll').checked = selectable.length > 0 && selectable.every(i => rfSel.has(i.id)); $('rfAll').disabled = !selectable.length;
+  const wd = ['dom', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb'];
+  const dayLbl = (d) => d === t ? 'hoy' : `${wd[new Date(d + 'T12:00:00Z').getUTCDay()]} ${d.slice(8)}/${d.slice(5, 7)}`;
   $('rfRows').innerHTML = list.map(i => {
     const st = i.state === 'sent' ? `<span class="pill" style="color:var(--ok);border-color:var(--ok)">✓ avisado${i.done_via ? ' por ' + esc(i.done_via) : ''}</span>` : i.state === 'dismissed' ? '<span class="pill">descartado</span>' : i.state === 'rebought' ? '<span class="pill" style="color:var(--brand);border-color:var(--brand)">🔁 volvió a comprar</span>' : '';
-    const actions = i.state === 'pending'
+    const actions = pend(i)
       ? `${i.src === 'ml' ? `<button class="btn small" data-rf="ml" data-id="${esc(i.id)}">💬 Mercado Libre</button>` : ''}${i.phone ? `<button class="btn small rf-wa" data-rf="wa" data-id="${esc(i.id)}">🟢 WhatsApp</button>` : ''}<button class="btn small" data-rf="sent" data-id="${esc(i.id)}" title="Ya le avisé por otro lado">✓</button><button class="btn small" data-rf="dismissed" data-id="${esc(i.id)}" title="No avisar">✕</button>`
       : `${st}${i.state !== 'rebought' ? ` <button class="btn small" data-rf="pending" data-id="${esc(i.id)}">Deshacer</button>` : ''}`;
-    return `<tr class="${i.state === 'pending' && i.left >= 0 && i.left <= 1 ? 'rf-due' : ''}">
+    return `<tr class="${pend(i) && i.send_day <= t && i.left >= 0 ? 'rf-due' : ''}${rfSel.has(i.id) ? ' rf-sel' : ''}">
+      <td>${pend(i) ? `<input type="checkbox" data-rfsel="${esc(i.id)}"${rfSel.has(i.id) ? ' checked' : ''}>` : ''}</td>
       <td><b>${esc(i.name || i.client)}</b> <a href="#" class="muted" style="font-size:12px" data-rfnm="${esc(i.id)}" title="Cambiar el nombre">✏️</a>${!i.name ? '<div class="err-t" style="font-size:11.5px">sin nombre: tocá ✏️ para cargarlo</div>' : ''}${i.nick && i.nick !== (i.name || i.client) ? `<div class="muted" style="font-size:12px">${esc(i.nick)}</div>` : ''}<div class="muted" style="font-size:12px">${RF_SRC[i.src]}${i.account ? ' · ' + esc(i.account) : ''}${i.number ? ' · Nº ' + esc(i.number) : ''}</div><div style="font-size:12px;margin-top:2px">${i.phone ? `📱 ${esc(i.phone)} <a href="#" class="muted" data-rfph="${esc(i.id)}" title="Cambiar el WhatsApp">✏️</a>` : `<a href="#" class="lnk" data-rfph="${esc(i.id)}">➕ Agregar WhatsApp</a>`}</div></td>
       <td>${esc(i.product)}<div class="muted" style="font-size:12px">${esc(i.sku)} · ${i.qty > 1 ? `${i.qty} u. × ${i.unit_days} días = ` : ''}${i.days} días</div></td>
       <td style="white-space:nowrap">${rfFmt(i.date)}</td>
-      <td style="white-space:nowrap"><b style="color:${i.left <= 1 && i.state === 'pending' ? 'var(--err)' : 'inherit'}">${rfLeft(i.left)}</b><div class="muted" style="font-size:12px">${rfFmt(i.end)}</div></td>
+      <td style="white-space:nowrap"><b style="color:${i.left <= 1 && pend(i) ? 'var(--err)' : 'inherit'}">${rfLeft(i.left)}</b><div class="muted" style="font-size:12px">${rfFmt(i.end)}${pend(i) ? ` · aviso ${dayLbl(i.send_day)}` : ''}</div></td>
       <td style="text-align:right"><div class="row" style="gap:6px;justify-content:flex-end;flex-wrap:wrap">${actions}</div></td></tr>`;
-  }).join('') || `<tr><td colspan="5" class="muted" style="padding:18px">${empty}</td></tr>`;
+  }).join('') || `<tr><td colspan="6" class="muted" style="padding:18px">${empty}</td></tr>`;
+  rfBulkBar();
+}
+function rfBulkBar() {
+  $('rfBulk').hidden = !rfSel.size;
+  $('rfBulkN').textContent = `${rfSel.size} seleccionado${rfSel.size === 1 ? '' : 's'}`;
 }
 const addDaysStr = (ymd0, n) => { const d = new Date(ymd0 + 'T12:00:00Z'); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); };
-$('rfTab').onclick = (e) => { const b = e.target.closest('[data-t]'); if (!b) return; rfTab = b.dataset.t; renderRefill(); };
+$('rfTab').onclick = (e) => { const b = e.target.closest('[data-t]'); if (!b) return; rfTab = b.dataset.t; $('rfDay').value = ''; rfSel.clear(); renderRefill(); };
+$('rfDay').onchange = () => { rfTab = $('rfDay').value ? 'day' : 'today'; rfSel.clear(); renderRefill(); };
+$('rfAll').onchange = () => { const on = $('rfAll').checked; document.querySelectorAll('[data-rfsel]').forEach(c => { c.checked = on; if (on) rfSel.add(c.dataset.rfsel); else rfSel.delete(c.dataset.rfsel); c.closest('tr').classList.toggle('rf-sel', on); }); rfBulkBar(); };
+$('rfRows').addEventListener('change', (e) => { const c = e.target.closest('[data-rfsel]'); if (!c) return; if (c.checked) rfSel.add(c.dataset.rfsel); else rfSel.delete(c.dataset.rfsel); c.closest('tr').classList.toggle('rf-sel', c.checked); const all = [...document.querySelectorAll('[data-rfsel]')]; $('rfAll').checked = all.length && all.every(x => x.checked); rfBulkBar(); });
+$('rfBulkClear').onclick = () => { rfSel.clear(); renderRefill(); };
+$('rfBulkDone').onclick = async () => { if (!confirm(`¿Marcar ${rfSel.size} como avisados?`)) return; const ids = [...rfSel]; rfSel.clear(); await rfMark(ids, 'sent', 'a mano'); };
+$('rfBulkDis').onclick = async () => { if (!confirm(`¿No avisar a ${rfSel.size} clientes?`)) return; const ids = [...rfSel]; rfSel.clear(); await rfMark(ids, 'dismissed'); };
 $('rfSrc').onchange = renderRefill; $('rfQ').oninput = renderRefill;
 async function rfMark(ids, state, via) {
   await fetch('/api/refill/mark', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ ids, state, by: rfBy(), via }) });
@@ -2739,12 +3026,84 @@ $('rfMSend').onclick = async () => {
   if (!r || !r.ok) { $('rfMMsg').innerHTML = `<span class="err-t">No se pudo enviar: ${esc((r && r.error) || d.error || 'error')}</span>`; return; }
   $('rfModal').classList.remove('show'); loadRefill();
 };
+
+// --- El mismo mensaje a varios seleccionados ---
+let rfBk = { items: [], wa: [], waI: 0 };
+const rfPlan = (way) => {
+  const ml = [], wa = [], none = [];
+  for (const it of rfBk.items) {
+    const k = way === 'ml' ? (it.src === 'ml' ? 'ml' : '') : way === 'wa' ? (it.phone ? 'wa' : it.src === 'ml' ? 'ml' : '') : (it.src === 'ml' ? 'ml' : it.phone ? 'wa' : '');
+    (k === 'ml' ? ml : k === 'wa' ? wa : none).push(it);
+  }
+  return { ml, wa, none };
+};
+function rfBkSummary() {
+  const p = rfPlan($('rfBkWay').value);
+  $('rfBkSum').innerHTML = [p.ml.length ? `<b>${p.ml.length}</b> por Mercado Libre (se mandan solos)` : '', p.wa.length ? `<b>${p.wa.length}</b> por WhatsApp (se abre un chat por cada uno)` : '', p.none.length ? `<span class="err-t"><b>${p.none.length}</b> sin WhatsApp ni Mercado Libre: no se les manda</span>` : ''].filter(Boolean).join(' · ');
+}
+let rfBkPrevT = null;
+function rfBkPreview() {
+  clearTimeout(rfBkPrevT);
+  rfBkPrevT = setTimeout(async () => {
+    const first = rfBk.items[0]; if (!first) return;
+    const d = await (await fetch('/api/refill/texts', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ ids: [first.id], template: $('rfBkText').value, kind: 'ml' }) })).json().catch(() => null);
+    const it = d && d.items && d.items[0];
+    if (it) $('rfBkPrev').innerHTML = `Así le llega a <b>${esc(it.name || it.client)}</b>: “${esc(it.text)}”${it.text.length > (d.max_ml || 350) && rfPlan($('rfBkWay').value).ml.length ? ` <span class="err-t">(${it.text.length} caracteres: Mercado Libre acepta hasta ${d.max_ml})</span>` : ''}`;
+  }, 500);
+}
+$('rfBulkSend').onclick = () => {
+  rfBk = { items: rfData.items.filter(i => rfSel.has(i.id) && i.state === 'pending'), wa: [], waI: 0 };
+  if (!rfBk.items.length) return;
+  $('rfBkText').value = rfData.config.msg_ml; $('rfBkWay').value = 'auto';
+  $('rfBkMsg').innerHTML = ''; $('rfBkWa').hidden = true; $('rfBkSend').hidden = false; $('rfBkSend').disabled = false;
+  rfBkSummary(); rfBkPreview();
+  $('rfBulkModal').classList.add('show');
+};
+$('rfBkWay').onchange = rfBkSummary;
+$('rfBkText').oninput = rfBkPreview;
+$('rfBkClose').onclick = () => { $('rfBulkModal').classList.remove('show'); rfSel.clear(); loadRefill(); };
+$('rfBkSend').onclick = async () => {
+  const tpl = $('rfBkText').value.trim(); if (!tpl) return;
+  const p = rfPlan($('rfBkWay').value);
+  if (!p.ml.length && !p.wa.length) { $('rfBkMsg').innerHTML = '<span class="err-t">Ninguno tiene WhatsApp ni es de Mercado Libre.</span>'; return; }
+  if (p.ml.length > 1 && !confirm(`Se van a mandar ${p.ml.length} mensajes por Mercado Libre. ¿Seguir?`)) return;
+  $('rfBkSend').disabled = true;
+  let ok = 0; const errs = [];
+  for (let k = 0; k < p.ml.length; k += 8) { // de a poco, para no pasar el límite de tiempo
+    $('rfBkMsg').textContent = `Enviando por Mercado Libre… ${k} de ${p.ml.length}`;
+    const d = await (await fetch('/api/refill/send-ml', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ items: p.ml.slice(k, k + 8).map(i => ({ id: i.id })), template: tpl, by: rfBy() }) })).json().catch(() => ({ results: [] }));
+    for (const r of d.results || []) { if (r.ok) ok++; else errs.push(`${esc((rfBk.items.find(i => i.id === r.id) || {}).client || '')}: ${esc(r.error)}`); }
+  }
+  let html = p.ml.length ? `<div class="${errs.length ? '' : 'ok-t'}">✓ ${ok} de ${p.ml.length} enviados por Mercado Libre.</div>${errs.length ? `<div class="err-t" style="font-size:12.5px">${errs.join('<br>')}</div>` : ''}` : '';
+  if (p.wa.length) {
+    const d = await (await fetch('/api/refill/texts', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ ids: p.wa.map(i => i.id), template: tpl, kind: 'wa' }) })).json().catch(() => ({ items: [] }));
+    rfBk.wa = d.items || []; rfBk.waI = 0;
+    html += `<div style="margin-top:8px"><b>WhatsApp:</b> tocá <b>Abrir el siguiente</b> y mandá el mensaje en cada chat (WhatsApp no deja mandar varios solos).</div>`;
+    rfBkRenderWa();
+  }
+  $('rfBkMsg').innerHTML = html; $('rfBkSend').hidden = true;
+};
+function rfBkRenderWa() {
+  const n = rfBk.wa.length, i = rfBk.waI;
+  $('rfBkWa').hidden = false;
+  $('rfBkWa').innerHTML = `<div class="row" style="justify-content:space-between;margin:8px 0"><b>${Math.min(i, n)} de ${n} abiertos</b>${i < n ? `<button class="btn primary" id="rfBkNext">🟢 Abrir el siguiente: ${esc(rfBk.wa[i].name || rfBk.wa[i].client)}</button>` : '<span class="ok-t">✓ Listo, abriste todos.</span>'}</div>` +
+    rfBk.wa.map((w, k) => `<div class="file">${k < i ? '✓' : '○'} ${esc(w.name || w.client)} <span class="muted">· ${esc(w.phone)}</span>${k >= i ? `<button class="btn small" style="margin-left:auto" data-rfbk="${k}">Abrir</button>` : ''}</div>`).join('');
+}
+function rfBkOpen(k) {
+  const w = rfBk.wa[k]; if (!w) return;
+  const u = waLink(w.phone);
+  if (u) window.open(u + '?text=' + encodeURIComponent(w.text), 'whatsapp');
+  fetch('/api/refill/mark', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ ids: [w.id], state: 'sent', by: rfBy(), via: 'WhatsApp' }) });
+  if (k >= rfBk.waI) { [rfBk.wa[k], rfBk.wa[rfBk.waI]] = [rfBk.wa[rfBk.waI], rfBk.wa[k]]; rfBk.waI++; }
+  rfBkRenderWa();
+}
+$('rfBkWa').onclick = (e) => { if (e.target.id === 'rfBkNext') return rfBkOpen(rfBk.waI); const b = e.target.closest('[data-rfbk]'); if (b) rfBkOpen(Number(b.dataset.rfbk)); };
 // Configuración
-$('rfCfgBtn').onclick = () => { const c = rfData ? rfData.config : {}; $('rfCfgDays').value = c.window_days ?? 7; $('rfCfgMl').value = c.msg_ml || ''; $('rfCfgWa').value = c.msg_wa || ''; $('rfCfgMsg').innerHTML = ''; $('rfCfgModal').classList.add('show'); };
+$('rfCfgBtn').onclick = () => { const c = rfData ? rfData.config : {}; $('rfCfgDays').value = c.window_days ?? 7; $('rfCfgSend').value = c.send_before ?? 1; $('rfCfgWknd').checked = c.weekend_monday !== false; $('rfCfgMl').value = c.msg_ml || ''; $('rfCfgWa').value = c.msg_wa || ''; $('rfCfgMsg').innerHTML = ''; $('rfCfgModal').classList.add('show'); };
 $('rfCfgClose').onclick = () => $('rfCfgModal').classList.remove('show');
 $('rfCfgReset').onclick = () => { $('rfCfgMl').value = ''; $('rfCfgWa').value = ''; $('rfCfgMsg').innerHTML = '<span class="muted">Al guardar vuelven los mensajes originales.</span>'; };
 $('rfCfgSave').onclick = async () => {
-  const d = await (await fetch('/api/refill/config', { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ window_days: Number($('rfCfgDays').value), msg_ml: $('rfCfgMl').value, msg_wa: $('rfCfgWa').value }) })).json().catch(() => ({}));
+  const d = await (await fetch('/api/refill/config', { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ window_days: Number($('rfCfgDays').value), send_before: Number($('rfCfgSend').value), weekend_monday: $('rfCfgWknd').checked, msg_ml: $('rfCfgMl').value, msg_wa: $('rfCfgWa').value }) })).json().catch(() => ({}));
   if (!d.ok) { $('rfCfgMsg').innerHTML = '<span class="err-t">No se pudo guardar.</span>'; return; }
   $('rfCfgModal').classList.remove('show'); loadRefill();
 };
@@ -2756,7 +3115,7 @@ function rfSetBadge(n) {
   $('rfBanner').innerHTML = n && closed !== today && location.hash !== '#recompras' ? `<div class="msg rf-banner">🔔 Hoy tenés <b>${n} cliente${n === 1 ? '' : 's'}</b> a los que se les termina el suplemento. <a href="#recompras">Ver y avisarles</a><button class="x" id="rfBannerX" title="Cerrar">✕</button></div>` : '';
   if ($('rfBannerX')) $('rfBannerX').onclick = () => { try { sessionStorage.setItem('rf_banner', today); } catch { /* nada */ } $('rfBanner').innerHTML = ''; };
   try {
-    if (n && 'Notification' in window && Notification.permission === 'granted' && localStorage.getItem('rf_notified') !== today) {
+    if (n && !pushSub && 'Notification' in window && Notification.permission === 'granted' && localStorage.getItem('rf_notified') !== today) {
       const nt = new Notification('Biogate · Recompras', { body: `Hoy tenés ${n} cliente${n === 1 ? '' : 's'} para avisar que se les termina el suplemento.`, icon: '/logo' });
       nt.onclick = () => { window.focus(); location.hash = '#recompras'; };
       localStorage.setItem('rf_notified', today);
@@ -2764,7 +3123,6 @@ function rfSetBadge(n) {
   } catch { /* sin notificaciones */ }
 }
 async function rfCheck() { const d = await (await fetch('/api/refill/count')).json().catch(() => null); if (d) rfSetBadge(d.due || 0); }
-$('rfNotif').onclick = async () => { try { await Notification.requestPermission(); } catch { /* nada */ } $('rfNotif').hidden = Notification.permission !== 'default'; try { localStorage.removeItem('rf_notified'); } catch { /* nada */ } rfCheck(); };
 window.addEventListener('hashchange', () => { if (location.hash === '#recompras') $('rfBanner').innerHTML = ''; });
 setTimeout(rfCheck, 2500); setInterval(rfCheck, 15 * 60e3);
 
