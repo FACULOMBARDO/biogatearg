@@ -273,7 +273,7 @@ Menú lateral → **Preguntas**: las preguntas de los compradores de todas tus c
 - **👤 Historial del comprador**: otras preguntas que te hizo y si ya te compró.
 
 ### ⏱️ Tiempo de respuesta y aviso de preguntas demoradas (Preguntas)
-Arriba de la lista de preguntas está el bloque **Tiempo de respuesta**: cuánto se tarda en promedio desde que llega una pregunta hasta que se responde, sumando las respuestas del panel y las de Mercado Libre. Se puede ver de los últimos 7, 15, 30 o 60 días, de todas las cuentas o de una sola.
+Arriba de la lista de preguntas está el bloque **Tiempo de respuesta**: cuánto se tarda en promedio desde que llega una pregunta hasta que se responde, sumando las respuestas del panel y las de Mercado Libre. Se puede ver de **hoy**, de los últimos 7, 15, 30 o 60 días, o de un **mes** puntual (selector "Por mes…", últimos 12 meses), de todas las cuentas o de una sola.
 - **Promedio general**, **En horario laboral** (por defecto lunes a viernes de 9 a 18) y **Fuera de horario** (noches, fines de semana). Cada uno muestra también la mediana y el % de preguntas respondidas en menos de 1 hora. Una pregunta cuenta como "en horario" según la hora en que **llegó**.
 - **Sin responder ahora**: cuántas hay y hace cuánto espera la más vieja.
 - En "Por día de la semana y por cuenta" está el promedio de cada día (con su parte en horario y fuera de horario) y el de cada cuenta.

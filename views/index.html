@@ -360,7 +360,7 @@
   <div class="card" style="padding:12px 14px">
     <div class="row" style="justify-content:space-between;flex-wrap:wrap;gap:8px">
       <b style="font-size:15px">⏱️ Tiempo de respuesta</b>
-      <div class="row" style="gap:8px;flex-wrap:wrap"><div class="seg" id="qtDays"><button data-d="7">7 días</button><button data-d="15">15 días</button><button data-d="30" class="on">30 días</button><button data-d="60">60 días</button></div><select id="qtAcc"><option value="">Todas las cuentas</option></select></div>
+      <div class="row" style="gap:8px;flex-wrap:wrap"><div class="seg" id="qtDays"><button data-d="today">Hoy</button><button data-d="7">7 días</button><button data-d="15">15 días</button><button data-d="30" class="on">30 días</button><button data-d="60">60 días</button></div><select id="qtMonth"><option value="">Por mes…</option></select><select id="qtAcc"><option value="">Todas las cuentas</option></select></div>
     </div>
     <div class="stats" id="qtStats" style="margin:12px 0 6px"><div class="muted" style="font-size:13px">Calculando…</div></div>
     <div class="muted" id="qtNote" style="font-size:12px"></div>
@@ -2871,7 +2871,7 @@ const qsAcc = accPicker({ id: 'qsAccBox', key: 'qs_accounts', onChange: () => re
 fetch('/api/accounts').then(r => r.json()).then(a => qsAcc.setAccounts(a)).catch(() => {}).finally(() => { qsAcc.loaded = true; });
 const qsAgo = (d) => { const m = Math.round((Date.now() - new Date(d)) / 60e3); if (m < 1) return 'recién'; if (m < 60) return `hace ${m} min`; const h = Math.round(m / 60); if (h < 24) return `hace ${h} h`; const dd = Math.round(h / 24); return dd === 1 ? 'ayer' : `hace ${dd} días`; };
 // ---------- Tiempo de respuesta ----------
-let qtDays = 30, qtBusy = false, qtHours = null;
+let qtDays = '30', qtBusy = false, qtHours = null;
 const DOWN = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
 function qtFmt(m) {
   if (m == null) return '—';
@@ -2882,7 +2882,7 @@ function qtFmt(m) {
 async function loadQStats() {
   if (qtBusy) return; qtBusy = true;
   const acc = $('qtAcc').value;
-  const d = await (await fetch(`/api/questions/stats?days=${qtDays}${acc ? '&account=' + encodeURIComponent(acc) : ''}`)).json().catch(() => ({ ok: false, error: 'Sin conexión.' }));
+  const d = await (await fetch(`/api/questions/stats?period=${qtDays}${acc ? '&account=' + encodeURIComponent(acc) : ''}`)).json().catch(() => ({ ok: false, error: 'Sin conexión.' }));
   qtBusy = false;
   if (!d.ok) { $('qtStats').innerHTML = `<div class="err-t" style="font-size:13px">${esc(d.error)}</div>`; return; }
   qtHours = d.hours;
@@ -2892,14 +2892,19 @@ async function loadQStats() {
   const tile = (k, g, sub) => `<div class="stat"><div class="k">${k}</div><div class="v">${qtFmt(g.avg_min)}</div><div class="sub">${g.answered} respondidas${g.median_min != null ? ` · mediana ${qtFmt(g.median_min)}` : ''}${g.within_1h != null ? ` · ${g.within_1h}% en 1 h` : ''}${sub ? '<br>' + sub : ''}</div></div>`;
   $('qtStats').innerHTML = tile('Promedio general', d.total) + tile(`🕘 En horario laboral`, d.work, `${dn}, ${hs(h.from)} a ${hs(h.to)} hs`) + tile('🌙 Fuera de horario', d.off, 'noches, fines de semana y feriados')
     + `<div class="stat"><div class="k">Sin responder ahora</div><div class="v" style="${d.pending ? 'color:var(--err)' : ''}">${d.pending}</div><div class="sub">${d.pending ? `la más vieja espera hace ${qtFmt(d.oldest_min)}` : 'todo al día 🎉'}</div></div>`;
-  $('qtNote').textContent = `Tiempo desde que llega la pregunta hasta que se responde (desde el panel o desde Mercado Libre), últimos ${d.days} días. Se clasifica según la hora en que llegó la pregunta.` + (d.errors.length ? ' ⚠️ ' + d.errors.join(' · ') : '');
+  $('qtNote').textContent = `Tiempo desde que llega la pregunta hasta que se responde (desde el panel o desde Mercado Libre) · ${d.label} · ${d.total.questions} preguntas. Se clasifica según la hora en que llegó la pregunta.` + (d.errors.length ? ' ⚠️ ' + d.errors.join(' · ') : '');
   const pct = (g) => g.within_1h == null ? '—' : g.within_1h + '%';
   $('qtDaysRows').innerHTML = d.by_day.map(x => `<tr><td>${DOWN[x.dow]}</td><td style="text-align:right">${x.all.questions}</td><td style="text-align:right"><b>${qtFmt(x.all.avg_min)}</b></td><td style="text-align:right">${qtFmt(x.work.avg_min)}</td><td style="text-align:right">${qtFmt(x.off.avg_min)}</td><td style="text-align:right">${pct(x.all)}</td></tr>`).join('');
   $('qtAccRows').innerHTML = d.by_account.map(x => `<tr><td>${esc(x.account)}</td><td style="text-align:right">${x.questions}</td><td style="text-align:right"><b>${qtFmt(x.avg_min)}</b></td><td style="text-align:right">${qtFmt(x.median_min)}</td><td style="text-align:right">${pct(x)}</td></tr>`).join('') || '<tr><td colspan="5" class="muted">Sin datos.</td></tr>';
   $('qtFrom').value = h.from; $('qtTo').value = h.to;
   $('qtDaysPick').innerHTML = [1, 2, 3, 4, 5, 6, 0].map(x => `<label style="display:inline-flex;gap:3px;align-items:center"><input type="checkbox" data-qtd="${x}" ${h.days.includes(x) ? 'checked' : ''}>${DOWN[x].slice(0, 3)}</label>`).join('');
 }
-$('qtDays').onclick = (e) => { const b = e.target.closest('[data-d]'); if (!b) return; qtDays = Number(b.dataset.d); $('qtDays').querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b)); loadQStats(); };
+$('qtDays').onclick = (e) => { const b = e.target.closest('[data-d]'); if (!b) return; qtDays = b.dataset.d; $('qtMonth').value = ''; $('qtDays').querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b)); loadQStats(); };
+// Últimos 12 meses (hora de Argentina)
+(() => { const [y, m] = new Date().toLocaleDateString('sv-SE', { timeZone: 'America/Argentina/Buenos_Aires' }).split('-').map(Number); let o = '<option value="">Por mes…</option>';
+  for (let i = 0; i < 12; i++) { const d = new Date(y, m - 1 - i, 1), v = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`, n = d.toLocaleDateString('es-AR', { month: 'long', year: 'numeric' }); o += `<option value="${v}">${n.charAt(0).toUpperCase() + n.slice(1)}${i === 0 ? ' (en curso)' : ''}</option>`; }
+  $('qtMonth').innerHTML = o; })();
+$('qtMonth').onchange = () => { const v = $('qtMonth').value; if (!v) return; qtDays = v; $('qtDays').querySelectorAll('button').forEach(x => x.classList.remove('on')); loadQStats(); };
 $('qtAcc').onchange = loadQStats;
 $('qtSave').onclick = async () => {
   const days = [...document.querySelectorAll('[data-qtd]')].filter(x => x.checked).map(x => Number(x.dataset.qtd));

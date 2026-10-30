@@ -809,7 +809,7 @@ app.get('/api/ship-labels/file', (req, res) => {
 });
 app.get('/api/questions', (req, res) => res.json(questions.list()));
 app.get('/api/questions/count', (req, res) => { bg(questions.checkLate().then(n => n && store.flush()).catch(() => {})); res.json(questions.count()); });
-app.get('/api/questions/stats', async (req, res) => { try { res.json({ ok: true, ...(await questions.stats(req.query.days, req.query.account)) }); } catch (e) { res.status(400).json({ ok: false, error: e.message }); } });
+app.get('/api/questions/stats', async (req, res) => { try { res.json({ ok: true, ...(await questions.stats(req.query.period || req.query.days, req.query.account)) }); } catch (e) { res.status(400).json({ ok: false, error: e.message }); } });
 app.put('/api/questions/hours', (req, res) => { try { res.json({ ok: true, hours: questions.saveHours(req.body || {}) }); } catch (e) { res.status(400).json({ ok: false, error: e.message }); } });
 app.get('/api/questions/cron-url', (req, res) => res.json({ url: process.env.BASE_URL.replace(/\/$/, '') + '/api/cron/questions?key=' + sign('cron-questions').slice(0, 24) }));
 app.post('/api/questions/sync', async (req, res) => {
