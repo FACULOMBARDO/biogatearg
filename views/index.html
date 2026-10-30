@@ -358,6 +358,24 @@
   </div>
   <div id="qsInfo"></div>
   <div class="card" style="padding:12px 14px">
+    <div class="row" style="justify-content:space-between;flex-wrap:wrap;gap:8px">
+      <b style="font-size:15px">⏱️ Tiempo de respuesta</b>
+      <div class="row" style="gap:8px;flex-wrap:wrap"><div class="seg" id="qtDays"><button data-d="7">7 días</button><button data-d="15">15 días</button><button data-d="30" class="on">30 días</button><button data-d="60">60 días</button></div><select id="qtAcc"><option value="">Todas las cuentas</option></select></div>
+    </div>
+    <div class="stats" id="qtStats" style="margin:12px 0 6px"><div class="muted" style="font-size:13px">Calculando…</div></div>
+    <div class="muted" id="qtNote" style="font-size:12px"></div>
+    <details style="margin-top:8px"><summary class="lnk" style="cursor:pointer;font-size:13px">Por día de la semana y por cuenta</summary>
+      <div class="table-wrap" style="margin-top:8px"><table class="sales-table"><thead><tr><th>Día</th><th style="text-align:right">Preguntas</th><th style="text-align:right">Promedio</th><th style="text-align:right">En horario</th><th style="text-align:right">Fuera de horario</th><th style="text-align:right">Respondidas en 1 h</th></tr></thead><tbody id="qtDaysRows"></tbody></table></div>
+      <div class="table-wrap" style="margin-top:10px"><table class="sales-table"><thead><tr><th>Cuenta</th><th style="text-align:right">Preguntas</th><th style="text-align:right">Promedio</th><th style="text-align:right">Mediana</th><th style="text-align:right">Respondidas en 1 h</th></tr></thead><tbody id="qtAccRows"></tbody></table></div>
+    </details>
+    <details style="margin-top:6px"><summary class="lnk" style="cursor:pointer;font-size:13px">Horario laboral y avisos</summary>
+      <div class="row" style="gap:8px;flex-wrap:wrap;margin-top:8px;font-size:13px">De <input type="number" id="qtFrom" min="0" max="23" style="width:64px"> a <input type="number" id="qtTo" min="1" max="24" style="width:64px"> hs
+        <span id="qtDaysPick" class="row" style="gap:4px"></span><button class="btn small" id="qtSave">Guardar horario</button><span id="qtMsg"></span></div>
+      <div class="muted" style="font-size:12.5px;margin-top:10px;line-height:1.6">🔔 <b>Aviso a los 5 minutos:</b> si una pregunta lleva 5 minutos sin responder, llega una notificación a las compus y celulares donde tocaste "Activar notificaciones". Con el panel abierto en cualquier lado, el aviso sale solo.
+      Para que avise también con el panel <b>cerrado en todos lados</b>, creá una tarea gratis en <a class="lnk" href="https://cron-job.org" target="_blank" rel="noopener">cron-job.org</a> que abra cada 1 minuto este link (no lo compartas): <code class="qs-code" id="qtCron">…</code> <button class="btn small" id="qtCronCopy">Copiar</button></div>
+    </details>
+  </div>
+  <div class="card" style="padding:12px 14px">
     <div class="row">
       <div class="seg" id="qsTab"><button data-t="un" class="on">Sin responder</button><button data-t="ans">Respondidas</button><button data-t="all">Todas</button></div>
       <details class="acc-pick" id="qsAccBox"></details>
@@ -1731,7 +1749,7 @@ function showView() {
   if (v === 'tuyo') loadTuyo();
   if (v === 'tareas') loadTasks();
   if (v === 'recompras') loadRefill();
-  if (v === 'preguntas') loadQuestions(true);
+  if (v === 'preguntas') { loadQuestions(true); loadQStats(); loadQCron(); }
   if (v === 'flex' && typeof scans !== 'undefined') load();
 }
 window.addEventListener('hashchange', showView);
@@ -2852,6 +2870,47 @@ const qsLS = (k, v) => { try { if (v === undefined) return localStorage.getItem(
 const qsAcc = accPicker({ id: 'qsAccBox', key: 'qs_accounts', onChange: () => renderQuestions() });
 fetch('/api/accounts').then(r => r.json()).then(a => qsAcc.setAccounts(a)).catch(() => {}).finally(() => { qsAcc.loaded = true; });
 const qsAgo = (d) => { const m = Math.round((Date.now() - new Date(d)) / 60e3); if (m < 1) return 'recién'; if (m < 60) return `hace ${m} min`; const h = Math.round(m / 60); if (h < 24) return `hace ${h} h`; const dd = Math.round(h / 24); return dd === 1 ? 'ayer' : `hace ${dd} días`; };
+// ---------- Tiempo de respuesta ----------
+let qtDays = 30, qtBusy = false, qtHours = null;
+const DOWN = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+function qtFmt(m) {
+  if (m == null) return '—';
+  if (m < 60) return `${m} min`;
+  if (m < 1440) { const h = Math.floor(m / 60), r = m % 60; return r ? `${h} h ${r} min` : `${h} h`; }
+  const d = Math.floor(m / 1440), h = Math.round((m % 1440) / 60); return h ? `${d} d ${h} h` : `${d} d`;
+}
+async function loadQStats() {
+  if (qtBusy) return; qtBusy = true;
+  const acc = $('qtAcc').value;
+  const d = await (await fetch(`/api/questions/stats?days=${qtDays}${acc ? '&account=' + encodeURIComponent(acc) : ''}`)).json().catch(() => ({ ok: false, error: 'Sin conexión.' }));
+  qtBusy = false;
+  if (!d.ok) { $('qtStats').innerHTML = `<div class="err-t" style="font-size:13px">${esc(d.error)}</div>`; return; }
+  qtHours = d.hours;
+  if ($('qtAcc').options.length <= 1) $('qtAcc').innerHTML = '<option value="">Todas las cuentas</option>' + d.accounts.map(a => `<option>${esc(a)}</option>`).join('');
+  const h = d.hours, hs = (v) => String(v).replace('.5', ':30');
+  const dn = h.days.length === 5 && [1, 2, 3, 4, 5].every(x => h.days.includes(x)) ? 'lunes a viernes' : h.days.map(x => DOWN[x].slice(0, 3).toLowerCase()).join(', ');
+  const tile = (k, g, sub) => `<div class="stat"><div class="k">${k}</div><div class="v">${qtFmt(g.avg_min)}</div><div class="sub">${g.answered} respondidas${g.median_min != null ? ` · mediana ${qtFmt(g.median_min)}` : ''}${g.within_1h != null ? ` · ${g.within_1h}% en 1 h` : ''}${sub ? '<br>' + sub : ''}</div></div>`;
+  $('qtStats').innerHTML = tile('Promedio general', d.total) + tile(`🕘 En horario laboral`, d.work, `${dn}, ${hs(h.from)} a ${hs(h.to)} hs`) + tile('🌙 Fuera de horario', d.off, 'noches, fines de semana y feriados')
+    + `<div class="stat"><div class="k">Sin responder ahora</div><div class="v" style="${d.pending ? 'color:var(--err)' : ''}">${d.pending}</div><div class="sub">${d.pending ? `la más vieja espera hace ${qtFmt(d.oldest_min)}` : 'todo al día 🎉'}</div></div>`;
+  $('qtNote').textContent = `Tiempo desde que llega la pregunta hasta que se responde (desde el panel o desde Mercado Libre), últimos ${d.days} días. Se clasifica según la hora en que llegó la pregunta.` + (d.errors.length ? ' ⚠️ ' + d.errors.join(' · ') : '');
+  const pct = (g) => g.within_1h == null ? '—' : g.within_1h + '%';
+  $('qtDaysRows').innerHTML = d.by_day.map(x => `<tr><td>${DOWN[x.dow]}</td><td style="text-align:right">${x.all.questions}</td><td style="text-align:right"><b>${qtFmt(x.all.avg_min)}</b></td><td style="text-align:right">${qtFmt(x.work.avg_min)}</td><td style="text-align:right">${qtFmt(x.off.avg_min)}</td><td style="text-align:right">${pct(x.all)}</td></tr>`).join('');
+  $('qtAccRows').innerHTML = d.by_account.map(x => `<tr><td>${esc(x.account)}</td><td style="text-align:right">${x.questions}</td><td style="text-align:right"><b>${qtFmt(x.avg_min)}</b></td><td style="text-align:right">${qtFmt(x.median_min)}</td><td style="text-align:right">${pct(x)}</td></tr>`).join('') || '<tr><td colspan="5" class="muted">Sin datos.</td></tr>';
+  $('qtFrom').value = h.from; $('qtTo').value = h.to;
+  $('qtDaysPick').innerHTML = [1, 2, 3, 4, 5, 6, 0].map(x => `<label style="display:inline-flex;gap:3px;align-items:center"><input type="checkbox" data-qtd="${x}" ${h.days.includes(x) ? 'checked' : ''}>${DOWN[x].slice(0, 3)}</label>`).join('');
+}
+$('qtDays').onclick = (e) => { const b = e.target.closest('[data-d]'); if (!b) return; qtDays = Number(b.dataset.d); $('qtDays').querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b)); loadQStats(); };
+$('qtAcc').onchange = loadQStats;
+$('qtSave').onclick = async () => {
+  const days = [...document.querySelectorAll('[data-qtd]')].filter(x => x.checked).map(x => Number(x.dataset.qtd));
+  const d = await (await fetch('/api/questions/hours', { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ from: $('qtFrom').value, to: $('qtTo').value, days }) })).json().catch(() => ({ ok: false, error: 'Sin conexión.' }));
+  $('qtMsg').innerHTML = d.ok ? '<span style="color:var(--ok)">✓ Guardado</span>' : `<span class="err-t">${esc(d.error)}</span>`;
+  if (d.ok) loadQStats();
+};
+$('qtCronCopy').onclick = () => { navigator.clipboard.writeText($('qtCron').textContent).catch(() => {}); $('qtCronCopy').textContent = '✓ Copiado'; };
+let qtCronLoaded = false;
+function loadQCron() { if (qtCronLoaded) return; qtCronLoaded = true; fetch('/api/questions/cron-url').then(r => r.json()).then(d => { $('qtCron').textContent = d.url; }).catch(() => { qtCronLoaded = false; }); }
+
 async function loadQuestions(sync) {
   const d = await (await fetch('/api/questions')).json().catch(() => null);
   if (!d) { $('qsList').innerHTML = '<div class="msg">No se pudieron cargar las preguntas. Revisá que esté subido server.js.</div>'; return; }

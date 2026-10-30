@@ -272,6 +272,15 @@ Menú lateral → **Preguntas**: las preguntas de los compradores de todas tus c
 - **⚡ Respuestas rápidas**: textos guardados que se insertan con un toque (ej. Stock, Envío, Cómo se toma).
 - **👤 Historial del comprador**: otras preguntas que te hizo y si ya te compró.
 
+### ⏱️ Tiempo de respuesta y aviso de preguntas demoradas (Preguntas)
+Arriba de la lista de preguntas está el bloque **Tiempo de respuesta**: cuánto se tarda en promedio desde que llega una pregunta hasta que se responde, sumando las respuestas del panel y las de Mercado Libre. Se puede ver de los últimos 7, 15, 30 o 60 días, de todas las cuentas o de una sola.
+- **Promedio general**, **En horario laboral** (por defecto lunes a viernes de 9 a 18) y **Fuera de horario** (noches, fines de semana). Cada uno muestra también la mediana y el % de preguntas respondidas en menos de 1 hora. Una pregunta cuenta como "en horario" según la hora en que **llegó**.
+- **Sin responder ahora**: cuántas hay y hace cuánto espera la más vieja.
+- En "Por día de la semana y por cuenta" está el promedio de cada día (con su parte en horario y fuera de horario) y el de cada cuenta.
+- En "Horario laboral y avisos" se cambian las horas y los días laborales.
+
+**Aviso a los 5 minutos:** si una pregunta lleva 5 minutos sin responder, llega una notificación (queda en pantalla hasta que la tocás) a las compus y celulares donde se tocó "🔔 Activar notificaciones". Avisa una vez por pregunta. Con el panel abierto en cualquier dispositivo el aviso sale solo. Para que avise también con el panel cerrado en todos lados: crear una cuenta gratis en cron-job.org, una tarea nueva con el link que aparece en "Horario laboral y avisos", y que se ejecute **cada 1 minuto**. Ese link tiene una clave: no lo compartas.
+
 ### ✨ Sugerencias de respuesta con IA (Preguntas)
 En cada pregunta sin responder hay un botón **"✨ Sugerir respuesta"**. Lo tocás y en unos segundos el cuadro se completa con un borrador. **No se envía nada solo**: lo revisás, lo corregís y tocás "Responder" como siempre.
 - La IA mira la publicación de esa pregunta: título, precio, stock, variantes, ficha técnica, descripción y hasta 3 fotos (puede leer la etiqueta o la tabla nutricional). También las respuestas que ya diste en esa publicación (copia tu forma de contestar), lo que ya preguntó ese comprador y la duración del producto de la lista de precios.

@@ -163,6 +163,17 @@ app.get('/api/cron/daily', async (req, res) => {
 });
 
 
+// Aviso de preguntas demoradas para un cron externo gratis (cron-job.org cada 1 minuto). Sin login, con clave.
+app.get('/api/cron/questions', async (req, res) => {
+  if (String(req.query.key || '') !== sign('cron-questions').slice(0, 24)) return res.status(401).json({ ok: false });
+  try {
+    if (!questions.list().last_sync || Date.now() - new Date(questions.list().last_sync).getTime() > 4 * 60e3) await Promise.race([questions.syncAll(), new Promise(r => setTimeout(r, 40e3))]);
+    const n = await questions.checkLate();
+    await store.flush();
+    res.json({ ok: true, notified: n });
+  } catch (e) { res.status(500).json({ ok: false, error: e.message }); }
+});
+
 // Service worker de las notificaciones (tiene que estar en la raíz y sin login).
 app.get('/sw.js', (req, res) => { res.setHeader('Content-Type', 'application/javascript'); res.setHeader('Cache-Control', 'no-cache'); res.setHeader('Service-Worker-Allowed', '/'); res.sendFile(path.join(__dirname, 'public', 'sw.js')); });
 
@@ -175,6 +186,7 @@ app.post('/api/ml/notify', (req, res) => {
     questions.markWebhook();
     bg(questions.onNotify(b).then(() => store.flush()).catch(e => console.log('Pregunta:', e.message)));
   }
+  if (mine) bg(questions.checkLate().then(n => n && store.flush()).catch(() => {}));
   res.status(200).json({ ok: true });
 });
 
@@ -796,7 +808,10 @@ app.get('/api/ship-labels/file', (req, res) => {
   files.send(res, ref, { type: 'application/pdf', name: 'Etiquetas de envío.pdf', download: true });
 });
 app.get('/api/questions', (req, res) => res.json(questions.list()));
-app.get('/api/questions/count', (req, res) => res.json(questions.count()));
+app.get('/api/questions/count', (req, res) => { bg(questions.checkLate().then(n => n && store.flush()).catch(() => {})); res.json(questions.count()); });
+app.get('/api/questions/stats', async (req, res) => { try { res.json({ ok: true, ...(await questions.stats(req.query.days, req.query.account)) }); } catch (e) { res.status(400).json({ ok: false, error: e.message }); } });
+app.put('/api/questions/hours', (req, res) => { try { res.json({ ok: true, hours: questions.saveHours(req.body || {}) }); } catch (e) { res.status(400).json({ ok: false, error: e.message }); } });
+app.get('/api/questions/cron-url', (req, res) => res.json({ url: process.env.BASE_URL.replace(/\/$/, '') + '/api/cron/questions?key=' + sign('cron-questions').slice(0, 24) }));
 app.post('/api/questions/sync', async (req, res) => {
   const p = bg(questions.syncAll());
   const r = await Promise.race([p, new Promise(ok => setTimeout(() => ok({ ok: true, pending: true }), 25e3))]).catch(e => ({ ok: false, errors: [e.message] }));
