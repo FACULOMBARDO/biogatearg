@@ -114,6 +114,14 @@ En **Presupuestos**, cada recibo tiene la columna **Envío** con el botón **�
 ### 🏷️ Etiquetas de envío (10 × 15, horizontal)
 Para los recibos/presupuestos y pedidos web que tienen **Envío** (no para los Flex de Mercado Libre, que ya traen su etiqueta). Botón **🏷️ Etiqueta** en Presupuestos, en Ventas web y en Envíos Flex. Se abre una vista previa con destinatario, teléfono, dirección, localidad y CP, aclaraciones y el teléfono del local; lo que corrijas queda guardado en el envío. **Descargar etiqueta (PDF)** baja un PDF de 15 × 10 cm en blanco y negro, con el logo de Biogate. En Envíos Flex, **🏷️ Etiquetas del período** junta en un PDF todas las de ese día, semana o mes (una por página).
 
+### ⚠️ Reclamos (Mercado Libre, todas las cuentas)
+En el menú lateral, **Reclamos** junta los reclamos de todas las cuentas. El número rojo del menú indica cuántos esperan tu respuesta.
+- **Te toca responder**: reclamos abiertos donde el último mensaje es del comprador o de Mercado Libre, o donde ML te pide una acción obligatoria. Muestra qué tenés que hacer y hasta cuándo ("quedan X h").
+- **Abiertos**: todos los que siguen abiertos (reclamo o mediación), con los últimos mensajes y si afectan tu reputación.
+- **Cerrados**: los de los últimos 4 meses, con cómo se resolvieron y a favor de quién.
+- Cada reclamo muestra la cuenta, el comprador, el producto, el monto, el motivo y el link "Ver en Mercado Libre" para responder ahí.
+- Filtros por cuenta y buscador. Se actualiza solo cada 20 minutos (con el panel abierto) o con "↻ Actualizar".
+
 ### 🖨️ Impresión de etiquetas (Mercado Libre, todas las cuentas)
 En el menú lateral, **Impresión de etiquetas** junta los pedidos **listos para despachar** de todas las cuentas de Mercado Libre: Flex, Colecta y Drop off (Full no, porque lo despacha ML). Se ve la cuenta, el número de venta, el comprador, los productos, el tipo de envío, el destino, hasta cuándo hay que despacharlo y si la etiqueta ya se imprimió.
 - Por defecto están todas marcadas. Podés filtrar por cuenta, tipo de envío o "Por imprimir / Ya impresas" y destildar las que no quieras.

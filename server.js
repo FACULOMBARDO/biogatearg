@@ -793,6 +793,19 @@ async function refillPush(force) {
 }
 
 // ---------- Preguntas de compradores ----------
+// Reclamos de Mercado Libre (todas las cuentas)
+const claims = require('./lib/claims');
+app.get('/api/claims', async (req, res) => {
+  const l = claims.list();
+  if (!l.last_sync) await Promise.race([bg(claims.sync()), new Promise(r => setTimeout(r, 55e3))]).catch(() => {});
+  res.json({ ok: true, ...claims.list() });
+});
+app.post('/api/claims/sync', async (req, res) => {
+  const r = await Promise.race([bg(claims.sync()), new Promise(r => setTimeout(() => r({ ok: false, errors: ['Sigue buscando en segundo plano: tocá Actualizar en un minuto.'] }), 55e3))]).catch(e => ({ ok: false, errors: [e.message] }));
+  res.json({ ...r, ...claims.list(), ok: true });
+});
+app.get('/api/claims/count', (req, res) => res.json(claims.count()));
+
 // Impresión de etiquetas de Mercado Libre (todas las cuentas)
 const shipLabels = require('./lib/shiplabels');
 app.get('/api/ship-labels', async (req, res) => { try { res.json({ ok: true, ...(await shipLabels.list()) }); } catch (e) { res.status(400).json({ ok: false, error: e.message }); } });
@@ -1313,7 +1326,7 @@ async function backfillSaleDates(until = Infinity) {
   }
 }
 // En Vercel: cada vez que alguien usa el panel se fija qué toca actualizar (con la última vez guardada en la base).
-const EVERY = { questions: 10 * 60e3, sales: 15 * 60e3, woo: 15 * 60e3, costs: 6 * 3600e3, web: 6 * 3600e3, manuals: 24 * 3600e3, backfill: 24 * 3600e3 };
+const EVERY = { claims: 20 * 60e3, questions: 10 * 60e3, sales: 15 * 60e3, woo: 15 * 60e3, costs: 6 * 3600e3, web: 6 * 3600e3, manuals: 24 * 3600e3, backfill: 24 * 3600e3 };
 let autoBusy = false;
 function autoTasks(force = false) {
   if (autoBusy || MISSING.length) return [];
@@ -1324,6 +1337,7 @@ function autoTasks(force = false) {
     const stamp = {};
     if (j.sales_resume && !salesJob.running) { if (resumeSales()) stamp.last_sales = new Date().toISOString(); }
     else if (due('sales') && !salesJob.running) { stamp.last_sales = new Date().toISOString(); autoSales(); }
+    if (due('claims')) { stamp.last_claims = new Date().toISOString(); runs.push(bg(require('./lib/claims').sync().catch(e => console.log('Reclamos:', e.message)))); }
     if (due('questions')) { stamp.last_questions = new Date().toISOString(); runs.push(bg(questions.syncAll().catch(e => console.log('Preguntas:', e.message)))); }
     runs.push(bg(refillPush(false).catch(() => {})));
     if (due('woo')) { stamp.last_woo = new Date().toISOString(); wooAuto(); }

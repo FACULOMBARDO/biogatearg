@@ -30,6 +30,7 @@
 <aside class="side">
   <a href="#ventas" class="nav" data-view="ventas"><span class="ic">💰</span><span>Ventas</span></a>
   <a href="#preguntas" class="nav" data-view="preguntas"><span class="ic">💬</span><span>Preguntas</span><span class="nav-badge" id="qsBadge" hidden></span></a>
+  <a href="#reclamos" class="nav" data-view="reclamos"><span class="ic">⚠️</span><span>Reclamos</span><span class="nav-badge" id="clBadge" hidden></span></a>
   <a href="#resultado" class="nav" data-view="resultado"><span class="ic">📊</span><span>Resultado del mes</span></a>
   <a href="#tareas" class="nav" data-view="tareas"><span class="ic">✅</span><span>Tareas</span></a>
   <a href="#recompras" class="nav" data-view="recompras"><span class="ic">🔔</span><span>Recompras</span><span class="nav-badge" id="rfBadge" hidden></span></a>
@@ -614,6 +615,22 @@
   <div class="mn-vbody" id="mnVBody"></div>
 </div>
 
+<section id="viewClaims" hidden>
+  <div class="row" style="justify-content:space-between;margin-bottom:12px">
+    <h1 class="page-title">Reclamos <span class="muted" style="font-size:15px;font-weight:500">· de todas tus cuentas</span></h1>
+    <button class="btn" id="clSync">↻ Actualizar</button>
+  </div>
+  <div class="card" style="padding:12px 14px">
+    <div class="row" style="flex-wrap:wrap;gap:8px">
+      <div class="seg" id="clTab"><button data-t="reply" class="on">Te toca responder <span class="cnt"></span></button><button data-t="open">Abiertos <span class="cnt"></span></button><button data-t="closed">Cerrados <span class="cnt"></span></button><button data-t="all">Todos <span class="cnt"></span></button></div>
+      <select id="clAcc"><option value="">Todas las cuentas</option></select>
+      <input type="search" id="clQ" placeholder="Buscar comprador, producto, motivo o número…" style="max-width:300px">
+      <span class="muted" id="clStatus" style="margin-left:auto;font-size:12.5px"></span>
+    </div>
+    <div id="clMsg" style="font-size:12.5px;margin-top:6px"></div>
+  </div>
+  <div id="clList"><div class="card muted" style="padding:20px">Cargando reclamos…</div></div>
+</section>
 <section id="viewShipLabels" hidden>
   <div class="row" style="justify-content:space-between;margin-bottom:12px">
     <h1 class="page-title">Impresión de etiquetas</h1>
@@ -1721,12 +1738,68 @@ $('slDownload').onclick = async () => {
   renderShipLabels();
 };
 
+// ---------- Reclamos (Mercado Libre, todas las cuentas) ----------
+let clData = null, clTab = 'reply';
+const CL_ACT = { send_message_to_complainant: 'responder al comprador', send_message_to_mediator: 'responder al mediador', refund: 'devolver el dinero', allow_return: 'aceptar la devolución', allow_partial_refund: 'ofrecer reembolso parcial', open_dispute: 'pedir mediación', send_potential_shipping: 'informar el envío', add_shipping_evidence: 'subir prueba de envío', send_attachments: 'enviar archivos' };
+const CL_FROM = { complainant: 'Comprador', respondent: 'Vos', mediator: 'Mercado Libre' };
+async function loadClaims(sync) {
+  $('clSync').disabled = true; $('clStatus').textContent = sync ? 'Buscando en todas las cuentas…' : '';
+  const d = await (await fetch(sync ? '/api/claims/sync' : '/api/claims', sync ? { method: 'POST' } : {})).json().catch(() => ({ ok: false, error: 'Sin conexión.' }));
+  $('clSync').disabled = false;
+  if (!d.ok) { $('clList').innerHTML = `<div class="card err-t" style="padding:20px">${esc(d.error || 'No se pudo cargar.')}</div>`; return; }
+  clData = d;
+  const accs = [...new Set(d.items.map(c => c.account))].sort(), a0 = $('clAcc').value;
+  $('clAcc').innerHTML = '<option value="">Todas las cuentas</option>' + accs.map(a => `<option>${esc(a)}</option>`).join('');
+  if (accs.includes(a0)) $('clAcc').value = a0;
+  const err = (d.errors && d.errors.length ? d.errors.join(' · ') : '') || d.last_error;
+  $('clMsg').innerHTML = err ? `<span class="err-t">⚠️ ${esc(err)}</span>` : '';
+  $('clStatus').textContent = d.last_sync ? `Actualizado ${new Date(d.last_sync).toLocaleString('es-AR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}` : '';
+  renderClaims(); clCheck();
+}
+function renderClaims() {
+  if (!clData) return;
+  const acc = $('clAcc').value, q = $('clQ').value.trim().toLowerCase();
+  const base = clData.items.filter(c => !acc || c.account === acc);
+  const groups = { reply: base.filter(c => c.needs_reply), open: base.filter(c => c.status === 'opened'), closed: base.filter(c => c.status !== 'opened'), all: base };
+  $('clTab').querySelectorAll('button').forEach(b => { b.classList.toggle('on', b.dataset.t === clTab); b.querySelector('.cnt').textContent = groups[b.dataset.t].length; });
+  const list = groups[clTab].filter(c => !q || [c.buyer, c.title, c.reason, c.id, c.order_id, c.resource_id, c.account].join(' ').toLowerCase().includes(q));
+  const dt = (v) => v ? new Date(v).toLocaleString('es-AR', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' }) : '';
+  const left = (v) => { const ms = new Date(v) - Date.now(); if (ms < 0) return 'vencido'; const h = Math.floor(ms / 3600e3); return h < 48 ? `quedan ${h} h` : `quedan ${Math.floor(h / 24)} días`; };
+  const empty = { reply: '¡No hay reclamos esperando tu respuesta! 🎉', open: 'No hay reclamos abiertos. 🎉', closed: 'No hay reclamos cerrados en los últimos 4 meses.', all: 'No hay reclamos.' }[clTab];
+  $('clList').innerHTML = list.map(c => {
+    const open = c.status === 'opened', link = `https://www.mercadolibre.com.ar/ventas/${esc(c.order_id || c.resource_id)}/detalle`;
+    const acts = (c.actions || []).map(a => CL_ACT[a.action] || a.action.replace(/_/g, ' ')).filter((v, i, a) => a.indexOf(v) === i);
+    return `<div class="card qs-card${c.needs_reply ? ' open' : ''}">
+      <div class="qs-head" style="flex-wrap:wrap"><span class="pill" style="color:var(--brand);border-color:var(--brand)">${esc(c.account)}</span>
+        ${open ? '<span class="pill" style="color:var(--err);border-color:var(--err)">Abierto</span>' : '<span class="pill">Cerrado</span>'}
+        ${c.stage_label ? `<span class="pill">${esc(c.stage_label)}</span>` : ''}${c.type_label && c.type_label !== 'Reclamo' ? `<span class="pill">${esc(c.type_label)}</span>` : ''}
+        ${c.affects_rep === true ? '<span class="pill" style="color:var(--err);border-color:var(--err)">Afecta tu reputación</span>' : c.affects_rep === false && open ? '<span class="pill" style="color:var(--ok);border-color:var(--ok)">No afecta reputación</span>' : ''}
+        <b>${esc(c.buyer || 'Comprador')}</b><span class="muted">· ${dt(c.date)} · Nº ${esc(c.id)}</span>
+        <a class="lnk" style="margin-left:auto;font-size:12.5px" href="${link}" target="_blank" rel="noopener">Ver en Mercado Libre ↗</a></div>
+      <div class="qs-item">${c.thumb ? `<img src="${esc(c.thumb)}" alt="" loading="lazy">` : '<div class="qs-noimg">📦</div>'}<div style="min-width:0"><div class="qs-title" style="font-weight:600">${esc(c.title || 'Venta ' + (c.order_id || c.resource_id))}</div><div class="muted" style="font-size:12.5px;margin-top:3px">${c.amount ? `<b style="color:var(--text)">${money(c.amount)}</b> · ` : ''}Venta ${esc(c.order_id || c.resource_id)}</div></div></div>
+      ${c.reason ? `<div class="qs-text" style="font-size:14px">Motivo: ${esc(c.reason)}</div>` : ''}
+      ${c.needs_reply ? `<div style="font-size:13px;margin:6px 0;color:var(--err)"><b>⏰ Te toca:</b> ${esc(acts.join(', ') || 'responder')}${c.due ? ` · antes del ${dt(c.due)} (${left(c.due)})` : ''}</div>` : open && acts.length ? `<div class="muted" style="font-size:12.5px;margin:6px 0">Podés: ${esc(acts.join(', '))}</div>` : ''}
+      ${(c.messages || []).length ? `<div class="qs-hist">${c.messages.slice(-3).map(m => `<div class="qs-hq"><div class="muted" style="font-size:12px">${esc(CL_FROM[m.from] || m.from)} · ${dt(m.date)}</div>${esc(m.text)}</div>`).join('')}${c.msg_count > 3 ? `<div class="muted" style="font-size:12px">… ${c.msg_count - 3} mensajes más en Mercado Libre</div>` : ''}</div>` : ''}
+      ${!open && c.resolution ? `<div class="qs-ans"><div class="muted" style="font-size:12px">✓ Cerrado ${dt(c.resolution.date)}</div>${esc([c.resolution.reason && c.resolution.reason.replace(/_/g, ' '), c.resolution.benefited && 'a favor de: ' + ({ complainant: 'el comprador', respondent: 'vos' }[c.resolution.benefited] || c.resolution.benefited)].filter(Boolean).join(' · ') || 'Cerrado')}</div>` : ''}
+    </div>`;
+  }).join('') || `<div class="card muted" style="padding:20px">${empty}</div>`;
+}
+async function clCheck() {
+  const d = await (await fetch('/api/claims/count')).json().catch(() => null);
+  if (!d) return;
+  $('clBadge').hidden = !d.to_reply; $('clBadge').textContent = d.to_reply > 99 ? '99+' : d.to_reply;
+}
+$('clSync').onclick = () => loadClaims(true);
+$('clAcc').onchange = renderClaims; $('clQ').oninput = renderClaims;
+$('clTab').onclick = (e) => { const b = e.target.closest('[data-t]'); if (!b) return; clTab = b.dataset.t; renderClaims(); };
+setTimeout(clCheck, 2500); setInterval(clCheck, 60e3);
+
 function showView() {
-  const v = ({ '#ventas': 'ventas', '#ranking': 'ranking', '#precios': 'precios', '#presupuestos': 'presupuestos', '#estados': 'estados', '#gastos': 'gastos', '#full': 'full', '#flex': 'flex', '#resultado': 'resultado', '#tareas': 'tareas', '#recompras': 'recompras', '#preguntas': 'preguntas', '#stock': 'stock', '#sugerencias': 'sugerencias', '#web': 'web', '#horarios': 'horarios', '#manuales': 'manuales', '#calculadora': 'calculadora', '#etiquetas': 'etiquetas', '#impresion': 'impresion', '#tuyo': 'tuyo' })[location.hash] || 'ventas';
+  const v = ({ '#ventas': 'ventas', '#ranking': 'ranking', '#precios': 'precios', '#presupuestos': 'presupuestos', '#estados': 'estados', '#gastos': 'gastos', '#full': 'full', '#flex': 'flex', '#resultado': 'resultado', '#tareas': 'tareas', '#recompras': 'recompras', '#preguntas': 'preguntas', '#stock': 'stock', '#sugerencias': 'sugerencias', '#web': 'web', '#horarios': 'horarios', '#manuales': 'manuales', '#calculadora': 'calculadora', '#etiquetas': 'etiquetas', '#impresion': 'impresion', '#reclamos': 'reclamos', '#tuyo': 'tuyo' })[location.hash] || 'ventas';
   $('viewQuotes').hidden = v !== 'presupuestos';
   $('viewStatus').hidden = v !== 'estados';
   $('viewExpenses').hidden = v !== 'gastos'; $('viewFull').hidden = v !== 'full';
-  $('viewResults').hidden = v !== 'resultado'; $('viewStock').hidden = v !== 'stock'; $('viewSuggest').hidden = v !== 'sugerencias'; $('viewWeb').hidden = v !== 'web'; $('viewHours').hidden = v !== 'horarios'; $('viewManuals').hidden = v !== 'manuales'; $('viewCalc').hidden = v !== 'calculadora'; $('viewPLabel').hidden = v !== 'etiquetas'; $('viewShipLabels').hidden = v !== 'impresion'; $('viewTuyo').hidden = v !== 'tuyo';
+  $('viewResults').hidden = v !== 'resultado'; $('viewStock').hidden = v !== 'stock'; $('viewSuggest').hidden = v !== 'sugerencias'; $('viewWeb').hidden = v !== 'web'; $('viewHours').hidden = v !== 'horarios'; $('viewManuals').hidden = v !== 'manuales'; $('viewCalc').hidden = v !== 'calculadora'; $('viewPLabel').hidden = v !== 'etiquetas'; $('viewShipLabels').hidden = v !== 'impresion'; $('viewClaims').hidden = v !== 'reclamos'; $('viewTuyo').hidden = v !== 'tuyo';
   $('viewFlex').hidden = v !== 'flex'; $('viewSales').hidden = v !== 'ventas'; $('viewTasks').hidden = v !== 'tareas'; $('viewRefill').hidden = v !== 'recompras'; $('viewQuestions').hidden = v !== 'preguntas';
   $('viewRanking').hidden = v !== 'ranking'; $('viewPrices').hidden = v !== 'precios';
   document.querySelectorAll('.side .nav').forEach(a => a.classList.toggle('active', a.dataset.view === v));
@@ -1746,6 +1819,7 @@ function showView() {
   if (v === 'calculadora') loadCalc();
   if (v === 'etiquetas') loadPLabel();
   if (v === 'impresion') loadShipLabels();
+  if (v === 'reclamos') loadClaims(false);
   if (v === 'tuyo') loadTuyo();
   if (v === 'tareas') loadTasks();
   if (v === 'recompras') loadRefill();
