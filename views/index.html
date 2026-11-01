@@ -2718,7 +2718,7 @@ function renderFunnel() {
     <td style="text-align:right">${r.visits == null ? '—' : r.visits.toLocaleString('es-AR')}${fnChg(r.visits_change)}</td>
     <td style="text-align:right">${r.sales}${fnChg(r.sales_change)}</td>
     <td style="text-align:right"><b>${r.conv != null ? r.conv + '%' : '—'}</b>${r.conv_prev != null ? `<div class="muted" style="font-size:11px">antes ${r.conv_prev}%</div>` : ''}</td>
-    <td style="font-size:12.5px;max-width:340px"><b style="color:${col}">${lbl}</b>${r.drop ? ' <b style="color:var(--err)">📉 cayó</b>' : ''}${r.reasons.length ? `<div class="muted">${r.reasons.map(esc).join(' · ')}</div>` : ''}</td>
+    <td style="font-size:12.5px;max-width:340px"><b style="color:${col}">${lbl}</b>${r.drop ? ' <b style="color:var(--err)">📉 cayó</b>' : ''}${r.reasons.length ? `<div class="muted">${r.reasons.map(esc).join(' · ')}</div>` : ''}${qaButtons(r.account_id, r.id, r.actions)}</td>
     <td><div style="display:grid;gap:4px"><button class="btn small" data-cmp="${esc(r.account_id)}|${esc(r.id)}">🔍 Comparar</button><button class="btn small" data-fnedit="${esc(r.id)}">Mejorar</button></div></td></tr>`; }).join('') || `<tr><td colspan="6" class="muted" style="padding:16px">${fnData.job.running ? 'Trayendo visitas…' : 'No hay publicaciones con ese filtro.'}</td></tr>`;
   $('fnMore').hidden = list.length <= fnLimit;
 }
@@ -2776,13 +2776,31 @@ async function openCompare(accId, itemId) {
   ];
   $('cmpBody').innerHTML = `<h4 style="margin:0 0 6px">Qué cambiar en tu publicación</h4>
     <ol style="margin:0 0 12px;padding-left:20px;font-size:13.5px;line-height:1.55">${d.actions.map(a => `<li style="margin-bottom:4px"><b style="color:${a.prio === 1 ? 'var(--err)' : a.prio === 2 ? '#d97706' : 'var(--muted)'}">${a.prio === 1 ? 'Importante' : a.prio === 2 ? 'Conviene' : 'Extra'}:</b> ${esc(a.text)}</li>`).join('')}</ol>
-    <div class="row" style="gap:8px;margin-bottom:12px"><button class="btn primary small" id="cmpEdit">✏️ Mejorar mi publicación ahora</button></div>
+    <div class="row" style="gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center"><button class="btn primary small" id="cmpEdit">✏️ Mejorar mi publicación ahora</button>${qaButtons(d.account_id, me.id, d.quick)}</div>
     <div class="table-wrap"><table class="sales-table"><thead><tr><th></th>${cols.map(c => `<th>${esc(c.role)}<div style="font-weight:600;text-transform:none;font-size:12.5px;color:var(--text)">${c.link && c.seller !== 'Vos' ? `<a class="lnk" href="${esc(c.link)}" target="_blank" rel="noopener">${esc(c.seller || '—')} ↗</a>` : esc(c.seller || '')}</div></th>`).join('')}</tr></thead>
     <tbody>${rows.map(([k, f]) => `<tr><td class="muted" style="font-size:12.5px;white-space:nowrap">${k}</td>${cols.map(c => `<td style="font-size:13px">${f(c)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
   $('cmpEdit').onclick = async () => { $('cmpModal').classList.remove('show'); if (!lsData) await loadListings(); openListing(itemId); };
 }
 $('cmpClose').onclick = () => $('cmpModal').classList.remove('show');
 document.addEventListener('click', (e) => { const b = e.target.closest('[data-cmp]'); if (!b) return; e.preventDefault(); const [a, i] = b.dataset.cmp.split('|'); openCompare(a, i); });
+
+// ---------- Acciones rápidas (Flex, Premium, descuento) ----------
+const QA = { flex: '🛵 Activar Flex', premium: '💳 Pasar a Premium (cuotas)', discount: '🏷️ Poner descuento' };
+function qaButtons(acc, id, list) {
+  if (!list || !list.length) return '';
+  return `<div class="row qa-row" style="gap:6px;flex-wrap:wrap;margin-top:6px">${list.map(a => `<button class="btn small qa-btn" data-qa="${a}|${esc(acc)}|${esc(id)}">${QA[a]}</button>`).join('')}<span class="qa-msg" style="font-size:12px"></span></div>`;
+}
+document.addEventListener('click', async (e) => {
+  const b = e.target.closest('[data-qa]'); if (!b) return;
+  e.preventDefault();
+  const [a, acc, id] = b.dataset.qa.split('|'), msg = b.closest('.qa-row').querySelector('.qa-msg');
+  if (a === 'discount') { if (!lsData) await loadListings(); $('cmpModal').classList.remove('show'); openListing(id, 'promos'); return; }
+  if (a === 'premium' && !b.dataset.sure) { b.dataset.sure = '1'; b.textContent = '¿Seguro? Premium cobra más comisión y no se puede volver a Clásica si ya vendió. Tocá de nuevo'; return; }
+  b.disabled = true; const old = QA[a]; b.textContent = 'Aplicando…';
+  const r = await lsPost(`/api/listings/${acc}/${id}/${a}`, a === 'flex' ? { on: true } : {});
+  if (r.ok) { b.textContent = a === 'flex' ? '✓ Flex activado' : '✓ Pasada a Premium'; b.style.color = 'var(--ok)'; msg.textContent = ''; }
+  else { b.disabled = false; b.textContent = old; delete b.dataset.sure; msg.innerHTML = `<span class="err-t">${esc(r.error)}</span>`; }
+});
 
 function showView() {
   const v = ({ '#ventas': 'ventas', '#ranking': 'ranking', '#precios': 'precios', '#presupuestos': 'presupuestos', '#estados': 'estados', '#gastos': 'gastos', '#full': 'full', '#flex': 'flex', '#resultado': 'resultado', '#tareas': 'tareas', '#recompras': 'recompras', '#preguntas': 'preguntas', '#stock': 'stock', '#sugerencias': 'sugerencias', '#web': 'web', '#horarios': 'horarios', '#manuales': 'manuales', '#calculadora': 'calculadora', '#etiquetas': 'etiquetas', '#impresion': 'impresion', '#reclamos': 'reclamos', '#publicaciones': 'publicaciones', '#publicar': 'publicar', '#competencia': 'competencia', '#embudo': 'embudo', '#salud': 'salud', '#tuyo': 'tuyo' })[location.hash] || 'ventas';

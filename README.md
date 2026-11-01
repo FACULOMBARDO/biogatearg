@@ -123,6 +123,8 @@ Al final del menú lateral. Para cada publicación: **visitas, ventas y conversi
 - **Sin stock.**
 El botón **Mejorar** abre la publicación (ficha, fotos, descripción, precio). Las visitas se actualizan solas una vez por día o con "↻ Actualizar visitas" (si son muchas publicaciones, se traen en partes: el cartel avisa cuántas faltan).
 
+**Acciones con un botón** (en Embudo y en Comparar): **🛵 Activar Flex** en la publicación (la cuenta tiene que tener Flex habilitado en ML; si no, avisa cómo), **💳 Pasar a Premium (cuotas)** (pide confirmar: cobra más comisión y no se puede volver a Clásica si ya vendió) y **🏷️ Poner descuento** (abre los descuentos de esa publicación).
+
 **🔍 Comparar con el que más vende** (en Embudo y en Competencia): busca a los que venden el mismo producto en el catálogo de ML y compara tu publicación lado a lado con el que gana el catálogo, el que más vende y el más barato: precio y descuento, vendidos, Full/Flex/envío gratis, cuotas (Premium), entrega inmediata o a plazo, fotos, clip, datos de la ficha técnica (y cuáles te faltan), palabras del título, largo de la descripción, opiniones, catálogo y reputación. Arriba arma la lista de **qué cambiar**, ordenada por importancia, con un botón para editar la publicación.
 
 ### 🛡️ Salud de cuentas

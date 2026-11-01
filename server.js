@@ -805,6 +805,8 @@ app.get('/api/listings/:acc/:id/promos', lsWrap(async req => ({ promos: await li
 app.post('/api/listings/discount', lsWrap(req => listings.ownDiscount((req.body || {}).items, req.body.pct, req.body.from, req.body.to)));
 app.post('/api/listings/:acc/:id/promos/join', lsWrap(async req => ({ done: await listings.joinPromo(req.params.acc, req.params.id, req.body || {}) })));
 app.post('/api/listings/:acc/:id/promos/leave', lsWrap(async req => ({ done: await listings.leavePromo(req.params.acc, req.params.id, (req.body || {}).type, (req.body || {}).promotion_id) })));
+app.post('/api/listings/:acc/:id/flex', lsWrap(req => listings.setFlex(req.params.acc, req.params.id, (req.body || {}).on !== false)));
+app.post('/api/listings/:acc/:id/premium', lsWrap(req => listings.setPremium(req.params.acc, req.params.id)));
 app.get('/api/listings/campaigns', lsWrap(req => listings.campaigns(String(req.query.accounts || '').split(',').filter(Boolean))));
 app.get('/api/listings/campaigns/:acc/:promo', lsWrap(async req => ({ items: await listings.campaignItems(req.params.acc, req.params.promo, req.query.type) })));
 app.get('/api/listings/:acc/:id/detail', lsWrap(async req => ({ ...(await listings.detail(req.params.acc, req.params.id)), twins: listings.twins(req.params.id).map(t => ({ id: t.id, account: t.account })) })));
