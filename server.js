@@ -814,6 +814,19 @@ app.put('/api/listings/:acc/:id/pictures', lsWrap(req => listings.savePictures(r
 app.post('/api/listings/ai/description', lsWrap(req => require('./lib/ai').describe(req.body || {})));
 app.post('/api/listings/ai/photos', lsWrap(req => require('./lib/ai').reviewPhotos((req.body || {}).title, (req.body || {}).urls)));
 
+// Publicar en varias cuentas (desde link de ML, de Amazon o desde cero)
+const publish = require('./lib/publish');
+app.post('/api/publish/source', lsWrap(async req => { const b = req.body || {}; return { data: b.type === 'amazon' ? await publish.fromAmazon(b.link) : await publish.fromMl(b.link) }; }));
+app.get('/api/publish/categories', lsWrap(async req => ({ items: await publish.categories(req.query.q) })));
+app.get('/api/publish/category/:id', lsWrap(async req => ({ category: await publish.categoryInfo(req.params.id) })));
+app.post('/api/publish/breakdown', lsWrap(async req => ({ b: await publish.breakdown(req.body || {}) })));
+app.post('/api/publish/price', lsWrap(async req => ({ b: await publish.priceFor(req.body || {}) })));
+app.get('/api/publish/amazon-cost', (req, res) => res.json({ ok: true, ...publish.amazonCost(req.query.usd, req.query.kg) }));
+app.get('/api/publish/market', lsWrap(req => publish.market(req.query.q)));
+app.post('/api/publish/ai', lsWrap(req => require('./lib/ai').listingText(req.body || {})));
+app.post('/api/publish', lsWrap(req => publish.publish(req.body || {})));
+app.get('/api/publish/accounts', (req, res) => res.json({ ok: true, accounts: store.getAccounts().map(a => ({ id: String(a.user_id), nickname: a.nickname || String(a.user_id), disabled: !!a.needs_reconnect, tuyo: require('./lib/tuyo').isTuyo(a.user_id) })) }));
+
 // Reclamos de Mercado Libre (todas las cuentas)
 const claims = require('./lib/claims');
 app.get('/api/claims', async (req, res) => {

@@ -114,6 +114,14 @@ En **Presupuestos**, cada recibo tiene la columna **Envío** con el botón **�
 ### 🏷️ Etiquetas de envío (10 × 15, horizontal)
 Para los recibos/presupuestos y pedidos web que tienen **Envío** (no para los Flex de Mercado Libre, que ya traen su etiqueta). Botón **🏷️ Etiqueta** en Presupuestos, en Ventas web y en Envíos Flex. Se abre una vista previa con destinatario, teléfono, dirección, localidad y CP, aclaraciones y el teléfono del local; lo que corrijas queda guardado en el envío. **Descargar etiqueta (PDF)** baja un PDF de 15 × 10 cm en blanco y negro, con el logo de Biogate. En Envíos Flex, **🏷️ Etiquetas del período** junta en un PDF todas las de ese día, semana o mes (una por página).
 
+### 📝 Publicar (en una o varias cuentas)
+Al final del menú lateral. Cuatro pasos:
+1. **De dónde sale:** link de una publicación de Mercado Libre (tuya o de otro vendedor; también links de catálogo /p/MLA…), link de Amazon, o desde cero. Trae título, categoría, fotos, ficha técnica y descripción. Amazon suele bloquear la lectura: si pasa, se cargan a mano título, precio en US$, peso y fotos.
+2. **Producto:** título (máx. 60), categoría (buscador de ML), SKU, stock, Clásica o Premium, fotos (ordenar, quitar, subir o pegar link), ficha técnica de la categoría (los obligatorios con *) y descripción. **✨ Título y descripción con IA** los escribe en español para Argentina (sirve para productos de Amazon en inglés).
+3. **Costo y precio:** en Amazon, costo = (precio US$ + peso en kg × US$ 32) × $1.550 (los mismos valores de TUYO). **Calcular precio** busca el precio que deja el neto elegido (15%, 18%, 20% u otro, sobre el precio de venta) después del 23% de impuestos, la comisión real de ML para esa categoría y el envío gratis si pasa los $33.000. Se puede poner otro precio y ver el neto. Abajo, **Quién más lo vende**: vendedores, precios, vendidos (total histórico) y cómo queda tu precio frente a la mediana.
+4. **Entrega y cuentas:** hay que elegir siempre **entrega inmediata** o **a plazo** (por defecto 20 días, ML lo muestra como "disponible en X días"), y las cuentas. Antes de publicar se muestra un resumen para confirmar. Si una cuenta es TUYO y el producto es de Amazon, el costo queda cargado en TUYO.
+Ojo: publicar el mismo producto en varias cuentas va contra las reglas de ML (publicaciones repetidas).
+
 ### 🗂️ Mis publicaciones (todas las cuentas)
 Al final del menú lateral. Trae todas las publicaciones activas y pausadas de todas las cuentas (botón **↻ Actualizar desde ML**; la primera vez tarda un poco). Filtros: cuenta, activas/pausadas, sin stock, stock bajo, con descuento, Full, calidad baja, con plazo de entrega, y buscador por título, SKU, marca o número MLA.
 - **Precio y stock uno por uno:** cambiás el número en la tabla, la fila queda marcada y abajo aparece **Guardar en Mercado Libre** (con confirmación). Nada se cambia en ML hasta que guardás.

@@ -52,6 +52,7 @@
   <a href="#reclamos" class="nav" data-view="reclamos"><span class="ic">⚠️</span><span>Reclamos</span><span class="nav-badge" id="clBadge" hidden></span></a>
   <a href="#impresion" class="nav" data-view="impresion"><span class="ic">🖨️</span><span>Impresión de etiquetas</span></a>
   <a href="#publicaciones" class="nav" data-view="publicaciones"><span class="ic">🗂️</span><span>Mis publicaciones</span></a>
+  <a href="#publicar" class="nav" data-view="publicar"><span class="ic">📝</span><span>Publicar</span></a>
   <div class="side-foot hide-sm muted">Todas tus cuentas de Mercado Libre en un lugar.</div>
 </aside>
 <main>
@@ -617,6 +618,72 @@
   <div class="mn-vbody" id="mnVBody"></div>
 </div>
 
+<section id="viewPublish" hidden>
+  <div class="row" style="justify-content:space-between;margin-bottom:12px">
+    <h1 class="page-title">Publicar <span class="muted" style="font-size:15px;font-weight:500">· en una o varias cuentas</span></h1>
+    <button class="btn" id="pbReset">Empezar de nuevo</button>
+  </div>
+  <div class="card">
+    <b>1. ¿De dónde sale la publicación?</b>
+    <div class="row" style="gap:8px;flex-wrap:wrap;margin-top:8px">
+      <div class="seg" id="pbSrc"><button data-s="ml" class="on">Link de Mercado Libre</button><button data-s="amazon">Link de Amazon</button><button data-s="new">Desde cero</button></div>
+      <input type="url" id="pbLink" placeholder="Pegá el link de la publicación de Mercado Libre" style="flex:1;min-width:240px">
+      <button class="btn primary" id="pbFetch">Traer datos</button>
+    </div>
+    <div id="pbSrcMsg" style="font-size:13px;margin-top:6px"></div>
+  </div>
+  <div id="pbForm" hidden>
+    <div class="card">
+      <div class="row" style="justify-content:space-between;flex-wrap:wrap;gap:8px"><b>2. Producto</b><button class="btn small" id="pbAi">✨ Título y descripción con IA</button></div>
+      <div class="pb-grid">
+        <label class="fld" style="grid-column:1/-1"><span>Título <span class="muted" id="pbTitleN"></span></span><input type="text" id="pbTitle" maxlength="60"></label>
+        <div class="fld" style="grid-column:1/-1"><span>Categoría</span><div class="row" style="gap:6px;flex-wrap:wrap"><b id="pbCatName" style="font-size:13.5px">Sin elegir</b><input type="text" id="pbCatQ" placeholder="Buscar categoría (ej. proteína whey)" style="flex:1;min-width:200px"><button class="btn small" id="pbCatBtn">Buscar</button></div><div id="pbCats" class="row" style="gap:6px;flex-wrap:wrap;margin-top:6px"></div></div>
+        <label class="fld"><span>SKU</span><input type="text" id="pbSku" style="text-transform:uppercase"></label>
+        <label class="fld"><span>Stock</span><input type="number" id="pbStock" min="1" value="1"></label>
+        <div class="fld"><span>Tipo de publicación</span><div class="seg" id="pbType"><button data-t="gold_special" class="on">Clásica</button><button data-t="gold_pro">Premium (cuotas sin interés)</button></div></div>
+        <label class="fld" id="pbCatalogBox" hidden><span>Catálogo</span><span style="display:flex;gap:6px;align-items:center;font-size:13px"><input type="checkbox" id="pbCatalog" style="width:auto"> Publicar en el catálogo de ML</span></label>
+      </div>
+      <h4 style="margin:14px 0 6px">Fotos</h4>
+      <div class="ls-pics" id="pbPics"></div>
+      <div class="muted" style="font-size:12px;margin-top:6px">La primera es la principal: producto solo, fondo blanco, sin textos ni logos.</div>
+      <h4 style="margin:14px 0 6px">Ficha técnica <span class="muted" id="pbAttrInfo" style="font-size:12.5px;font-weight:400"></span></h4>
+      <div id="pbAttrs" class="muted" style="font-size:13px">Elegí la categoría para ver los datos.</div>
+      <h4 style="margin:14px 0 6px">Descripción</h4>
+      <textarea id="pbDesc" style="min-height:200px;width:100%"></textarea>
+      <div id="pbAiMsg" style="font-size:13px;margin-top:4px"></div>
+    </div>
+    <div class="card">
+      <b>3. Costo y precio</b>
+      <div id="pbAmz" class="pb-grid" style="margin-top:8px" hidden>
+        <label class="fld"><span>Precio en Amazon (US$)</span><input type="number" id="pbUsd" step="0.01" min="0"></label>
+        <div class="fld"><span>Peso</span><div class="row" style="gap:6px;flex-wrap:nowrap"><input type="number" id="pbW" step="0.01" min="0" style="flex:1;min-width:0"><select id="pbWUnit" style="width:auto"><option value="kg">kg</option><option value="lb">libras</option><option value="oz">onzas</option></select></div></div>
+        <div class="fld" style="grid-column:1/-1;font-size:13px" id="pbAmzCost"></div>
+      </div>
+      <div class="pb-grid" style="margin-top:8px">
+        <label class="fld" id="pbCostBox"><span>Costo del producto ($)</span><input type="number" id="pbCost" min="0" placeholder="Opcional, para calcular el neto"></label>
+        <div class="fld"><span>Neto buscado (sobre el precio de venta)</span><div class="row" style="gap:6px;flex-wrap:wrap"><button class="btn small" data-pbmg="15">15%</button><button class="btn small" data-pbmg="18">18%</button><button class="btn small" data-pbmg="20">20%</button><input type="number" id="pbMargin" value="18" min="1" max="80" style="width:70px">%</div></div>
+        <label class="fld"><span>Redondeo</span><select id="pbRound"><option value="100">a $100</option><option value="1000">a $1.000</option><option value="999" selected>terminado en 999</option></select></label>
+        <div class="fld"><span>&nbsp;</span><button class="btn primary" id="pbCalc">Calcular precio</button></div>
+        <label class="fld"><span>Precio de venta ($)</span><input type="number" id="pbPrice" min="1"></label>
+        <div class="fld"><span>&nbsp;</span><button class="btn" id="pbRecalc">Ver neto con este precio</button></div>
+      </div>
+      <div id="pbBreak" style="margin-top:10px"></div>
+      <h4 style="margin:16px 0 6px">🔎 Quién más lo vende en Mercado Libre</h4>
+      <div class="row" style="gap:6px"><input type="text" id="pbMktQ" placeholder="Buscar en Mercado Libre" style="flex:1"><button class="btn small" id="pbMktBtn">Buscar</button></div>
+      <div id="pbMkt" style="margin-top:8px;font-size:13px"></div>
+    </div>
+    <div class="card">
+      <b>4. Entrega y cuentas</b>
+      <div style="margin-top:8px;font-size:14px"><b style="color:var(--err)">¿Cómo se entrega?</b> (obligatorio)
+        <div class="row" style="gap:14px;flex-wrap:wrap;margin-top:6px"><label style="display:flex;gap:6px;align-items:center"><input type="radio" name="pbDel" value="now" style="width:auto"> Entrega inmediata (tengo stock)</label>
+        <label style="display:flex;gap:6px;align-items:center"><input type="radio" name="pbDel" value="days" style="width:auto"> A plazo: <input type="number" id="pbDays" value="20" min="1" max="45" style="width:70px"> días desde la compra</label></div></div>
+      <div style="margin-top:12px;font-size:14px"><b>Cuentas</b> <a href="#" class="lnk" id="pbAccAll" style="font-size:12.5px">todas</a> · <a href="#" class="lnk" id="pbAccNone" style="font-size:12.5px">ninguna</a><div class="row" id="pbAccs" style="gap:12px;flex-wrap:wrap;margin-top:6px"></div></div>
+      <div id="pbDupWarn" class="muted" style="font-size:12.5px;margin-top:8px" hidden>⚠️ Publicar el mismo producto en varias cuentas va contra las reglas de Mercado Libre (publicaciones repetidas): pueden pausarlas o sancionar las cuentas. La decisión es tuya.</div>
+      <div class="row" style="justify-content:flex-end;margin-top:12px"><button class="btn primary" id="pbGo">Publicar</button></div>
+      <div id="pbResult" style="font-size:13.5px;margin-top:10px"></div>
+    </div>
+  </div>
+</section>
 <section id="viewListings" hidden>
   <div class="row" style="justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px">
     <h1 class="page-title">Mis publicaciones <span class="muted" style="font-size:15px;font-weight:500">· de todas tus cuentas</span></h1>
@@ -2228,12 +2295,208 @@ async function openCampaigns() {
 $('lsCampBtn').onclick = openCampaigns;
 $('lcClose').onclick = () => { $('lcModal').classList.remove('show'); loadListings(); };
 
+// ---------- Publicar en varias cuentas ----------
+let pb = null, pbAccsList = null;
+const PB_EMPTY = () => ({ src: 'ml', source_id: '', title: '', category_id: '', category_name: '', catalog_product_id: null, pictures: [], uploads: [], attrs: {}, srcAttrs: [], catAttrs: [], bullets: [], usd: null, weight_kg: null, listing_type: 'gold_special' });
+async function loadPublish() {
+  if (!pb) pb = PB_EMPTY();
+  if (!pbAccsList) {
+    const d = await (await fetch('/api/publish/accounts')).json().catch(() => ({ accounts: [] }));
+    pbAccsList = d.accounts || [];
+    $('pbAccs').innerHTML = pbAccsList.map(a => `<label style="display:flex;gap:5px;align-items:center"><input type="checkbox" data-pbacc="${esc(a.id)}" ${a.disabled ? 'disabled' : ''} style="width:auto">${esc(a.nickname)}${a.tuyo ? ' <span class="ls-tag">TUYO</span>' : ''}${a.disabled ? ' <span class="muted">(reconectar)</span>' : ''}</label>`).join('');
+  }
+}
+function pbSrc(s) {
+  pb.src = s; $('pbSrc').querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.s === s));
+  $('pbLink').hidden = s === 'new'; $('pbFetch').textContent = s === 'new' ? 'Empezar' : 'Traer datos';
+  $('pbLink').placeholder = s === 'amazon' ? 'Pegá el link del producto de Amazon' : 'Pegá el link de la publicación de Mercado Libre';
+  $('pbAmz').hidden = s !== 'amazon'; $('pbCostBox').hidden = s === 'amazon';
+}
+$('pbSrc').onclick = (e) => { const b = e.target.closest('[data-s]'); if (b) pbSrc(b.dataset.s); };
+$('pbReset').onclick = () => { pb = PB_EMPTY(); $('pbForm').hidden = true; $('pbLink').value = ''; $('pbSrcMsg').textContent = ''; $('pbResult').textContent = ''; $('pbBreak').textContent = ''; $('pbMkt').textContent = ''; ['pbTitle', 'pbSku', 'pbDesc', 'pbUsd', 'pbW', 'pbCost', 'pbPrice', 'pbCatQ'].forEach(i => $(i).value = ''); document.querySelectorAll('input[name=pbDel]').forEach(r => r.checked = false); pbSrc('ml'); };
+$('pbFetch').onclick = async () => {
+  const src = pb.src, link = $('pbLink').value.trim();
+  const keep = pb.src; pb = PB_EMPTY(); pb.src = keep;
+  if (src !== 'new') {
+    if (!link) { $('pbSrcMsg').innerHTML = '<span class="err-t">Pegá el link.</span>'; return; }
+    $('pbFetch').disabled = true; $('pbSrcMsg').innerHTML = '<span class="muted">Leyendo…</span>';
+    const r = await lsPost('/api/publish/source', { type: src, link });
+    $('pbFetch').disabled = false;
+    if (!r.ok) { $('pbSrcMsg').innerHTML = `<span class="err-t">${esc(r.error)}</span>`; return; }
+    const d = r.data;
+    Object.assign(pb, { source_id: d.source_id, title: d.title, category_id: d.category_id || '', catalog_product_id: d.catalog_product_id || null, pictures: d.pictures || [], srcAttrs: d.attributes || [], bullets: d.bullets || [], usd: d.usd, weight_kg: d.weight_kg, listing_type: d.listing_type || 'gold_special' });
+    $('pbDesc').value = d.description || '';
+    $('pbPrice').value = d.price || '';
+    if (src === 'amazon') {
+      $('pbUsd').value = d.usd || ''; $('pbW').value = d.weight_kg || ''; $('pbWUnit').value = 'kg';
+      document.querySelector('input[name=pbDel][value=days]').checked = false;
+      $('pbSrcMsg').innerHTML = d.blocked ? '<span style="color:#d97706">⚠️ Amazon no dejó leer la página (pasa seguido). Completá a mano el título, el precio en dólares, el peso y subí las fotos.</span>'
+        : `<span style="color:var(--ok)">✓ Leído de Amazon</span>${d.weight_kg ? '' : ' · <span style="color:#d97706">no encontré el peso: cargalo a mano</span>'}${d.usd ? '' : ' · <span style="color:#d97706">no encontré el precio: cargalo a mano</span>'}. Tocá "✨ Título y descripción con IA" para pasarlo a español.`;
+    } else {
+      $('pbSrcMsg').innerHTML = `<span style="color:var(--ok)">✓ Datos traídos de ${esc(d.source_id)}</span>${d.own_listing ? ' (es tuya)' : ' · <span class="muted">Es de otro vendedor: conviene usar fotos y descripción propias, ML puede bajar la publicación si el dueño denuncia.</span>'}${d.variations > 1 ? ` · <span style="color:#d97706">tiene ${d.variations} variantes: se publica sin variantes</span>` : ''}`;
+    }
+  } else { $('pbSrcMsg').textContent = ''; $('pbDesc').value = ''; $('pbPrice').value = ''; }
+  $('pbTitle').value = pb.title; pbTitleN();
+  $('pbType').querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.t === pb.listing_type));
+  $('pbCatalogBox').hidden = !pb.catalog_product_id; $('pbCatalog').checked = false;
+  $('pbForm').hidden = false; $('pbBreak').textContent = ''; $('pbResult').textContent = '';
+  pbRenderPics(); pbAmzCost();
+  if (pb.category_id) pbSetCat(pb.category_id); else { $('pbCatName').textContent = 'Sin elegir'; $('pbAttrs').innerHTML = '<span class="muted">Elegí la categoría para ver los datos.</span>'; if (pb.title) { $('pbCatQ').value = pb.title; pbFindCats(); } }
+  if (pb.title) { $('pbMktQ').value = pb.title.split(' ').slice(0, 7).join(' '); pbMarket(); }
+};
+function pbTitleN() { $('pbTitleN').textContent = `(${$('pbTitle').value.length}/60)`; }
+$('pbTitle').oninput = pbTitleN;
+$('pbType').onclick = (e) => { const b = e.target.closest('[data-t]'); if (!b) return; pb.listing_type = b.dataset.t; $('pbType').querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b)); };
+async function pbFindCats() {
+  const q = $('pbCatQ').value.trim(); if (!q) return;
+  $('pbCats').innerHTML = '<span class="muted" style="font-size:13px">Buscando…</span>';
+  const r = await (await fetch('/api/publish/categories?q=' + encodeURIComponent(q))).json().catch(() => ({ ok: false, error: 'Sin conexión.' }));
+  if (!r.ok) { $('pbCats').innerHTML = `<span class="err-t">${esc(r.error)}</span>`; return; }
+  $('pbCats').innerHTML = r.items.map((c, i) => `<button class="pb-cat" data-pbcat="${i}"><b>${esc(c.name)}</b><div class="muted">${esc(c.domain || '')}</div></button>`).join('') || '<span class="muted" style="font-size:13px">No encontré categorías: probá con otras palabras.</span>';
+  $('pbCats').querySelectorAll('[data-pbcat]').forEach(b => b.onclick = () => { const c = r.items[+b.dataset.pbcat]; for (const a of c.attributes) if (!pb.srcAttrs.some(x => x.id === a.id)) pb.srcAttrs.push(a); pbSetCat(c.category_id); $('pbCats').innerHTML = ''; });
+}
+$('pbCatBtn').onclick = pbFindCats; $('pbCatQ').onkeydown = (e) => { if (e.key === 'Enter') pbFindCats(); };
+async function pbSetCat(cat) {
+  pb.category_id = cat; $('pbCatName').textContent = 'Cargando…';
+  const r = await (await fetch('/api/publish/category/' + encodeURIComponent(cat))).json().catch(() => ({ ok: false, error: 'Sin conexión.' }));
+  if (!r.ok) { $('pbCatName').textContent = cat; $('pbAttrs').innerHTML = `<span class="err-t">${esc(r.error)}</span>`; return; }
+  pb.category_name = r.category.name; pb.catAttrs = r.category.attributes;
+  $('pbCatName').textContent = r.category.name;
+  pbRenderAttrs();
+}
+function pbRenderAttrs() {
+  const src = new Map(pb.srcAttrs.map(a => [a.id, a]));
+  const field = (a) => {
+    const v = src.get(a.id), cur = v ? (v.value_id && a.values.some(x => x.id === v.value_id) ? 'id:' + v.value_id : v.value_name) : '';
+    const inList = cur && cur.startsWith('id:');
+    const inp = a.values.length && (!cur || inList) ? `<select data-pba="${esc(a.id)}"><option value="">—</option>${a.values.map(x => `<option value="id:${esc(x.id)}" ${cur === 'id:' + x.id ? 'selected' : ''}>${esc(x.name)}</option>`).join('')}${a.type === 'list' ? '' : '<option value="other">Otro (escribir)…</option>'}</select>`
+      : `<input type="text" data-pba="${esc(a.id)}" value="${esc(cur)}" placeholder="${esc(a.hint || '')}">`;
+    return `<div>${esc(a.name)}${a.required ? ' <b style="color:var(--err)">*</b>' : ''}</div><div class="row" style="gap:6px">${inp}${a.units.length && !/\d\s*\D+$/.test(cur) ? `<select data-pbu="${esc(a.id)}">${a.units.map(u => `<option ${u === a.unit ? 'selected' : ''}>${esc(u)}</option>`).join('')}</select>` : ''}</div>`;
+  };
+  const req = pb.catAttrs.filter(a => a.required), opt = pb.catAttrs.filter(a => !a.required);
+  const missingReq = req.filter(a => !src.get(a.id)).length;
+  $('pbAttrInfo').textContent = missingReq ? `· faltan ${missingReq} obligatorios` : '· obligatorios completos ✓';
+  $('pbAttrs').innerHTML = `<div class="ls-attr">${req.map(field).join('')}</div>${opt.length ? `<details style="margin-top:8px"><summary class="lnk" style="cursor:pointer;font-size:13px">Datos opcionales (${opt.length}) — completarlos mejora la calidad</summary><div class="ls-attr" style="margin-top:6px">${opt.map(field).join('')}</div></details>` : ''}`;
+  $('pbAttrs').querySelectorAll('select[data-pba]').forEach(s => s.onchange = () => { if (s.value === 'other') { const i = document.createElement('input'); i.type = 'text'; i.dataset.pba = s.dataset.pba; s.replaceWith(i); i.focus(); } });
+}
+function pbCollectAttrs() {
+  const out = [];
+  $('pbAttrs').querySelectorAll('[data-pba]').forEach(el => { const v = el.value.trim(); if (!v) return; const u = $('pbAttrs').querySelector(`[data-pbu="${el.dataset.pba}"]`);
+    out.push(v.startsWith('id:') ? { id: el.dataset.pba, value_id: v.slice(3) } : { id: el.dataset.pba, value_name: u && /^[\d.,]+$/.test(v) ? `${v} ${u.value}` : v }); });
+  // Datos de la fuente que no están en la lista de la categoría (se mandan igual)
+  const ids = new Set(pb.catAttrs.map(a => a.id));
+  for (const a of pb.srcAttrs) if (!ids.has(a.id) && (a.value_id || a.value_name)) out.push(a.value_id ? { id: a.id, value_id: a.value_id } : { id: a.id, value_name: a.value_name });
+  return out;
+}
+function pbRenderPics() {
+  const all = [...pb.pictures.map((u, i) => ({ k: 'u' + i, url: u })), ...pb.uploads.map(x => ({ k: 'n' + x.ref, url: x.data }))];
+  $('pbPics').innerHTML = all.map((x, i) => `<div class="ls-pic"><span class="n">${i === 0 ? 'Principal' : i + 1}</span><img src="${esc(x.url)}" alt="" loading="lazy" referrerpolicy="no-referrer"><div class="bar"><button data-pbm="${i}" data-d="-1">◀</button><button data-pbdel="${i}">✕</button><button data-pbm="${i}" data-d="1">▶</button></div></div>`).join('')
+    + `<label class="ls-pic" style="display:grid;place-items:center;cursor:pointer;min-height:110px;background:var(--card-2)"><input type="file" id="pbPicAdd" accept="image/jpeg,image/png,image/webp" multiple hidden><span style="text-align:center;font-size:13px">＋<br>Subir fotos</span></label>
+    <div class="ls-pic" style="display:grid;place-items:center;min-height:110px;background:var(--card-2);padding:6px"><input type="url" id="pbPicUrl" placeholder="o pegá el link de una foto" style="font-size:12px"><button class="btn small" id="pbPicUrlBtn" style="margin-top:4px">Agregar</button></div>`;
+  // Orden: las de link primero, después las subidas (ML las sube por separado); se reordena dentro de cada grupo.
+  const move = (i, d) => { const nu = pb.pictures.length; if (i < nu && i + d < nu && i + d >= 0) { [pb.pictures[i], pb.pictures[i + d]] = [pb.pictures[i + d], pb.pictures[i]]; } else if (i >= nu && i + d >= nu && i + d < nu + pb.uploads.length) { const a = i - nu, b = a + d; [pb.uploads[a], pb.uploads[b]] = [pb.uploads[b], pb.uploads[a]]; } pbRenderPics(); };
+  $('pbPics').querySelectorAll('[data-pbm]').forEach(b => b.onclick = () => move(+b.dataset.pbm, +b.dataset.d));
+  $('pbPics').querySelectorAll('[data-pbdel]').forEach(b => b.onclick = () => { const i = +b.dataset.pbdel; if (i < pb.pictures.length) pb.pictures.splice(i, 1); else pb.uploads.splice(i - pb.pictures.length, 1); pbRenderPics(); });
+  $('pbPicAdd').onchange = async (e) => { for (const f of [...e.target.files].slice(0, 10)) { try { const c = await ldCompress(f); pb.uploads.push({ ref: Math.random().toString(36).slice(2, 8), name: f.name.replace(/\.\w+$/, '') + '.jpg', data: c.data }); } catch { /* nada */ } } pbRenderPics(); };
+  $('pbPicUrlBtn').onclick = () => { const u = $('pbPicUrl').value.trim(); if (/^https?:\/\//.test(u)) { pb.pictures.push(u); pbRenderPics(); } };
+}
+$('pbAi').onclick = async () => {
+  const b = $('pbAi'); b.disabled = true; b.textContent = '✨ Escribiendo…';
+  const del = document.querySelector('input[name=pbDel]:checked');
+  const r = await lsPost('/api/publish/ai', { title: $('pbTitle').value || pb.title, bullets: pb.bullets, attrs: pbCollectAttrs().map(a => `${(pb.catAttrs.find(c => c.id === a.id) || pb.srcAttrs.find(c => c.id === a.id) || {}).name || a.id}: ${a.value_name || (pb.catAttrs.find(c => c.id === a.id)?.values.find(v => v.id === a.value_id) || {}).name || ''}`), description: $('pbDesc').value, pictures: pb.pictures.slice(0, 3), days: del && del.value === 'days' ? Number($('pbDays').value) : 0 });
+  b.disabled = false; b.textContent = '✨ Título y descripción con IA';
+  if (!r.ok) { $('pbAiMsg').innerHTML = `<span class="err-t">${esc(r.error)}</span>`; return; }
+  $('pbTitle').value = r.title; pbTitleN(); $('pbDesc').value = r.text;
+  $('pbAiMsg').innerHTML = r.missing ? `<span style="color:#d97706">⚠️ Convendría agregar: ${esc(r.missing)}</span>` : '<span class="muted">Revisá el título y la descripción antes de publicar.</span>';
+  if (!pb.category_id && r.title) { $('pbCatQ').value = r.title; pbFindCats(); }
+};
+// Costo de Amazon
+const pbKg = () => { const w = Number($('pbW').value) || 0, u = $('pbWUnit').value; return w * (u === 'lb' ? 0.45359237 : u === 'oz' ? 0.028349523125 : 1); };
+let pbCostVal = 0;
+async function pbAmzCost() {
+  if (pb.src !== 'amazon') return;
+  const usd = Number($('pbUsd').value) || 0, kg = pbKg();
+  if (!usd) { $('pbAmzCost').innerHTML = '<span class="muted">Cargá el precio en dólares y el peso.</span>'; pbCostVal = 0; return; }
+  const d = await (await fetch(`/api/publish/amazon-cost?usd=${usd}&kg=${kg}`)).json().catch(() => null);
+  if (!d) return;
+  pbCostVal = d.cost;
+  $('pbAmzCost').innerHTML = `Producto US$ ${d.usd.toFixed(2)} + envío ${d.kg.toFixed(3)} kg × US$ ${d.kg_usd} = US$ ${d.ship_usd.toFixed(2)} → <b>costo US$ ${d.total_usd.toFixed(2)} × $ ${d.tc} = ${money(d.cost)}</b>`;
+}
+['pbUsd', 'pbW', 'pbWUnit'].forEach(i => $(i).oninput = pbAmzCost); $('pbWUnit').onchange = pbAmzCost;
+const pbCost = () => pb.src === 'amazon' ? pbCostVal : Number($('pbCost').value) || 0;
+document.querySelectorAll('[data-pbmg]').forEach(b => { b.onclick = () => { $('pbMargin').value = b.dataset.pbmg; $('pbCalc').click(); }; });
+function pbShowBreak(b) {
+  const row = (k, v, neg) => `<tr><td>${k}</td><td>${neg ? '− ' : ''}${money(v)}</td></tr>`;
+  const ok = b.margin_pct >= 15 && b.margin_pct <= 20, low = b.margin_pct < 15;
+  $('pbBreak').innerHTML = `<table class="pb-break"><tbody>${row('Precio de venta', b.price)}${row(`Impuestos (${b.tax_pct}%)`, b.tax, true)}${row(`Comisión ML (${b.fee_pct}%${b.fee_fixed ? ` + ${money(b.fee_fixed)} fijo` : ''})${b.fee_estimated ? ' · estimada' : ''}`, b.fee, true)}${b.free_ship ? row(`Envío gratis a tu cargo${b.ship_estimated ? ' · estimado' : ''}`, b.ship, true) : '<tr><td>Envío</td><td class="muted">lo paga el comprador</td></tr>'}${b.cost ? row('Costo del producto', b.cost, true) : ''}
+    <tr><td><b>Neto${b.cost ? '' : ' (sin descontar costo)'}</b></td><td><b style="color:${!b.cost ? 'inherit' : ok ? 'var(--ok)' : low ? 'var(--err)' : '#d97706'}">${money(b.net)} · ${b.margin_pct}%</b></td></tr></tbody></table>
+    ${b.cost && low ? '<div class="err-t" style="font-size:12.5px;margin-top:4px">Queda por debajo del 15% buscado.</div>' : ''}`;
+}
+$('pbCalc').onclick = async () => {
+  const cost = pbCost();
+  if (!cost) { $('pbBreak').innerHTML = '<span class="err-t">Falta el costo (o el precio en dólares y el peso, si es de Amazon).</span>'; return; }
+  $('pbCalc').disabled = true;
+  const r = await lsPost('/api/publish/price', { cost, margin: $('pbMargin').value, round: $('pbRound').value, category_id: pb.category_id, listing_type: pb.listing_type, weight_kg: pbKg() || pb.weight_kg || 0 });
+  $('pbCalc').disabled = false;
+  if (!r.ok) { $('pbBreak').innerHTML = `<span class="err-t">${esc(r.error)}</span>`; return; }
+  $('pbPrice').value = r.b.price; pbShowBreak(r.b); pbCompare();
+};
+$('pbRecalc').onclick = async () => {
+  const r = await lsPost('/api/publish/breakdown', { price: $('pbPrice').value, cost: pbCost(), category_id: pb.category_id, listing_type: pb.listing_type, weight_kg: pbKg() || pb.weight_kg || 0 });
+  if (!r.ok) { $('pbBreak').innerHTML = `<span class="err-t">${esc(r.error)}</span>`; return; }
+  pbShowBreak(r.b); pbCompare();
+};
+// Competencia
+let pbMk = null;
+async function pbMarket() {
+  const q = $('pbMktQ').value.trim(); if (!q) return;
+  $('pbMkt').innerHTML = '<span class="muted">Buscando en Mercado Libre…</span>';
+  const r = await (await fetch('/api/publish/market?q=' + encodeURIComponent(q))).json().catch(() => ({ ok: false, error: 'Sin conexión.' }));
+  if (!r.ok) { $('pbMkt').innerHTML = `<span class="err-t">${esc(r.error)}</span>`; return; }
+  pbMk = r;
+  $('pbMkt').innerHTML = `<div style="margin-bottom:6px">${r.total} resultados${r.median ? ` · precios de otros vendedores: mín. <b>${money(r.min)}</b> · mediana <b>${money(r.median)}</b> · máx. <b>${money(r.max)}</b>` : ''} <span id="pbCmp"></span></div>
+    <div class="table-wrap"><table class="sales-table"><thead><tr><th>Publicación</th><th>Vendedor</th><th style="text-align:right">Precio</th><th style="text-align:right">Vendidos</th><th>Envío</th></tr></thead><tbody>${r.items.map(x => `<tr${x.mine ? ' style="opacity:.6"' : ''}><td><a class="lnk" href="${esc(x.link)}" target="_blank" rel="noopener">${esc(x.title)}</a>${x.catalog ? ' <span class="ls-tag">Catálogo</span>' : ''}</td><td>${esc(x.seller || '—')}${x.official ? ' <span class="ls-tag">Tienda oficial</span>' : ''}${x.mine ? ' <span class="ls-tag">vos</span>' : ''}</td><td style="text-align:right">${x.original_price ? `<div class="ls-was">${money(x.original_price)}</div>` : ''}${money(x.price)}</td><td style="text-align:right">${x.sold == null ? '<span class="muted">—</span>' : x.sold}</td><td style="font-size:12px">${x.full ? 'Full' : ''}${x.free_ship ? ' gratis' : ''}</td></tr>`).join('')}</tbody></table></div>
+    <div class="muted" style="font-size:12px;margin-top:4px">"Vendidos" es el total histórico que informa ML (no por mes). Las ventas por mes de la competencia van a estar en la sección Competencia.</div>`;
+  pbCompare();
+}
+function pbCompare() {
+  const p = Number($('pbPrice').value), el = $('pbCmp'); if (!el || !pbMk || !pbMk.median || !p) return;
+  const diff = Math.round((p / pbMk.median - 1) * 100);
+  el.innerHTML = ` · tu precio (${money(p)}) está <b style="color:${diff > 10 ? 'var(--err)' : diff < -10 ? '#d97706' : 'var(--ok)'}">${diff > 0 ? diff + '% arriba' : diff < 0 ? -diff + '% abajo' : 'igual'}</b> de la mediana${diff > 10 ? ' — puede costarte ventas' : diff < -10 ? ' — quizás estás dejando plata' : ''}.`;
+}
+$('pbMktBtn').onclick = pbMarket; $('pbMktQ').onkeydown = (e) => { if (e.key === 'Enter') pbMarket(); };
+// Cuentas
+const pbSelAccs = () => [...document.querySelectorAll('[data-pbacc]')].filter(c => c.checked).map(c => c.dataset.pbacc);
+$('pbAccs').onchange = () => { $('pbDupWarn').hidden = pbSelAccs().length < 2; $('pbGo').textContent = pbSelAccs().length ? `Publicar en ${pbSelAccs().length} ${pbSelAccs().length === 1 ? 'cuenta' : 'cuentas'}` : 'Publicar'; };
+$('pbAccAll').onclick = (e) => { e.preventDefault(); document.querySelectorAll('[data-pbacc]:not(:disabled)').forEach(c => c.checked = true); $('pbAccs').onchange(); };
+$('pbAccNone').onclick = (e) => { e.preventDefault(); document.querySelectorAll('[data-pbacc]').forEach(c => c.checked = false); $('pbAccs').onchange(); };
+$('pbGo').onclick = async () => {
+  const del = document.querySelector('input[name=pbDel]:checked');
+  const err = (m) => { $('pbResult').innerHTML = `<span class="err-t">${m}</span>`; };
+  if (!del) return err('Elegí si es <b>entrega inmediata</b> o <b>a plazo</b> (paso 4).');
+  const accounts = pbSelAccs(); if (!accounts.length) return err('Elegí al menos una cuenta.');
+  if (!$('pbTitle').value.trim()) return err('Falta el título.');
+  if (!pb.category_id) return err('Falta elegir la categoría.');
+  if (!(Number($('pbPrice').value) > 0)) return err('Falta el precio.');
+  if (!pb.pictures.length && !pb.uploads.length) return err('Agregá al menos una foto.');
+  if (pb.uploads.reduce((n, u) => n + u.data.length, 0) > 3.5e6) return err('Las fotos subidas pesan mucho juntas: dejá hasta 4.');
+  const missing = pb.catAttrs.filter(a => a.required).filter(a => !pbCollectAttrs().some(x => x.id === a.id));
+  const days = del.value === 'days' ? Number($('pbDays').value) : 0;
+  const names = accounts.map(id => (pbAccsList.find(a => a.id === id) || {}).nickname).join(', ');
+  if (!confirm(`Publicar "${$('pbTitle').value}"\n\nPrecio: ${money($('pbPrice').value)} · Stock: ${$('pbStock').value}\nEntrega: ${days ? `A PLAZO, ${days} días` : 'INMEDIATA'}\nCuentas: ${names}${missing.length ? `\n\n⚠️ Faltan datos obligatorios de la ficha: ${missing.map(a => a.name).join(', ')}. ML puede rechazarla.` : ''}\n\n¿Publicamos?`)) return;
+  $('pbGo').disabled = true; $('pbGo').textContent = 'Publicando…'; $('pbResult').innerHTML = '<span class="muted">Publicando en cada cuenta…</span>';
+  const r = await lsPost('/api/publish', { title: $('pbTitle').value.trim(), category_id: pb.category_id, price: Number($('pbPrice').value), stock: Number($('pbStock').value) || 1, sku: $('pbSku').value.trim().toUpperCase(), listing_type: pb.listing_type, attributes: pbCollectAttrs(), pictures: pb.pictures, uploads: pb.uploads, description: $('pbDesc').value, delivery: del.value, days, accounts, catalog: $('pbCatalog').checked, catalog_product_id: pb.catalog_product_id, usd: pb.src === 'amazon' ? Number($('pbUsd').value) || 0 : 0, weight_kg: pbKg() });
+  $('pbGo').disabled = false; $('pbAccs').onchange();
+  if (!r.ok) return err(esc(r.error));
+  $('pbResult').innerHTML = r.results.map(x => x.ok ? `<div>✅ <b>${esc(x.account)}</b>: publicada <a class="lnk" href="${esc(x.link)}" target="_blank" rel="noopener">${esc(x.id)} ↗</a>${x.status && x.status !== 'active' ? ` <span class="muted">(${esc(x.status)})</span>` : ''}${x.warning ? ` <span style="color:#d97706">· ${esc(x.warning)}</span>` : ''}</div>` : `<div>❌ <b>${esc(x.account || x.account_id)}</b>: ${esc(x.error)}</div>`).join('');
+};
+
 function showView() {
-  const v = ({ '#ventas': 'ventas', '#ranking': 'ranking', '#precios': 'precios', '#presupuestos': 'presupuestos', '#estados': 'estados', '#gastos': 'gastos', '#full': 'full', '#flex': 'flex', '#resultado': 'resultado', '#tareas': 'tareas', '#recompras': 'recompras', '#preguntas': 'preguntas', '#stock': 'stock', '#sugerencias': 'sugerencias', '#web': 'web', '#horarios': 'horarios', '#manuales': 'manuales', '#calculadora': 'calculadora', '#etiquetas': 'etiquetas', '#impresion': 'impresion', '#reclamos': 'reclamos', '#publicaciones': 'publicaciones', '#tuyo': 'tuyo' })[location.hash] || 'ventas';
+  const v = ({ '#ventas': 'ventas', '#ranking': 'ranking', '#precios': 'precios', '#presupuestos': 'presupuestos', '#estados': 'estados', '#gastos': 'gastos', '#full': 'full', '#flex': 'flex', '#resultado': 'resultado', '#tareas': 'tareas', '#recompras': 'recompras', '#preguntas': 'preguntas', '#stock': 'stock', '#sugerencias': 'sugerencias', '#web': 'web', '#horarios': 'horarios', '#manuales': 'manuales', '#calculadora': 'calculadora', '#etiquetas': 'etiquetas', '#impresion': 'impresion', '#reclamos': 'reclamos', '#publicaciones': 'publicaciones', '#publicar': 'publicar', '#tuyo': 'tuyo' })[location.hash] || 'ventas';
   $('viewQuotes').hidden = v !== 'presupuestos';
   $('viewStatus').hidden = v !== 'estados';
   $('viewExpenses').hidden = v !== 'gastos'; $('viewFull').hidden = v !== 'full';
-  $('viewResults').hidden = v !== 'resultado'; $('viewStock').hidden = v !== 'stock'; $('viewSuggest').hidden = v !== 'sugerencias'; $('viewWeb').hidden = v !== 'web'; $('viewHours').hidden = v !== 'horarios'; $('viewManuals').hidden = v !== 'manuales'; $('viewCalc').hidden = v !== 'calculadora'; $('viewPLabel').hidden = v !== 'etiquetas'; $('viewShipLabels').hidden = v !== 'impresion'; $('viewClaims').hidden = v !== 'reclamos'; $('viewListings').hidden = v !== 'publicaciones'; $('viewTuyo').hidden = v !== 'tuyo';
+  $('viewResults').hidden = v !== 'resultado'; $('viewStock').hidden = v !== 'stock'; $('viewSuggest').hidden = v !== 'sugerencias'; $('viewWeb').hidden = v !== 'web'; $('viewHours').hidden = v !== 'horarios'; $('viewManuals').hidden = v !== 'manuales'; $('viewCalc').hidden = v !== 'calculadora'; $('viewPLabel').hidden = v !== 'etiquetas'; $('viewShipLabels').hidden = v !== 'impresion'; $('viewClaims').hidden = v !== 'reclamos'; $('viewListings').hidden = v !== 'publicaciones'; $('viewPublish').hidden = v !== 'publicar'; $('viewTuyo').hidden = v !== 'tuyo';
   $('viewFlex').hidden = v !== 'flex'; $('viewSales').hidden = v !== 'ventas'; $('viewTasks').hidden = v !== 'tareas'; $('viewRefill').hidden = v !== 'recompras'; $('viewQuestions').hidden = v !== 'preguntas';
   $('viewRanking').hidden = v !== 'ranking'; $('viewPrices').hidden = v !== 'precios';
   document.querySelectorAll('.side .nav').forEach(a => a.classList.toggle('active', a.dataset.view === v));
@@ -2255,6 +2518,7 @@ function showView() {
   if (v === 'impresion') loadShipLabels();
   if (v === 'reclamos') loadClaims(false);
   if (v === 'publicaciones') loadListings();
+  if (v === 'publicar') loadPublish();
   if (v === 'tuyo') loadTuyo();
   if (v === 'tareas') loadTasks();
   if (v === 'recompras') loadRefill();

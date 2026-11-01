@@ -600,3 +600,13 @@ input[type=time], input[type=url] { font: inherit; padding: 9px 11px; border: 1p
 .ls-attr .row { flex-wrap: nowrap; }
 .ls-attr .row input, .ls-attr .row select:first-child { flex: 1; min-width: 0; width: auto; }
 #viewListings .ls-in { width: 110px; } #viewListings .ls-in[data-lss], #lsModal .ls-in { width: 80px; }
+
+/* Publicar */
+.pb-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px 14px; margin-top: 10px; align-items: end; }
+#viewPublish input[type=number], #viewPublish input[type=radio], #viewPublish input[type=checkbox] { width: auto; }
+#viewPublish .pb-grid input[type=number] { width: 100%; }
+.pb-break { width: 100%; max-width: 520px; font-size: 13.5px; }
+.pb-break td { padding: 4px 6px; border-bottom: 1px solid var(--line); }
+.pb-break td:last-child { text-align: right; font-variant-numeric: tabular-nums; }
+.pb-cat { border: 1px solid var(--line); border-radius: 10px; padding: 6px 10px; background: var(--card-2); cursor: pointer; font-size: 12.5px; text-align: left; color: var(--text); }
+.pb-cat:hover { border-color: var(--brand); }
