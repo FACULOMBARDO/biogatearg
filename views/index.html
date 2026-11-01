@@ -4881,7 +4881,7 @@ $('mnSaveCfg').onclick = async () => {
 };
 
 // ---------- Calculadora de importación ----------
-const CA_DEF = { kg: 35, tc: 1550, tax: 23, margin: 40, round: 100, mlFee: 14, mlShip: 0 };
+const CA_DEF = { kg: 32, tc: 1550, tax: 23, margin: 40, round: 100, mlFee: 14, mlShip: 0 };
 let caCfg = { ...CA_DEF }, caUnit = 'kg', caLoaded = false, caSaveT = null;
 const caNum = (v) => { let t = String(v ?? '').trim().replace(/[^\d.,-]/g, ''); if (!t) return 0; if (t.includes(',')) t = t.replace(/\./g, '').replace(',', '.'); else if (/^\d{1,3}(\.\d{3})+$/.test(t)) t = t.replace(/\./g, ''); return Number(t) || 0; };
 const caUsd = (n) => 'US$ ' + n.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });

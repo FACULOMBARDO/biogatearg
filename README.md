@@ -131,7 +131,7 @@ En el menú lateral, **Impresión de etiquetas** junta los pedidos **listos para
 - Se miran las ventas de los últimos 30 días. Si Mercado Libre se satura, el panel reintenta solo; en "Ver detalle de la búsqueda" se ve qué encontró en cada cuenta.
 
 ### 🧮 Calculadora
-Para productos de Amazon: cargás el precio en dólares y el peso (kg, onzas o libras). Envío = peso en kg × costo por kilo (US$ 35); costo total = (precio + envío) × tipo de cambio. El precio de venta sale de: precio − 23% de IVA + IIBB − costo total = 40% del precio (ganancia neta). Costo por kilo, tipo de cambio, % de impuestos, % de ganancia y redondeo se pueden cambiar y quedan guardados. Con "Vender en Mercado Libre" también descuenta la comisión y el envío de ML y te dice a cuánto publicarlo. "Copiar resumen" copia el resultado.
+Para productos de Amazon: cargás el precio en dólares y el peso (kg, onzas o libras). Envío = peso en kg × costo por kilo (US$ 32); costo total = (precio + envío) × tipo de cambio. El precio de venta sale de: precio − 23% de IVA + IIBB − costo total = 40% del precio (ganancia neta). Costo por kilo, tipo de cambio, % de impuestos, % de ganancia y redondeo se pueden cambiar y quedan guardados. Con "Vender en Mercado Libre" también descuenta la comisión y el envío de ML y te dice a cuánto publicarlo. "Copiar resumen" copia el resultado.
 
 ### 🕐 Horarios de compra
 Mapa de calor de día y hora (hora de Argentina) con las ventas, unidades o $ del período elegido, filtrable por cuentas, canal (Full, Flex, web…) y producto. Dice cuándo compran más, el mejor horario y día, el % por momento del día, ventas por hora, por día de la semana y por día del mes, cómo evoluciona mes a mes, qué franjas subieron o bajaron contra el período anterior, y sugerencias (a qué hora subir estados, qué días lanzar ofertas, en qué horario responder).
@@ -263,9 +263,9 @@ En **Ventas**, la lista **Todas las cuentas** se abre y tiene una casilla por cu
 ### 🛒 TUYO (productos de Amazon)
 Cuenta de Mercado Libre con productos comprados en Amazon: sus ventas se traen igual que las demás, pero el costo no sale de la lista de precios.
 1. Conectá la cuenta nueva (en TUYO → **Copiar link de invitación**, abrilo en incógnito y autorizá con esa cuenta).
-2. En **TUYO** elegí esa cuenta. Arriba quedan el **envío por kilo (US$ 35)** y el **tipo de cambio (1550)**, editables.
+2. En **TUYO** elegí esa cuenta. Arriba quedan el **envío por kilo (US$ 32)** y el **tipo de cambio (1550)**, editables.
 3. Traé sus ventas desde **Ventas** (elegí la cuenta → Traer ventas).
-4. En la tabla de productos cargá a cada publicación el **precio en Amazon (US$)** y el **peso** (kg, libras u onzas). El panel calcula: costo US$ = precio + peso en kilos × 35; costo $ = costo US$ × 1550. Se guarda solo.
+4. En la tabla de productos cargá a cada publicación el **precio en Amazon (US$)** y el **peso** (kg, libras u onzas). El panel calcula: costo US$ = precio + peso en kilos × 32 (las ventas hasta septiembre 2026 se siguen calculando con 35); costo $ = costo US$ × 1550. Se guarda solo.
 5. Arriba elegís el período: **Hoy**, **7 días**, **30 días**, un mes con las flechas, o un rango con las fechas **desde/hasta**. **Traer ventas de este período** trae todas las ventas pagadas de esa cuenta en esas fechas, aunque todavía no se hayan despachado.
 6. **Cómo se pagó y cuánto queda**: facturación bruta − canceladas y devueltas − comisiones − envíos − impuestos − costo Amazon = neto después de costos. Abajo está la lista de ventas igual que en Ventas, con filtro Por enviar / En camino / Entregadas / Canceladas y devueltas.
 7. En **Resultado del mes** (y en el informe PDF) TUYO se suma solo si la tildás en el selector de cuentas.

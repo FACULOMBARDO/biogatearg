@@ -719,12 +719,12 @@ app.get('/api/hours', (req, res) => {
 });
 
 // ---------- Calculadora ----------
-app.get('/api/calc', (req, res) => res.json({ calc: store.getSettings().calc || null }));
+app.get('/api/calc', (req, res) => { const c = store.getSettings().calc || null; res.json({ calc: c && !c.kg_v2 ? { ...c, kg: 32 } : c }); }); // desde oct-2026 el kilo sale US$ 32
 app.post('/api/calc', (req, res) => {
   const c = req.body.calc || {}, n = (v, min, max) => { const x = Number(v); return Number.isFinite(x) && x >= min && x <= max ? x : undefined; };
   const clean = { kg: n(c.kg, 0, 10000), tc: n(c.tc, 0, 1e7), tax: n(c.tax, 0, 100), margin: n(c.margin, 0, 100), round: n(c.round, 1, 100000), mlFee: n(c.mlFee, 0, 100), mlShip: n(c.mlShip, 0, 1e8) };
   for (const k of Object.keys(clean)) if (clean[k] === undefined) delete clean[k];
-  store.saveSettings({ calc: { ...(store.getSettings().calc || {}), ...clean } });
+  store.saveSettings({ calc: { ...(store.getSettings().calc || {}), ...clean, kg_v2: true } });
   res.json({ ok: true });
 });
 
