@@ -2792,6 +2792,7 @@ function qaButtons(acc, id, list) {
 }
 document.addEventListener('click', async (e) => {
   const b = e.target.closest('[data-qa]'); if (!b) return;
+  if (!window.qaAccs) { try { window.qaAccs = (await (await fetch('/api/publish/accounts')).json()).accounts || []; } catch { window.qaAccs = []; } }
   e.preventDefault();
   const [a, acc, id] = b.dataset.qa.split('|'), msg = b.closest('.qa-row').querySelector('.qa-msg');
   if (a === 'discount') { if (!lsData) await loadListings(); $('cmpModal').classList.remove('show'); openListing(id, 'promos'); return; }
@@ -2799,7 +2800,12 @@ document.addEventListener('click', async (e) => {
   b.disabled = true; const old = QA[a]; b.textContent = 'Aplicando…';
   const r = await lsPost(`/api/listings/${acc}/${id}/${a}`, a === 'flex' ? { on: true } : {});
   if (r.ok) { b.textContent = a === 'flex' ? '✓ Flex activado' : '✓ Pasada a Premium'; b.style.color = 'var(--ok)'; msg.textContent = ''; }
-  else { b.disabled = false; b.textContent = old; delete b.dataset.sure; msg.innerHTML = `<span class="err-t">${esc(r.error)}</span>`; }
+  else {
+    b.disabled = false; b.textContent = old; delete b.dataset.sure;
+    const accName = ((window.qaAccs || []).find(x => x.id === acc) || {}).nickname || '';
+    const links = a === 'flex' ? `<div class="row" style="gap:8px;flex-wrap:wrap;margin-top:6px"><a class="btn small primary" href="https://www.mercadolibre.com.ar/publicaciones/${esc(id)}/modificar" target="_blank" rel="noopener">✏️ Modificar en Mercado Libre ↗</a><a class="btn small" href="https://www.mercadolibre.com.ar/publicaciones/listado?search=${esc(id)}" target="_blank" rel="noopener">Buscarla en Mis publicaciones ↗</a></div><div class="muted" style="font-size:11.5px;margin-top:4px">Tenés que estar logueado en Mercado Libre con la cuenta ${esc(accName || 'de esa publicación')}. En "Forma de entrega" tildá "Mercado Envíos Flex" y guardá.</div>` : '';
+    msg.innerHTML = `<span class="err-t">${esc(r.error)}</span>${links}`;
+  }
 });
 
 function showView() {
