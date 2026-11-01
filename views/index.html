@@ -1220,6 +1220,13 @@
     <div id="ldMsg" style="font-size:13px;margin-top:8px"></div>
   </div>
 </div>
+<!-- Comparar con la competencia -->
+<div class="modal-bg" id="cmpModal">
+  <div class="modal ls-modal" style="max-width:1000px">
+    <div class="row" style="justify-content:space-between;align-items:flex-start;gap:10px"><div><h3 style="margin:0 0 4px">🔍 Comparar con el que más vende</h3><div class="muted" id="cmpSub" style="font-size:13px"></div></div><button class="btn small" id="cmpClose">✕</button></div>
+    <div id="cmpBody" style="margin-top:10px"></div>
+  </div>
+</div>
 <!-- Mis publicaciones: campañas de ML -->
 <div class="modal-bg" id="lcModal">
   <div class="modal ls-modal">
@@ -2646,7 +2653,7 @@ function renderComp() {
         </div>
       </div>
       <div style="margin-top:8px;font-size:13.5px;border-left:3px solid ${col};padding:4px 10px">${ic} ${esc(g.rec.text)}</div>
-      <div class="row" style="gap:8px;margin-top:8px;flex-wrap:wrap;font-size:12.5px"><a href="#" class="lnk" data-cpopen="${esc(g.key)}">${open ? '▾ Ocultar competidores' : `▸ Ver competidores (${g.competitors.length})`}</a><a href="#" class="lnk" data-cplink="${esc(g.key)}">Cambiar producto vinculado</a><a href="#" class="lnk" data-cppin="${esc(g.key)}" data-on="${g.pinned ? '' : '1'}">${g.pinned ? 'Desfijar' : '📌 Fijar'}</a><span class="muted">${g.product_name ? `Catálogo: ${esc(g.product_name)}${g.match === 'search' ? ' (encontrado por título: revisá que sea el mismo)' : ''}` : 'Sin vincular'}</span></div>
+      <div class="row" style="gap:8px;margin-top:8px;flex-wrap:wrap;font-size:12.5px"><a href="#" class="lnk" data-cpopen="${esc(g.key)}">${open ? '▾ Ocultar competidores' : `▸ Ver competidores (${g.competitors.length})`}</a><a href="#" class="lnk" data-cmp="${esc(g.mine[0].account_id)}|${esc(g.mine[0].id)}">🔍 Comparar con el que más vende</a><a href="#" class="lnk" data-cplink="${esc(g.key)}">Cambiar producto vinculado</a><a href="#" class="lnk" data-cppin="${esc(g.key)}" data-on="${g.pinned ? '' : '1'}">${g.pinned ? 'Desfijar' : '📌 Fijar'}</a><span class="muted">${g.product_name ? `Catálogo: ${esc(g.product_name)}${g.match === 'search' ? ' (encontrado por título: revisá que sea el mismo)' : ''}` : 'Sin vincular'}</span></div>
       <div id="cpLink-${esc(g.key)}" hidden></div>
       ${open ? `<div class="table-wrap" style="margin-top:8px"><table class="sales-table"><thead><tr><th>Vendedor</th><th>Publicación</th><th style="text-align:right">Precio</th><th style="text-align:right">Vendió en ${days} d</th><th style="text-align:right">Vendidos total</th><th style="text-align:right">Stock</th><th>Envío</th></tr></thead><tbody>${g.competitors.map(c => {
         const ch = c.price_before && c.price_before !== c.price ? Math.round((c.price / c.price_before - 1) * 100) : 0;
@@ -2694,10 +2701,10 @@ async function loadFunnel() {
     <div class="stat"><div class="k">Ventas (30 días)</div><div class="v">${t.sales}</div><div class="sub">${t.sales_prev ? `${fnPct(t.sales, t.sales_prev) > 0 ? '▲' : '▼'} ${Math.abs(fnPct(t.sales, t.sales_prev))}% vs. 30 días anteriores` : '&nbsp;'}</div></div>
     <div class="stat"><div class="k">Conversión</div><div class="v">${t.conv != null ? t.conv + '%' : '—'}</div><div class="sub">${t.conv_prev != null ? `antes ${t.conv_prev}%` : '&nbsp;'} · de cada 100 visitas</div></div>
     <div class="stat"><div class="k">A revisar</div><div class="v" style="color:var(--err)">${d.counts.leak + d.counts.lowvis}</div><div class="sub">${d.counts.leak} sin ventas · ${d.counts.lowvis} con pocas visitas</div></div>`;
-  $('fnInfo').innerHTML = d.job.running ? '↻ Trayendo visitas de Mercado Libre…' : !d.listings_at ? 'Primero entrá a <b>Mis publicaciones</b> para traer tus publicaciones.' :
-    `Visitas del ${d.range ? d.range.from.split('-').reverse().join('/') : '—'} al ${d.range ? d.range.to.split('-').reverse().join('/') : '—'} · conversión mediana de tus publicaciones: ${d.median_conv}% · "Visitas sin ventas" = muchas visitas y menos de la mitad de esa conversión (problema de la publicación). "Pocas visitas" = problema de exposición.${(d.errors || []).length ? ` <span class="err-t">⚠️ ${esc(d.errors.join(' · '))}</span>` : ''}`;
+  $('fnInfo').innerHTML = d.job.running ? `↻ Trayendo visitas de Mercado Libre… (${d.job.done || 0} de ${d.job.total || '…'} publicaciones)` : !d.listings_at ? 'Primero entrá a <b>Mis publicaciones</b> para traer tus publicaciones.' :
+    `${d.missing ? `<span style="color:#d97706">Faltan las visitas de ${d.missing} publicaciones: tocá "↻ Actualizar visitas" para seguir.</span> ` : ''}Visitas del ${d.range ? d.range.from.split('-').reverse().join('/') : '—'} al ${d.range ? d.range.to.split('-').reverse().join('/') : '—'} · conversión mediana de tus publicaciones: ${d.median_conv}% · "Visitas sin ventas" = muchas visitas y menos de la mitad de esa conversión (problema de la publicación). "Pocas visitas" = problema de exposición.${(d.errors || []).length ? ` <span class="err-t">⚠️ ${esc(d.errors.join(' · '))}</span>` : ''}`;
   renderFunnel();
-  if (d.job.running) { clearInterval(fnPoll); fnPoll = setInterval(async () => { const s = await (await fetch('/api/funnel/status')).json().catch(() => null); if (s && !s.job.running) { clearInterval(fnPoll); loadFunnel(); } }, 4000); }
+  if (d.job.running) { clearInterval(fnPoll); fnPoll = setInterval(async () => { const s = await (await fetch('/api/funnel/status')).json().catch(() => null); if (s && !s.job.running) { clearInterval(fnPoll); loadFunnel(); } else if (s) $('fnInfo').textContent = `↻ Trayendo visitas de Mercado Libre… (${s.job.done || 0} de ${s.job.total || '…'} publicaciones)`; }, 4000); }
 }
 function renderFunnel() {
   if (!fnData) return;
@@ -2712,7 +2719,7 @@ function renderFunnel() {
     <td style="text-align:right">${r.sales}${fnChg(r.sales_change)}</td>
     <td style="text-align:right"><b>${r.conv != null ? r.conv + '%' : '—'}</b>${r.conv_prev != null ? `<div class="muted" style="font-size:11px">antes ${r.conv_prev}%</div>` : ''}</td>
     <td style="font-size:12.5px;max-width:340px"><b style="color:${col}">${lbl}</b>${r.drop ? ' <b style="color:var(--err)">📉 cayó</b>' : ''}${r.reasons.length ? `<div class="muted">${r.reasons.map(esc).join(' · ')}</div>` : ''}</td>
-    <td><button class="btn small" data-fnedit="${esc(r.id)}">Mejorar</button></td></tr>`; }).join('') || `<tr><td colspan="6" class="muted" style="padding:16px">${fnData.job.running ? 'Trayendo visitas…' : 'No hay publicaciones con ese filtro.'}</td></tr>`;
+    <td><div style="display:grid;gap:4px"><button class="btn small" data-cmp="${esc(r.account_id)}|${esc(r.id)}">🔍 Comparar</button><button class="btn small" data-fnedit="${esc(r.id)}">Mejorar</button></div></td></tr>`; }).join('') || `<tr><td colspan="6" class="muted" style="padding:16px">${fnData.job.running ? 'Trayendo visitas…' : 'No hay publicaciones con ese filtro.'}</td></tr>`;
   $('fnMore').hidden = list.length <= fnLimit;
 }
 $('fnRows').addEventListener('click', async (e) => { const b = e.target.closest('[data-fnedit]'); if (!b) return; if (!lsData) await loadListings(); openListing(b.dataset.fnedit); });
@@ -2748,6 +2755,34 @@ async function loadHealth(force) {
 $('hlRefresh').onclick = () => loadHealth(true);
 $('hlLSave').onclick = async () => { const d = await lsPost('/api/health/limits', { claims: $('hlLc').value, cancellations: $('hlLx').value, delayed: $('hlLd').value, warn_at: $('hlLw').value }, 'PUT'); $('hlLMsg').innerHTML = d.ok ? '<span style="color:var(--ok)">✓ Guardado</span>' : ''; loadHealth(true); };
 setTimeout(async () => { const d = await (await fetch('/api/health')).json().catch(() => null); if (d && d.ok) { const n = d.items.reduce((k, a) => k + (a.alerts || []).filter(x => x.sev === 'alta').length, 0); $('hlBadge').hidden = !n; $('hlBadge').textContent = n; } }, 4000);
+
+// ---------- Comparar con la competencia ----------
+async function openCompare(accId, itemId) {
+  $('cmpModal').classList.add('show'); $('cmpSub').textContent = '';
+  $('cmpBody').innerHTML = '<div class="muted">Buscando quién vende lo mismo y analizando sus publicaciones… (puede tardar unos segundos)</div>';
+  const d = await (await fetch(`/api/compare/${accId}/${itemId}`)).json().catch(() => ({ ok: false, error: 'Sin conexión.' }));
+  if (!d.ok) { $('cmpBody').innerHTML = `<div class="err-t">${esc(d.error)}</div>`; return; }
+  const me = d.me, cols = [{ ...me, role: 'Tu publicación', seller: 'Vos' }, ...d.others];
+  $('cmpSub').innerHTML = `${esc(me.title)}${d.product ? ` · catálogo: ${esc(d.product.name || d.product.id)}${d.product.how === 'titulo' ? ' (encontrado por título: revisá que sea el mismo)' : ''}` : ''} · ${d.competitors_n || 0} vendedores más${d.i_win_buybox ? ' · <b style="color:var(--ok)">vos ganás el catálogo</b>' : ''}`;
+  const yes = (v) => v ? '<span style="color:var(--ok)">Sí</span>' : '<span class="muted">No</span>';
+  const POW = { platinum: 'Platinum', gold: 'Gold', silver: 'MercadoLíder' }, LV = { '5_green': '🟢 Verde', '4_light_green': '🟢 Verde claro', '3_yellow': '🟡 Amarilla', '2_orange': '🟠 Naranja', '1_red': '🔴 Roja' };
+  const rows = [
+    ['Precio', c => `${c.original_price ? `<span class="ls-was">${money(c.original_price)}</span> ` : ''}<b>${money(c.price)}</b>`],
+    ['Vendidos (total)', c => c.sold ?? '—'], ['Full', c => yes(c.full)], ['Flex', c => yes(c.flex)], ['Envío gratis', c => yes(c.free_ship)],
+    ['Cuotas sin interés (Premium)', c => yes(c.premium)], ['Entrega', c => c.manufacturing ? `<span style="color:var(--err)">a plazo (${esc(c.manufacturing)})</span>` : 'inmediata'],
+    ['Fotos', c => c.pictures], ['Clip / video', c => yes(c.video)], ['Datos de ficha técnica', c => c.attrs_n], ['Descripción', c => `${c.desc_len} caracteres`],
+    ['Opiniones', c => c.reviews ? `${c.rating || '—'}★ (${c.reviews})` : '—'], ['Catálogo', c => yes(c.catalog)],
+    ['Reputación', c => `${LV[c.level] || '—'}${c.power ? ` · ${POW[c.power]}` : ''}${c.official ? ' · Tienda oficial' : ''}`], ['Título', c => `<span style="font-size:12px">${esc(c.title)}</span>`],
+  ];
+  $('cmpBody').innerHTML = `<h4 style="margin:0 0 6px">Qué cambiar en tu publicación</h4>
+    <ol style="margin:0 0 12px;padding-left:20px;font-size:13.5px;line-height:1.55">${d.actions.map(a => `<li style="margin-bottom:4px"><b style="color:${a.prio === 1 ? 'var(--err)' : a.prio === 2 ? '#d97706' : 'var(--muted)'}">${a.prio === 1 ? 'Importante' : a.prio === 2 ? 'Conviene' : 'Extra'}:</b> ${esc(a.text)}</li>`).join('')}</ol>
+    <div class="row" style="gap:8px;margin-bottom:12px"><button class="btn primary small" id="cmpEdit">✏️ Mejorar mi publicación ahora</button></div>
+    <div class="table-wrap"><table class="sales-table"><thead><tr><th></th>${cols.map(c => `<th>${esc(c.role)}<div style="font-weight:600;text-transform:none;font-size:12.5px;color:var(--text)">${c.link && c.seller !== 'Vos' ? `<a class="lnk" href="${esc(c.link)}" target="_blank" rel="noopener">${esc(c.seller || '—')} ↗</a>` : esc(c.seller || '')}</div></th>`).join('')}</tr></thead>
+    <tbody>${rows.map(([k, f]) => `<tr><td class="muted" style="font-size:12.5px;white-space:nowrap">${k}</td>${cols.map(c => `<td style="font-size:13px">${f(c)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
+  $('cmpEdit').onclick = async () => { $('cmpModal').classList.remove('show'); if (!lsData) await loadListings(); openListing(itemId); };
+}
+$('cmpClose').onclick = () => $('cmpModal').classList.remove('show');
+document.addEventListener('click', (e) => { const b = e.target.closest('[data-cmp]'); if (!b) return; e.preventDefault(); const [a, i] = b.dataset.cmp.split('|'); openCompare(a, i); });
 
 function showView() {
   const v = ({ '#ventas': 'ventas', '#ranking': 'ranking', '#precios': 'precios', '#presupuestos': 'presupuestos', '#estados': 'estados', '#gastos': 'gastos', '#full': 'full', '#flex': 'flex', '#resultado': 'resultado', '#tareas': 'tareas', '#recompras': 'recompras', '#preguntas': 'preguntas', '#stock': 'stock', '#sugerencias': 'sugerencias', '#web': 'web', '#horarios': 'horarios', '#manuales': 'manuales', '#calculadora': 'calculadora', '#etiquetas': 'etiquetas', '#impresion': 'impresion', '#reclamos': 'reclamos', '#publicaciones': 'publicaciones', '#publicar': 'publicar', '#competencia': 'competencia', '#embudo': 'embudo', '#salud': 'salud', '#tuyo': 'tuyo' })[location.hash] || 'ventas';

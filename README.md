@@ -121,7 +121,9 @@ Al final del menú lateral. Para cada publicación: **visitas, ventas y conversi
 - **📉 Cayeron:** bajaron 30% o más las visitas o las ventas frente al mes anterior.
 - **⭐ Convierten bien:** las que más venden por visita; si tienen pocas visitas son las mejores para publicidad.
 - **Sin stock.**
-El botón **Mejorar** abre la publicación (ficha, fotos, descripción, precio). Las visitas se actualizan solas una vez por día o con "↻ Actualizar visitas".
+El botón **Mejorar** abre la publicación (ficha, fotos, descripción, precio). Las visitas se actualizan solas una vez por día o con "↻ Actualizar visitas" (si son muchas publicaciones, se traen en partes: el cartel avisa cuántas faltan).
+
+**🔍 Comparar con el que más vende** (en Embudo y en Competencia): busca a los que venden el mismo producto en el catálogo de ML y compara tu publicación lado a lado con el que gana el catálogo, el que más vende y el más barato: precio y descuento, vendidos, Full/Flex/envío gratis, cuotas (Premium), entrega inmediata o a plazo, fotos, clip, datos de la ficha técnica (y cuáles te faltan), palabras del título, largo de la descripción, opiniones, catálogo y reputación. Arriba arma la lista de **qué cambiar**, ordenada por importancia, con un botón para editar la publicación.
 
 ### 🛡️ Salud de cuentas
 Reputación oficial de Mercado Libre de cada cuenta (termómetro, MercadoLíder) y, sobre las ventas de los últimos 60 días: **reclamos, cancelaciones y despachos con demora**, con barra contra el límite y cuántos "quedan" antes de pasarlo. Guarda el historial diario y **avisa** (con notificación a la compu, una vez por día) si una cuenta baja de color, pierde MercadoLíder o se acerca al límite. Se revisa sola cada 6 horas. Los límites de alerta (por defecto prudentes: reclamos 1%, cancelaciones 1%, demoras 10%, avisar al 70%) se cambian en "Límites para las alertas".

@@ -843,6 +843,7 @@ app.get('/api/funnel', (req, res) => { const l = funnel.list(req.query.account);
 app.post('/api/funnel/refresh', (req, res) => { funnel.refresh(); res.json({ ok: true, job: funnel.status() }); });
 app.get('/api/funnel/status', (req, res) => res.json({ ok: true, job: funnel.status() }));
 app.get('/api/health', lsWrap(async req => (req.query.refresh || !health.list().at || Date.now() - new Date(health.list().at).getTime() > 3600e3 ? await health.refresh() : health.list())));
+app.get('/api/compare/:acc/:id', lsWrap(req => require('./lib/compare').compare(req.params.acc, req.params.id)));
 app.put('/api/health/limits', (req, res) => res.json({ ok: true, limits: health.saveLimits(req.body || {}) }));
 
 // Reclamos de Mercado Libre (todas las cuentas)
