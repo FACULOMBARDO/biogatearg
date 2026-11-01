@@ -680,7 +680,9 @@
       <div style="margin-top:12px;font-size:14px"><b>Cuentas</b> <a href="#" class="lnk" id="pbAccAll" style="font-size:12.5px">todas</a> · <a href="#" class="lnk" id="pbAccNone" style="font-size:12.5px">ninguna</a><div class="row" id="pbAccs" style="gap:12px;flex-wrap:wrap;margin-top:6px"></div></div>
       <div id="pbDupWarn" class="muted" style="font-size:12.5px;margin-top:8px" hidden>⚠️ Publicar el mismo producto en varias cuentas va contra las reglas de Mercado Libre (publicaciones repetidas): pueden pausarlas o sancionar las cuentas. La decisión es tuya.</div>
       <div class="row" style="justify-content:flex-end;margin-top:12px"><button class="btn primary" id="pbGo">Publicar</button></div>
+      <div id="pbConfirm" class="pb-confirm" hidden></div>
       <div id="pbResult" style="font-size:13.5px;margin-top:10px"></div>
+      <details id="pbHistBox" style="margin-top:12px"><summary class="lnk" style="cursor:pointer;font-size:13px">Últimas publicaciones hechas desde el panel</summary><div id="pbHist" style="font-size:13px;margin-top:6px"></div></details>
     </div>
   </div>
 </section>
@@ -2300,6 +2302,7 @@ let pb = null, pbAccsList = null;
 const PB_EMPTY = () => ({ src: 'ml', source_id: '', title: '', category_id: '', category_name: '', catalog_product_id: null, pictures: [], uploads: [], attrs: {}, srcAttrs: [], catAttrs: [], bullets: [], usd: null, weight_kg: null, listing_type: 'gold_special' });
 async function loadPublish() {
   if (!pb) pb = PB_EMPTY();
+  pbHist();
   if (!pbAccsList) {
     const d = await (await fetch('/api/publish/accounts')).json().catch(() => ({ accounts: [] }));
     pbAccsList = d.accounts || [];
@@ -2454,7 +2457,7 @@ async function pbMarket() {
   const r = await (await fetch('/api/publish/market?q=' + encodeURIComponent(q))).json().catch(() => ({ ok: false, error: 'Sin conexión.' }));
   if (!r.ok) { $('pbMkt').innerHTML = `<span class="err-t">${esc(r.error)}</span>`; return; }
   pbMk = r;
-  $('pbMkt').innerHTML = `<div style="margin-bottom:6px">${r.total} resultados${r.median ? ` · precios de otros vendedores: mín. <b>${money(r.min)}</b> · mediana <b>${money(r.median)}</b> · máx. <b>${money(r.max)}</b>` : ''} <span id="pbCmp"></span></div>
+  $('pbMkt').innerHTML = `<div style="margin-bottom:6px">${r.mode === 'catalog' ? `${r.items.length} vendedores en el catálogo de ML` : `${r.total} resultados`}${r.median ? ` · precios de otros vendedores: mín. <b>${money(r.min)}</b> · mediana <b>${money(r.median)}</b> · máx. <b>${money(r.max)}</b>` : ''} <span id="pbCmp"></span></div>
     <div class="table-wrap"><table class="sales-table"><thead><tr><th>Publicación</th><th>Vendedor</th><th style="text-align:right">Precio</th><th style="text-align:right">Vendidos</th><th>Envío</th></tr></thead><tbody>${r.items.map(x => `<tr${x.mine ? ' style="opacity:.6"' : ''}><td><a class="lnk" href="${esc(x.link)}" target="_blank" rel="noopener">${esc(x.title)}</a>${x.catalog ? ' <span class="ls-tag">Catálogo</span>' : ''}</td><td>${esc(x.seller || '—')}${x.official ? ' <span class="ls-tag">Tienda oficial</span>' : ''}${x.mine ? ' <span class="ls-tag">vos</span>' : ''}</td><td style="text-align:right">${x.original_price ? `<div class="ls-was">${money(x.original_price)}</div>` : ''}${money(x.price)}</td><td style="text-align:right">${x.sold == null ? '<span class="muted">—</span>' : x.sold}</td><td style="font-size:12px">${x.full ? 'Full' : ''}${x.free_ship ? ' gratis' : ''}</td></tr>`).join('')}</tbody></table></div>
     <div class="muted" style="font-size:12px;margin-top:4px">"Vendidos" es el total histórico que informa ML (no por mes). Las ventas por mes de la competencia van a estar en la sección Competencia.</div>`;
   pbCompare();
@@ -2470,26 +2473,52 @@ const pbSelAccs = () => [...document.querySelectorAll('[data-pbacc]')].filter(c 
 $('pbAccs').onchange = () => { $('pbDupWarn').hidden = pbSelAccs().length < 2; $('pbGo').textContent = pbSelAccs().length ? `Publicar en ${pbSelAccs().length} ${pbSelAccs().length === 1 ? 'cuenta' : 'cuentas'}` : 'Publicar'; };
 $('pbAccAll').onclick = (e) => { e.preventDefault(); document.querySelectorAll('[data-pbacc]:not(:disabled)').forEach(c => c.checked = true); $('pbAccs').onchange(); };
 $('pbAccNone').onclick = (e) => { e.preventDefault(); document.querySelectorAll('[data-pbacc]').forEach(c => c.checked = false); $('pbAccs').onchange(); };
-$('pbGo').onclick = async () => {
-  const del = document.querySelector('input[name=pbDel]:checked');
-  const err = (m) => { $('pbResult').innerHTML = `<span class="err-t">${m}</span>`; };
-  if (!del) return err('Elegí si es <b>entrega inmediata</b> o <b>a plazo</b> (paso 4).');
-  const accounts = pbSelAccs(); if (!accounts.length) return err('Elegí al menos una cuenta.');
-  if (!$('pbTitle').value.trim()) return err('Falta el título.');
-  if (!pb.category_id) return err('Falta elegir la categoría.');
-  if (!(Number($('pbPrice').value) > 0)) return err('Falta el precio.');
-  if (!pb.pictures.length && !pb.uploads.length) return err('Agregá al menos una foto.');
-  if (pb.uploads.reduce((n, u) => n + u.data.length, 0) > 3.5e6) return err('Las fotos subidas pesan mucho juntas: dejá hasta 4.');
-  const missing = pb.catAttrs.filter(a => a.required).filter(a => !pbCollectAttrs().some(x => x.id === a.id));
-  const days = del.value === 'days' ? Number($('pbDays').value) : 0;
-  const names = accounts.map(id => (pbAccsList.find(a => a.id === id) || {}).nickname).join(', ');
-  if (!confirm(`Publicar "${$('pbTitle').value}"\n\nPrecio: ${money($('pbPrice').value)} · Stock: ${$('pbStock').value}\nEntrega: ${days ? `A PLAZO, ${days} días` : 'INMEDIATA'}\nCuentas: ${names}${missing.length ? `\n\n⚠️ Faltan datos obligatorios de la ficha: ${missing.map(a => a.name).join(', ')}. ML puede rechazarla.` : ''}\n\n¿Publicamos?`)) return;
-  $('pbGo').disabled = true; $('pbGo').textContent = 'Publicando…'; $('pbResult').innerHTML = '<span class="muted">Publicando en cada cuenta…</span>';
-  const r = await lsPost('/api/publish', { title: $('pbTitle').value.trim(), category_id: pb.category_id, price: Number($('pbPrice').value), stock: Number($('pbStock').value) || 1, sku: $('pbSku').value.trim().toUpperCase(), listing_type: pb.listing_type, attributes: pbCollectAttrs(), pictures: pb.pictures, uploads: pb.uploads, description: $('pbDesc').value, delivery: del.value, days, accounts, catalog: $('pbCatalog').checked, catalog_product_id: pb.catalog_product_id, usd: pb.src === 'amazon' ? Number($('pbUsd').value) || 0 : 0, weight_kg: pbKg() });
-  $('pbGo').disabled = false; $('pbAccs').onchange();
-  if (!r.ok) return err(esc(r.error));
-  $('pbResult').innerHTML = r.results.map(x => x.ok ? `<div>✅ <b>${esc(x.account)}</b>: publicada <a class="lnk" href="${esc(x.link)}" target="_blank" rel="noopener">${esc(x.id)} ↗</a>${x.status && x.status !== 'active' ? ` <span class="muted">(${esc(x.status)})</span>` : ''}${x.warning ? ` <span style="color:#d97706">· ${esc(x.warning)}</span>` : ''}</div>` : `<div>❌ <b>${esc(x.account || x.account_id)}</b>: ${esc(x.error)}</div>`).join('');
+let pbPending = null;
+$('pbGo').onclick = () => {
+  try {
+    const del = document.querySelector('input[name=pbDel]:checked');
+    const err = (m) => { $('pbConfirm').hidden = true; $('pbResult').innerHTML = `<div class="pb-res bad">${m}</div>`; $('pbResult').scrollIntoView({ behavior: 'smooth', block: 'center' }); };
+    if (!del) return err('Elegí si es <b>entrega inmediata</b> o <b>a plazo</b>.');
+    const accounts = pbSelAccs(); if (!accounts.length) return err('Elegí al menos una cuenta.');
+    if (!$('pbTitle').value.trim()) return err('Falta el título.');
+    if (!pb.category_id) return err('Falta elegir la categoría.');
+    if (!(Number($('pbPrice').value) > 0)) return err('Falta el precio.');
+    if (!pb.pictures.length && !pb.uploads.length) return err('Agregá al menos una foto.');
+    if (pb.uploads.reduce((n, u) => n + u.data.length, 0) > 3.5e6) return err('Las fotos subidas pesan mucho juntas: dejá hasta 4.');
+    const attrs = pbCollectAttrs();
+    const missing = pb.catAttrs.filter(a => a.required).filter(a => !attrs.some(x => x.id === a.id));
+    const days = del.value === 'days' ? Number($('pbDays').value) : 0;
+    const names = accounts.map(id => (pbAccsList.find(a => a.id === id) || {}).nickname || id);
+    pbPending = { title: $('pbTitle').value.trim(), category_id: pb.category_id, price: Number($('pbPrice').value), stock: Number($('pbStock').value) || 1, sku: $('pbSku').value.trim().toUpperCase(), listing_type: pb.listing_type, attributes: attrs, pictures: pb.pictures, uploads: pb.uploads, description: $('pbDesc').value, delivery: del.value, days, accounts, catalog: $('pbCatalog').checked, catalog_product_id: pb.catalog_product_id, usd: pb.src === 'amazon' ? Number($('pbUsd').value) || 0 : 0, weight_kg: pbKg() };
+    $('pbResult').innerHTML = '';
+    $('pbConfirm').hidden = false;
+    $('pbConfirm').innerHTML = `<b>¿Publicamos?</b><div style="margin:6px 0;line-height:1.7"><b>${esc(pbPending.title)}</b><br>Precio ${money(pbPending.price)} · Stock ${pbPending.stock} · ${pb.listing_type === 'gold_pro' ? 'Premium' : 'Clásica'}<br>Entrega: <b>${days ? `A PLAZO, ${days} días desde la compra` : 'INMEDIATA'}</b><br>Cuentas: <b>${esc(names.join(', '))}</b></div>${missing.length ? `<div style="color:#d97706;font-size:13px">⚠️ Faltan datos obligatorios de la ficha: ${esc(missing.map(a => a.name).join(', '))}. Mercado Libre puede rechazarla.</div>` : ''}<div class="row" style="gap:8px;justify-content:flex-end;margin-top:8px"><button class="btn" id="pbNo">Cancelar</button><button class="btn primary" id="pbYes">✅ Sí, publicar</button></div>`;
+    $('pbConfirm').scrollIntoView({ behavior: 'smooth', block: 'center' });
+    $('pbNo').onclick = () => { $('pbConfirm').hidden = true; pbPending = null; };
+    $('pbYes').onclick = pbDoPublish;
+  } catch (e) { $('pbResult').innerHTML = `<div class="pb-res bad">Error en la pantalla: ${esc(e.message)}. Recargá la página (Ctrl + F5) y probá de nuevo.</div>`; }
 };
+async function pbDoPublish() {
+  if (!pbPending) return;
+  const body = pbPending; pbPending = null;
+  $('pbConfirm').hidden = true; $('pbGo').disabled = true; $('pbGo').textContent = 'Publicando…';
+  $('pbResult').innerHTML = `<div class="pb-res">⏳ Publicando en ${body.accounts.length} ${body.accounts.length === 1 ? 'cuenta' : 'cuentas'}… no cierres la página.</div>`;
+  $('pbResult').scrollIntoView({ behavior: 'smooth', block: 'center' });
+  let r;
+  try { r = await lsPost('/api/publish', body); } catch (e) { r = { ok: false, error: e.message }; }
+  $('pbGo').disabled = false; $('pbAccs').onchange();
+  if (!r.ok) { $('pbResult').innerHTML = `<div class="pb-res bad">❌ <b>No se publicó.</b> ${esc(r.error || 'Error desconocido')}<div class="muted" style="font-size:12.5px;margin-top:4px">Si dice "Sin conexión", fijate en "Últimas publicaciones" (abajo) o en Mercado Libre si igual se creó antes de volver a intentar.</div></div>`; pbHist(); return; }
+  const okN = r.results.filter(x => x.ok).length, bad = r.results.filter(x => !x.ok);
+  $('pbResult').innerHTML = `<div class="pb-res ${bad.length ? (okN ? 'warn' : 'bad') : 'good'}">${okN ? `<b>✅ ${okN === 1 ? 'Publicada con éxito' : `Publicada con éxito en ${okN} cuentas`}</b>` : '<b>❌ No se pudo publicar</b>'}
+    ${r.results.map(x => x.ok ? `<div style="margin-top:6px">✅ <b>${esc(x.account)}</b>: número de publicación <b style="font-size:15px">${esc(x.id)}</b> · <a class="lnk" href="${esc(x.link)}" target="_blank" rel="noopener">Ver en Mercado Libre ↗</a>${x.status && x.status !== 'active' ? ` <span style="color:#d97706">(estado: ${esc(x.status === 'paused' ? 'pausada' : x.status === 'under_review' ? 'en revisión de ML' : x.status)})</span>` : ''}${x.warning ? `<div style="color:#d97706;font-size:12.5px">⚠️ ${esc(x.warning)}</div>` : ''}</div>` : `<div style="margin-top:6px">❌ <b>${esc(x.account || x.account_id)}</b>: ${esc(x.error)}</div>`).join('')}</div>`;
+  $('pbResult').scrollIntoView({ behavior: 'smooth', block: 'center' });
+  pbHist();
+}
+async function pbHist() {
+  const d = await (await fetch('/api/publish/history')).json().catch(() => null);
+  if (!d) return;
+  $('pbHist').innerHTML = d.items.map(h => `<div style="padding:5px 0;border-bottom:1px solid var(--line)"><span class="muted">${new Date(h.at).toLocaleString('es-AR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}</span> · <b>${esc(h.title)}</b><br>${h.results.map(x => x.ok ? `✅ ${esc(x.account)}: ${x.link ? `<a class="lnk" href="${esc(x.link)}" target="_blank" rel="noopener">${esc(x.id)}</a>` : esc(x.id)}` : `❌ ${esc(x.account)}: ${esc(x.error)}`).join(' · ')}</div>`).join('') || '<span class="muted">Todavía no publicaste nada desde el panel.</span>';
+}
 
 function showView() {
   const v = ({ '#ventas': 'ventas', '#ranking': 'ranking', '#precios': 'precios', '#presupuestos': 'presupuestos', '#estados': 'estados', '#gastos': 'gastos', '#full': 'full', '#flex': 'flex', '#resultado': 'resultado', '#tareas': 'tareas', '#recompras': 'recompras', '#preguntas': 'preguntas', '#stock': 'stock', '#sugerencias': 'sugerencias', '#web': 'web', '#horarios': 'horarios', '#manuales': 'manuales', '#calculadora': 'calculadora', '#etiquetas': 'etiquetas', '#impresion': 'impresion', '#reclamos': 'reclamos', '#publicaciones': 'publicaciones', '#publicar': 'publicar', '#tuyo': 'tuyo' })[location.hash] || 'ventas';

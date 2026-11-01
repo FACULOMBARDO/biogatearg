@@ -825,6 +825,7 @@ app.get('/api/publish/amazon-cost', (req, res) => res.json({ ok: true, ...publis
 app.get('/api/publish/market', lsWrap(req => publish.market(req.query.q)));
 app.post('/api/publish/ai', lsWrap(req => require('./lib/ai').listingText(req.body || {})));
 app.post('/api/publish', lsWrap(req => publish.publish(req.body || {})));
+app.get('/api/publish/history', (req, res) => res.json({ ok: true, items: publish.history() }));
 app.get('/api/publish/accounts', (req, res) => res.json({ ok: true, accounts: store.getAccounts().map(a => ({ id: String(a.user_id), nickname: a.nickname || String(a.user_id), disabled: !!a.needs_reconnect, tuyo: require('./lib/tuyo').isTuyo(a.user_id) })) }));
 
 // Reclamos de Mercado Libre (todas las cuentas)

@@ -610,3 +610,9 @@ input[type=time], input[type=url] { font: inherit; padding: 9px 11px; border: 1p
 .pb-break td:last-child { text-align: right; font-variant-numeric: tabular-nums; }
 .pb-cat { border: 1px solid var(--line); border-radius: 10px; padding: 6px 10px; background: var(--card-2); cursor: pointer; font-size: 12.5px; text-align: left; color: var(--text); }
 .pb-cat:hover { border-color: var(--brand); }
+
+.pb-confirm { margin-top: 10px; border: 2px solid var(--brand); border-radius: 12px; padding: 12px 14px; font-size: 14px; background: color-mix(in srgb, var(--brand) 6%, var(--card)); }
+.pb-res { border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; font-size: 14px; background: var(--card-2); }
+.pb-res.good { border-color: var(--ok); background: var(--ok-bg); }
+.pb-res.bad { border-color: var(--err); background: var(--err-bg); }
+.pb-res.warn { border-color: #d97706; background: var(--warn-bg); }
