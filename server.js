@@ -837,6 +837,14 @@ app.get('/api/competition/products', lsWrap(async req => ({ items: await competi
 app.post('/api/competition/link', (req, res) => res.json({ ok: true, group: competition.link((req.body || {}).key, (req.body || {}).product_id, (req.body || {}).name) }));
 app.post('/api/competition/follow', (req, res) => res.json({ ok: true, group: competition.follow((req.body || {}).key, (req.body || {}).on) }));
 
+// Embudo de conversión y salud de las cuentas
+const funnel = require('./lib/funnel'), health = require('./lib/health');
+app.get('/api/funnel', (req, res) => { const l = funnel.list(req.query.account); if (!l.at && !l.job.running && l.listings_at) { funnel.refresh(); l.job = funnel.status(); } res.json({ ok: true, ...l }); });
+app.post('/api/funnel/refresh', (req, res) => { funnel.refresh(); res.json({ ok: true, job: funnel.status() }); });
+app.get('/api/funnel/status', (req, res) => res.json({ ok: true, job: funnel.status() }));
+app.get('/api/health', lsWrap(async req => (req.query.refresh || !health.list().at || Date.now() - new Date(health.list().at).getTime() > 3600e3 ? await health.refresh() : health.list())));
+app.put('/api/health/limits', (req, res) => res.json({ ok: true, limits: health.saveLimits(req.body || {}) }));
+
 // Reclamos de Mercado Libre (todas las cuentas)
 const claims = require('./lib/claims');
 app.get('/api/claims', async (req, res) => {
@@ -1370,7 +1378,7 @@ async function backfillSaleDates(until = Infinity) {
   }
 }
 // En Vercel: cada vez que alguien usa el panel se fija qué toca actualizar (con la última vez guardada en la base).
-const EVERY = { competition: 20 * 3600e3, listings: 12 * 3600e3, claims: 20 * 60e3, questions: 10 * 60e3, sales: 15 * 60e3, woo: 15 * 60e3, costs: 6 * 3600e3, web: 6 * 3600e3, manuals: 24 * 3600e3, backfill: 24 * 3600e3 };
+const EVERY = { health: 6 * 3600e3, funnel: 20 * 3600e3, competition: 20 * 3600e3, listings: 12 * 3600e3, claims: 20 * 60e3, questions: 10 * 60e3, sales: 15 * 60e3, woo: 15 * 60e3, costs: 6 * 3600e3, web: 6 * 3600e3, manuals: 24 * 3600e3, backfill: 24 * 3600e3 };
 let autoBusy = false;
 function autoTasks(force = false) {
   if (autoBusy || MISSING.length) return [];
@@ -1383,6 +1391,8 @@ function autoTasks(force = false) {
     else if (due('sales') && !salesJob.running) { stamp.last_sales = new Date().toISOString(); autoSales(); }
     if (due('listings')) { stamp.last_listings = new Date().toISOString(); require('./lib/listings').sync(); }
     if (due('competition') && store.getListings().updated_at) { stamp.last_competition = new Date().toISOString(); require('./lib/competition').refresh(); }
+    if (due('health')) { stamp.last_health = new Date().toISOString(); runs.push(bg(require('./lib/health').refresh().catch(e => console.log('Salud:', e.message)))); }
+    if (due('funnel') && store.getListings().updated_at) { stamp.last_funnel = new Date().toISOString(); require('./lib/funnel').refresh(); }
     if (due('claims')) { stamp.last_claims = new Date().toISOString(); runs.push(bg(require('./lib/claims').sync().catch(e => console.log('Reclamos:', e.message)))); }
     if (due('questions')) { stamp.last_questions = new Date().toISOString(); runs.push(bg(questions.syncAll().catch(e => console.log('Preguntas:', e.message)))); }
     runs.push(bg(refillPush(false).catch(() => {})));

@@ -54,6 +54,8 @@
   <a href="#publicaciones" class="nav" data-view="publicaciones"><span class="ic">🗂️</span><span>Mis publicaciones</span></a>
   <a href="#publicar" class="nav" data-view="publicar"><span class="ic">📝</span><span>Publicar</span></a>
   <a href="#competencia" class="nav" data-view="competencia"><span class="ic">🔎</span><span>Competencia</span></a>
+  <a href="#embudo" class="nav" data-view="embudo"><span class="ic">📈</span><span>Embudo de ventas</span></a>
+  <a href="#salud" class="nav" data-view="salud"><span class="ic">🛡️</span><span>Salud de cuentas</span><span class="nav-badge" id="hlBadge" hidden></span></a>
   <div class="side-foot hide-sm muted">Todas tus cuentas de Mercado Libre en un lugar.</div>
 </aside>
 <main>
@@ -619,6 +621,39 @@
   <div class="mn-vbody" id="mnVBody"></div>
 </div>
 
+<section id="viewFunnel" hidden>
+  <div class="row" style="justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px">
+    <h1 class="page-title">Embudo de ventas <span class="muted" style="font-size:15px;font-weight:500">· visitas → ventas, últimos 30 días</span></h1>
+    <button class="btn" id="fnRefresh">↻ Actualizar visitas</button>
+  </div>
+  <div class="stats" id="fnStats"></div>
+  <div class="card" style="padding:12px 14px">
+    <div class="row" style="flex-wrap:wrap;gap:8px">
+      <select id="fnAcc"><option value="">Todas las cuentas</option></select>
+      <div class="seg" id="fnKind"><button data-k="" class="on">Todas</button><button data-k="leak">🔴 Visitas sin ventas <span class="cnt"></span></button><button data-k="lowvis">🟡 Pocas visitas <span class="cnt"></span></button><button data-k="drop">📉 Cayeron <span class="cnt"></span></button><button data-k="star">⭐ Convierten bien <span class="cnt"></span></button><button data-k="nostock">Sin stock <span class="cnt"></span></button></div>
+      <input type="search" id="fnQ" placeholder="Buscar…" style="max-width:220px;flex:1">
+    </div>
+    <div id="fnInfo" class="muted" style="font-size:12.5px;margin-top:8px"></div>
+  </div>
+  <div class="card" style="padding:0"><div class="table-wrap"><table class="sales-table">
+    <thead><tr><th>Publicación</th><th style="text-align:right">Visitas</th><th style="text-align:right">Ventas</th><th style="text-align:right">Conversión</th><th>Diagnóstico</th><th></th></tr></thead>
+    <tbody id="fnRows"><tr><td colspan="6" class="muted" style="padding:16px">Cargando…</td></tr></tbody></table></div>
+    <div class="row" id="fnMore" style="justify-content:center;padding:10px" hidden><button class="btn small" id="fnMoreBtn">Ver más</button></div></div>
+</section>
+<section id="viewHealth" hidden>
+  <div class="row" style="justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px">
+    <h1 class="page-title">Salud de cuentas <span class="muted" style="font-size:15px;font-weight:500">· reputación de Mercado Libre</span></h1>
+    <button class="btn" id="hlRefresh">↻ Actualizar</button>
+  </div>
+  <div id="hlInfo" class="muted" style="font-size:12.5px;margin-bottom:10px"></div>
+  <div id="hlList" class="hl-grid"><div class="card muted" style="padding:20px">Cargando…</div></div>
+  <div class="card" style="padding:12px 14px">
+    <details><summary class="lnk" style="cursor:pointer;font-size:13px">Límites para las alertas</summary>
+      <div class="row" style="gap:10px;flex-wrap:wrap;margin-top:8px;font-size:13px">Reclamos <input type="number" id="hlLc" step="0.1" style="width:70px">% · Cancelaciones <input type="number" id="hlLx" step="0.1" style="width:70px">% · Demoras <input type="number" id="hlLd" step="0.5" style="width:70px">% · Avisar al llegar al <input type="number" id="hlLw" step="5" style="width:70px">% del límite <button class="btn small" id="hlLSave">Guardar</button><span id="hlLMsg"></span></div>
+      <div class="muted" style="font-size:12px;margin-top:6px">El color de cada cuenta es el oficial de Mercado Libre. Estos límites sirven para avisarte antes: están puestos prudentes (ML puede usar otros según la categoría y el volumen). Las alertas importantes llegan como notificación a las compus con notificaciones activadas, una vez por día.</div>
+    </details>
+  </div>
+</section>
 <section id="viewComp" hidden>
   <div class="row" style="justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px">
     <h1 class="page-title">Competencia <span class="muted" style="font-size:15px;font-weight:500">· quién más vende tus productos</span></h1>
@@ -2643,12 +2678,83 @@ $('cpDays').onclick = (e) => { const b = e.target.closest('[data-d]'); if (!b) r
 $('cpAcc').onchange = loadComp; $('cpQ').oninput = renderComp; $('cpRec').onchange = renderComp;
 $('cpAddBtn').onclick = async () => { const k = $('cpAdd').value; if (!k) return; await lsPost('/api/competition/follow', { key: k, on: true }); await lsPost('/api/competition/refresh'); $('cpMsg').innerHTML = '<span style="color:var(--ok)">✓ Agregado. Analizando…</span>'; cpWatch(); };
 
+// ---------- Embudo de ventas ----------
+let fnData = null, fnKind = '', fnLimit = 150, fnPoll = null;
+const FN_KIND = { leak: ['🔴 Visitas sin ventas', 'var(--err)'], lowvis: ['🟡 Pocas visitas', '#d97706'], star: ['⭐ Convierte bien', 'var(--ok)'], nostock: ['Sin stock', 'var(--err)'], nodata: ['Sin datos', 'var(--muted)'], ok: ['Normal', 'var(--muted)'] };
+const fnChg = (v) => v == null ? '' : `<div style="font-size:11px;color:${v < 0 ? 'var(--err)' : 'var(--ok)'}">${v > 0 ? '▲' : v < 0 ? '▼' : ''} ${Math.abs(v)}%</div>`;
+const fnPct = (a, b) => (a != null && b ? Math.round((a / b - 1) * 100) : null);
+async function loadFunnel() {
+  const acc = $('fnAcc').value;
+  const d = await (await fetch('/api/funnel' + (acc ? '?account=' + acc : ''))).json().catch(() => ({ ok: false, error: 'Sin conexión.' }));
+  if (!d.ok) { $('fnRows').innerHTML = `<tr><td colspan="6" class="err-t" style="padding:16px">${esc(d.error)}</td></tr>`; return; }
+  fnData = d;
+  if ($('fnAcc').options.length <= 1) { const accs = {}; for (const r of d.items) accs[r.account_id] = r.account; $('fnAcc').innerHTML = '<option value="">Todas las cuentas</option>' + Object.entries(accs).map(([k, v]) => `<option value="${esc(k)}">${esc(v)}</option>`).join(''); if (acc) $('fnAcc').value = acc; }
+  const t = d.totals;
+  $('fnStats').innerHTML = `<div class="stat"><div class="k">Visitas (30 días)</div><div class="v">${(t.visits || 0).toLocaleString('es-AR')}</div><div class="sub">${t.visits_prev ? `${fnPct(t.visits, t.visits_prev) > 0 ? '▲' : '▼'} ${Math.abs(fnPct(t.visits, t.visits_prev))}% vs. 30 días anteriores` : '&nbsp;'}</div></div>
+    <div class="stat"><div class="k">Ventas (30 días)</div><div class="v">${t.sales}</div><div class="sub">${t.sales_prev ? `${fnPct(t.sales, t.sales_prev) > 0 ? '▲' : '▼'} ${Math.abs(fnPct(t.sales, t.sales_prev))}% vs. 30 días anteriores` : '&nbsp;'}</div></div>
+    <div class="stat"><div class="k">Conversión</div><div class="v">${t.conv != null ? t.conv + '%' : '—'}</div><div class="sub">${t.conv_prev != null ? `antes ${t.conv_prev}%` : '&nbsp;'} · de cada 100 visitas</div></div>
+    <div class="stat"><div class="k">A revisar</div><div class="v" style="color:var(--err)">${d.counts.leak + d.counts.lowvis}</div><div class="sub">${d.counts.leak} sin ventas · ${d.counts.lowvis} con pocas visitas</div></div>`;
+  $('fnInfo').innerHTML = d.job.running ? '↻ Trayendo visitas de Mercado Libre…' : !d.listings_at ? 'Primero entrá a <b>Mis publicaciones</b> para traer tus publicaciones.' :
+    `Visitas del ${d.range ? d.range.from.split('-').reverse().join('/') : '—'} al ${d.range ? d.range.to.split('-').reverse().join('/') : '—'} · conversión mediana de tus publicaciones: ${d.median_conv}% · "Visitas sin ventas" = muchas visitas y menos de la mitad de esa conversión (problema de la publicación). "Pocas visitas" = problema de exposición.${(d.errors || []).length ? ` <span class="err-t">⚠️ ${esc(d.errors.join(' · '))}</span>` : ''}`;
+  renderFunnel();
+  if (d.job.running) { clearInterval(fnPoll); fnPoll = setInterval(async () => { const s = await (await fetch('/api/funnel/status')).json().catch(() => null); if (s && !s.job.running) { clearInterval(fnPoll); loadFunnel(); } }, 4000); }
+}
+function renderFunnel() {
+  if (!fnData) return;
+  const q = $('fnQ').value.trim().toLowerCase();
+  const cnt = { leak: fnData.counts.leak, lowvis: fnData.counts.lowvis, drop: fnData.counts.drop, star: fnData.counts.star, nostock: fnData.counts.nostock };
+  $('fnKind').querySelectorAll('button').forEach(b => { b.classList.toggle('on', b.dataset.k === fnKind); const c = b.querySelector('.cnt'); if (c) c.textContent = cnt[b.dataset.k] ?? ''; });
+  const list = fnData.items.filter(r => (!fnKind || (fnKind === 'drop' ? r.drop : r.kind === fnKind)) && (!q || [r.title, r.sku, r.id].join(' ').toLowerCase().includes(q)))
+    .sort((a, b) => fnKind === 'drop' ? (Math.min(a.visits_change ?? 0, a.sales_change ?? 0) - Math.min(b.visits_change ?? 0, b.sales_change ?? 0)) : (b.visits || 0) - (a.visits || 0));
+  $('fnRows').innerHTML = list.slice(0, fnLimit).map(r => { const [lbl, col] = FN_KIND[r.kind] || FN_KIND.ok; return `<tr>
+    <td><div class="ls-pub">${r.thumb ? `<img src="${esc(r.thumb)}" alt="" loading="lazy">` : '<div class="ls-noimg">📦</div>'}<div style="min-width:0"><a class="lnk t" href="${esc(r.link)}" target="_blank" rel="noopener">${esc(r.title)}</a><div class="ls-meta"><span class="pill" style="color:var(--brand);border-color:var(--brand);font-size:11px;padding:0 6px">${esc(r.account)}</span><span>${money(r.price)}</span><span>stock ${r.stock}</span>${r.status !== 'active' ? '<span class="ls-tag">pausada</span>' : ''}</div></div></div></td>
+    <td style="text-align:right">${r.visits == null ? '—' : r.visits.toLocaleString('es-AR')}${fnChg(r.visits_change)}</td>
+    <td style="text-align:right">${r.sales}${fnChg(r.sales_change)}</td>
+    <td style="text-align:right"><b>${r.conv != null ? r.conv + '%' : '—'}</b>${r.conv_prev != null ? `<div class="muted" style="font-size:11px">antes ${r.conv_prev}%</div>` : ''}</td>
+    <td style="font-size:12.5px;max-width:340px"><b style="color:${col}">${lbl}</b>${r.drop ? ' <b style="color:var(--err)">📉 cayó</b>' : ''}${r.reasons.length ? `<div class="muted">${r.reasons.map(esc).join(' · ')}</div>` : ''}</td>
+    <td><button class="btn small" data-fnedit="${esc(r.id)}">Mejorar</button></td></tr>`; }).join('') || `<tr><td colspan="6" class="muted" style="padding:16px">${fnData.job.running ? 'Trayendo visitas…' : 'No hay publicaciones con ese filtro.'}</td></tr>`;
+  $('fnMore').hidden = list.length <= fnLimit;
+}
+$('fnRows').addEventListener('click', async (e) => { const b = e.target.closest('[data-fnedit]'); if (!b) return; if (!lsData) await loadListings(); openListing(b.dataset.fnedit); });
+$('fnKind').onclick = (e) => { const b = e.target.closest('[data-k]'); if (!b) return; fnKind = b.dataset.k; fnLimit = 150; renderFunnel(); };
+$('fnAcc').onchange = loadFunnel; $('fnQ').oninput = renderFunnel; $('fnMoreBtn').onclick = () => { fnLimit += 150; renderFunnel(); };
+$('fnRefresh').onclick = async () => { await lsPost('/api/funnel/refresh'); $('fnInfo').textContent = '↻ Trayendo visitas de Mercado Libre…'; clearInterval(fnPoll); fnPoll = setInterval(async () => { const s = await (await fetch('/api/funnel/status')).json().catch(() => null); if (s && !s.job.running) { clearInterval(fnPoll); loadFunnel(); } }, 4000); };
+
+// ---------- Salud de cuentas ----------
+async function loadHealth(force) {
+  if (force) $('hlInfo').textContent = 'Consultando Mercado Libre…';
+  const d = await (await fetch('/api/health' + (force ? '?refresh=1' : ''))).json().catch(() => ({ ok: false, error: 'Sin conexión.' }));
+  if (!d.ok) { $('hlList').innerHTML = `<div class="card err-t" style="padding:20px">${esc(d.error)}</div>`; return; }
+  const L = d.limits; $('hlLc').value = L.claims; $('hlLx').value = L.cancellations; $('hlLd').value = L.delayed; $('hlLw').value = L.warn_at;
+  $('hlInfo').textContent = d.at ? `Actualizado ${new Date(d.at).toLocaleString('es-AR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })} · se revisa solo cada 6 horas · todo se mide sobre las ventas de los últimos 60 días.` : '';
+  const meter = (name, m) => !m ? '' : `<div style="margin-top:8px"><div class="row" style="justify-content:space-between;font-size:12.5px"><span>${name}</span><b style="color:${m.rate_pct > m.limit_pct ? 'var(--err)' : m.use_pct >= L.warn_at ? '#d97706' : 'inherit'}">${m.rate_pct}% <span class="muted" style="font-weight:400">(${m.value}) · límite ${m.limit_pct}%</span></b></div>
+    <div class="hl-bar"><i style="width:${Math.min(100, m.use_pct)}%;background:${m.rate_pct > m.limit_pct ? 'var(--err)' : m.use_pct >= L.warn_at ? '#d97706' : 'var(--ok)'}"></i></div>${m.left != null ? `<div class="muted" style="font-size:11.5px">${m.rate_pct > m.limit_pct ? 'Pasado del límite' : `Te ${m.left === 1 ? 'queda' : 'quedan'} ~${m.left} antes del límite`}${m.real_pct != null && m.real_pct !== m.rate_pct ? ` · real sin excluir: ${m.real_pct}%` : ''}</div>` : ''}</div>`;
+  let alertsN = 0;
+  $('hlList').innerHTML = d.items.map(a => {
+    if (a.reconnect) return `<div class="card"><b>${esc(a.account)}</b><div class="err-t" style="margin-top:6px">Hay que volver a conectar la cuenta.</div></div>`;
+    if (a.error) return `<div class="card"><b>${esc(a.account)}</b><div class="err-t" style="margin-top:6px">${esc(a.error)}</div></div>`;
+    const lv = a.level_info || { name: a.level || 'Sin reputación aún', color: 'var(--muted)', n: 0 };
+    alertsN += (a.alerts || []).filter(x => x.sev === 'alta').length;
+    return `<div class="card hl-card" style="border-top:4px solid ${lv.color}">
+      <div class="row" style="justify-content:space-between;gap:8px;flex-wrap:wrap"><b style="font-size:15px">${esc(a.account)}</b>${a.power_name ? `<span class="ls-tag">🏅 ${esc(a.power_name)}</span>` : ''}</div>
+      <div class="hl-thermo">${[1, 2, 3, 4, 5].map(n => `<i style="background:${['#dc2626', '#f97316', '#eab308', '#84cc16', '#16a34a'][n - 1]};opacity:${n === lv.n ? 1 : 0.18}"></i>`).join('')}</div>
+      <div style="font-size:13px">Reputación <b style="color:${lv.color}">${esc(lv.name)}</b> · ${a.sales_60} ventas en 60 días</div>
+      ${meter('Reclamos', a.claims)}${meter('Cancelaciones', a.cancellations)}${meter('Despachos con demora', a.delayed)}
+      ${(a.alerts || []).length ? `<div style="margin-top:10px">${a.alerts.map(x => `<div style="font-size:12.5px;color:${x.sev === 'alta' ? 'var(--err)' : '#d97706'}">⚠️ ${esc(x.text)}</div>`).join('')}</div>` : '<div style="margin-top:10px;font-size:12.5px;color:var(--ok)">✓ Todo en orden.</div>'}
+      ${(a.history || []).length > 1 ? `<div class="hl-hist" title="Reputación de los últimos días">${a.history.map(h => `<i title="${h.d}" style="background:${({ '5_green': '#16a34a', '4_light_green': '#84cc16', '3_yellow': '#eab308', '2_orange': '#f97316', '1_red': '#dc2626' })[h.level] || '#888'}"></i>`).join('')}</div>` : ''}
+    </div>`; }).join('') || '<div class="card muted" style="padding:20px">No hay cuentas.</div>';
+  $('hlBadge').hidden = !alertsN; $('hlBadge').textContent = alertsN;
+}
+$('hlRefresh').onclick = () => loadHealth(true);
+$('hlLSave').onclick = async () => { const d = await lsPost('/api/health/limits', { claims: $('hlLc').value, cancellations: $('hlLx').value, delayed: $('hlLd').value, warn_at: $('hlLw').value }, 'PUT'); $('hlLMsg').innerHTML = d.ok ? '<span style="color:var(--ok)">✓ Guardado</span>' : ''; loadHealth(true); };
+setTimeout(async () => { const d = await (await fetch('/api/health')).json().catch(() => null); if (d && d.ok) { const n = d.items.reduce((k, a) => k + (a.alerts || []).filter(x => x.sev === 'alta').length, 0); $('hlBadge').hidden = !n; $('hlBadge').textContent = n; } }, 4000);
+
 function showView() {
-  const v = ({ '#ventas': 'ventas', '#ranking': 'ranking', '#precios': 'precios', '#presupuestos': 'presupuestos', '#estados': 'estados', '#gastos': 'gastos', '#full': 'full', '#flex': 'flex', '#resultado': 'resultado', '#tareas': 'tareas', '#recompras': 'recompras', '#preguntas': 'preguntas', '#stock': 'stock', '#sugerencias': 'sugerencias', '#web': 'web', '#horarios': 'horarios', '#manuales': 'manuales', '#calculadora': 'calculadora', '#etiquetas': 'etiquetas', '#impresion': 'impresion', '#reclamos': 'reclamos', '#publicaciones': 'publicaciones', '#publicar': 'publicar', '#competencia': 'competencia', '#tuyo': 'tuyo' })[location.hash] || 'ventas';
+  const v = ({ '#ventas': 'ventas', '#ranking': 'ranking', '#precios': 'precios', '#presupuestos': 'presupuestos', '#estados': 'estados', '#gastos': 'gastos', '#full': 'full', '#flex': 'flex', '#resultado': 'resultado', '#tareas': 'tareas', '#recompras': 'recompras', '#preguntas': 'preguntas', '#stock': 'stock', '#sugerencias': 'sugerencias', '#web': 'web', '#horarios': 'horarios', '#manuales': 'manuales', '#calculadora': 'calculadora', '#etiquetas': 'etiquetas', '#impresion': 'impresion', '#reclamos': 'reclamos', '#publicaciones': 'publicaciones', '#publicar': 'publicar', '#competencia': 'competencia', '#embudo': 'embudo', '#salud': 'salud', '#tuyo': 'tuyo' })[location.hash] || 'ventas';
   $('viewQuotes').hidden = v !== 'presupuestos';
   $('viewStatus').hidden = v !== 'estados';
   $('viewExpenses').hidden = v !== 'gastos'; $('viewFull').hidden = v !== 'full';
-  $('viewResults').hidden = v !== 'resultado'; $('viewStock').hidden = v !== 'stock'; $('viewSuggest').hidden = v !== 'sugerencias'; $('viewWeb').hidden = v !== 'web'; $('viewHours').hidden = v !== 'horarios'; $('viewManuals').hidden = v !== 'manuales'; $('viewCalc').hidden = v !== 'calculadora'; $('viewPLabel').hidden = v !== 'etiquetas'; $('viewShipLabels').hidden = v !== 'impresion'; $('viewClaims').hidden = v !== 'reclamos'; $('viewListings').hidden = v !== 'publicaciones'; $('viewPublish').hidden = v !== 'publicar'; $('viewComp').hidden = v !== 'competencia'; $('viewTuyo').hidden = v !== 'tuyo';
+  $('viewResults').hidden = v !== 'resultado'; $('viewStock').hidden = v !== 'stock'; $('viewSuggest').hidden = v !== 'sugerencias'; $('viewWeb').hidden = v !== 'web'; $('viewHours').hidden = v !== 'horarios'; $('viewManuals').hidden = v !== 'manuales'; $('viewCalc').hidden = v !== 'calculadora'; $('viewPLabel').hidden = v !== 'etiquetas'; $('viewShipLabels').hidden = v !== 'impresion'; $('viewClaims').hidden = v !== 'reclamos'; $('viewListings').hidden = v !== 'publicaciones'; $('viewPublish').hidden = v !== 'publicar'; $('viewComp').hidden = v !== 'competencia'; $('viewFunnel').hidden = v !== 'embudo'; $('viewHealth').hidden = v !== 'salud'; $('viewTuyo').hidden = v !== 'tuyo';
   $('viewFlex').hidden = v !== 'flex'; $('viewSales').hidden = v !== 'ventas'; $('viewTasks').hidden = v !== 'tareas'; $('viewRefill').hidden = v !== 'recompras'; $('viewQuestions').hidden = v !== 'preguntas';
   $('viewRanking').hidden = v !== 'ranking'; $('viewPrices').hidden = v !== 'precios';
   document.querySelectorAll('.side .nav').forEach(a => a.classList.toggle('active', a.dataset.view === v));
@@ -2672,6 +2778,8 @@ function showView() {
   if (v === 'publicaciones') loadListings();
   if (v === 'publicar') loadPublish();
   if (v === 'competencia') loadComp();
+  if (v === 'embudo') loadFunnel();
+  if (v === 'salud') loadHealth(false);
   if (v === 'tuyo') loadTuyo();
   if (v === 'tareas') loadTasks();
   if (v === 'recompras') loadRefill();

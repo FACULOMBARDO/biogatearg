@@ -616,3 +616,13 @@ input[type=time], input[type=url] { font: inherit; padding: 9px 11px; border: 1p
 .pb-res.good { border-color: var(--ok); background: var(--ok-bg); }
 .pb-res.bad { border-color: var(--err); background: var(--err-bg); }
 .pb-res.warn { border-color: #d97706; background: var(--warn-bg); }
+
+/* Salud de cuentas */
+.hl-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 12px; margin-bottom: 12px; }
+.hl-grid .card { margin: 0; }
+.hl-thermo { display: grid; grid-template-columns: repeat(5, 1fr); gap: 3px; margin: 10px 0 6px; }
+.hl-thermo i { height: 10px; border-radius: 3px; display: block; }
+.hl-bar { height: 7px; background: var(--card-2); border-radius: 4px; overflow: hidden; margin-top: 3px; border: 1px solid var(--line); }
+.hl-bar i { display: block; height: 100%; }
+.hl-hist { display: flex; gap: 2px; margin-top: 10px; }
+.hl-hist i { flex: 1; height: 6px; border-radius: 2px; display: block; }
