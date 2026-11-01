@@ -114,6 +114,15 @@ En **Presupuestos**, cada recibo tiene la columna **Envío** con el botón **�
 ### 🏷️ Etiquetas de envío (10 × 15, horizontal)
 Para los recibos/presupuestos y pedidos web que tienen **Envío** (no para los Flex de Mercado Libre, que ya traen su etiqueta). Botón **🏷️ Etiqueta** en Presupuestos, en Ventas web y en Envíos Flex. Se abre una vista previa con destinatario, teléfono, dirección, localidad y CP, aclaraciones y el teléfono del local; lo que corrijas queda guardado en el envío. **Descargar etiqueta (PDF)** baja un PDF de 15 × 10 cm en blanco y negro, con el logo de Biogate. En Envíos Flex, **🏷️ Etiquetas del período** junta en un PDF todas las de ese día, semana o mes (una por página).
 
+### 🔎 Competencia
+Al final del menú lateral. Para cada producto tuyo (agrupado por SKU entre cuentas) busca **quién más lo vende en el catálogo de Mercado Libre** y, **una vez por día**, anota cuántos vendidos tiene cada competidor y a qué precio. Con eso calcula:
+- **Cuántas vendió cada competidor** en los últimos 7, 30 o 60 días y si subió o bajó el precio. Las ventas por período se completan a medida que pasan los días desde que se empezó a medir (no hay datos de antes).
+- **Tus ventas** del mismo período (de todas tus cuentas o de la elegida), precio mínimo y mediana de la competencia, y si ganás el catálogo.
+- Una **recomendación**: bajar (y a cuánto), subir sin perder el primer lugar, o mantener.
+- Se siguen hasta 40 productos: los que más vendés más los que fijes (📌). Con "Seguir otro producto" agregás más.
+- Si el producto no es de catálogo, el panel busca el más parecido por título: revisalo y, si no es el mismo, usá **Cambiar producto vinculado**.
+- Limitación: solo ve a los vendedores del catálogo de ML (ML cerró el buscador general a las aplicaciones).
+
 ### 📝 Publicar (en una o varias cuentas)
 Al final del menú lateral. Cuatro pasos:
 1. **De dónde sale:** link de una publicación de Mercado Libre (tuya o de otro vendedor; también links de catálogo /p/MLA…), link de Amazon, o desde cero. Trae título, categoría, fotos, ficha técnica y descripción. Amazon suele bloquear la lectura: si pasa, se cargan a mano título, precio en US$, peso y fotos.

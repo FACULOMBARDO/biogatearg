@@ -828,6 +828,15 @@ app.post('/api/publish', lsWrap(req => publish.publish(req.body || {})));
 app.get('/api/publish/history', (req, res) => res.json({ ok: true, items: publish.history() }));
 app.get('/api/publish/accounts', (req, res) => res.json({ ok: true, accounts: store.getAccounts().map(a => ({ id: String(a.user_id), nickname: a.nickname || String(a.user_id), disabled: !!a.needs_reconnect, tuyo: require('./lib/tuyo').isTuyo(a.user_id) })) }));
 
+// Competencia (quién más vende tus productos, sus ventas por día y recomendaciones)
+const competition = require('./lib/competition');
+app.get('/api/competition', (req, res) => { const l = competition.list(req.query.days, req.query.account); if (!l.updated_at && !l.job.running && l.listings_at) { competition.refresh(); l.job = competition.status(); } res.json({ ok: true, ...l }); });
+app.post('/api/competition/refresh', (req, res) => { competition.refresh(); res.json({ ok: true, job: competition.status() }); });
+app.get('/api/competition/status', (req, res) => res.json({ ok: true, job: competition.status() }));
+app.get('/api/competition/products', lsWrap(async req => ({ items: await competition.searchProducts(req.query.q) })));
+app.post('/api/competition/link', (req, res) => res.json({ ok: true, group: competition.link((req.body || {}).key, (req.body || {}).product_id, (req.body || {}).name) }));
+app.post('/api/competition/follow', (req, res) => res.json({ ok: true, group: competition.follow((req.body || {}).key, (req.body || {}).on) }));
+
 // Reclamos de Mercado Libre (todas las cuentas)
 const claims = require('./lib/claims');
 app.get('/api/claims', async (req, res) => {
@@ -1361,7 +1370,7 @@ async function backfillSaleDates(until = Infinity) {
   }
 }
 // En Vercel: cada vez que alguien usa el panel se fija qué toca actualizar (con la última vez guardada en la base).
-const EVERY = { claims: 20 * 60e3, questions: 10 * 60e3, sales: 15 * 60e3, woo: 15 * 60e3, costs: 6 * 3600e3, web: 6 * 3600e3, manuals: 24 * 3600e3, backfill: 24 * 3600e3 };
+const EVERY = { competition: 20 * 3600e3, listings: 12 * 3600e3, claims: 20 * 60e3, questions: 10 * 60e3, sales: 15 * 60e3, woo: 15 * 60e3, costs: 6 * 3600e3, web: 6 * 3600e3, manuals: 24 * 3600e3, backfill: 24 * 3600e3 };
 let autoBusy = false;
 function autoTasks(force = false) {
   if (autoBusy || MISSING.length) return [];
@@ -1372,6 +1381,8 @@ function autoTasks(force = false) {
     const stamp = {};
     if (j.sales_resume && !salesJob.running) { if (resumeSales()) stamp.last_sales = new Date().toISOString(); }
     else if (due('sales') && !salesJob.running) { stamp.last_sales = new Date().toISOString(); autoSales(); }
+    if (due('listings')) { stamp.last_listings = new Date().toISOString(); require('./lib/listings').sync(); }
+    if (due('competition') && store.getListings().updated_at) { stamp.last_competition = new Date().toISOString(); require('./lib/competition').refresh(); }
     if (due('claims')) { stamp.last_claims = new Date().toISOString(); runs.push(bg(require('./lib/claims').sync().catch(e => console.log('Reclamos:', e.message)))); }
     if (due('questions')) { stamp.last_questions = new Date().toISOString(); runs.push(bg(questions.syncAll().catch(e => console.log('Preguntas:', e.message)))); }
     runs.push(bg(refillPush(false).catch(() => {})));

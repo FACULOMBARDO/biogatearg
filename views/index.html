@@ -53,6 +53,7 @@
   <a href="#impresion" class="nav" data-view="impresion"><span class="ic">🖨️</span><span>Impresión de etiquetas</span></a>
   <a href="#publicaciones" class="nav" data-view="publicaciones"><span class="ic">🗂️</span><span>Mis publicaciones</span></a>
   <a href="#publicar" class="nav" data-view="publicar"><span class="ic">📝</span><span>Publicar</span></a>
+  <a href="#competencia" class="nav" data-view="competencia"><span class="ic">🔎</span><span>Competencia</span></a>
   <div class="side-foot hide-sm muted">Todas tus cuentas de Mercado Libre en un lugar.</div>
 </aside>
 <main>
@@ -618,6 +619,28 @@
   <div class="mn-vbody" id="mnVBody"></div>
 </div>
 
+<section id="viewComp" hidden>
+  <div class="row" style="justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px">
+    <h1 class="page-title">Competencia <span class="muted" style="font-size:15px;font-weight:500">· quién más vende tus productos</span></h1>
+    <button class="btn" id="cpRefresh">↻ Actualizar ahora</button>
+  </div>
+  <div class="card" style="padding:12px 14px">
+    <div class="row" style="flex-wrap:wrap;gap:8px">
+      <select id="cpAcc"><option value="">Todas las cuentas</option></select>
+      <div class="seg" id="cpDays"><button data-d="7">7 días</button><button data-d="30" class="on">30 días</button><button data-d="60">60 días</button></div>
+      <select id="cpRec"><option value="">Todas las recomendaciones</option><option value="down">Conviene bajar el precio</option><option value="up">Podés subir el precio</option><option value="ok">Precio en línea</option><option value="info">Sin datos / sin vincular</option></select>
+      <input type="search" id="cpQ" placeholder="Buscar producto o SKU…" style="max-width:260px;flex:1">
+    </div>
+    <div id="cpInfo" class="muted" style="font-size:12.5px;margin-top:8px"></div>
+    <div id="cpMsg" style="font-size:13px;margin-top:4px"></div>
+  </div>
+  <div id="cpList"><div class="card muted" style="padding:20px">Cargando…</div></div>
+  <div class="card" style="padding:12px 14px">
+    <b style="font-size:14px">Seguir otro producto</b>
+    <div class="row" style="gap:6px;margin-top:6px;flex-wrap:wrap"><select id="cpAdd" style="flex:1;min-width:240px"></select><button class="btn small" id="cpAddBtn">Seguir</button></div>
+    <div class="muted" style="font-size:12px;margin-top:4px">Se siguen hasta 40 productos: primero los que fijás y después los que más vendés.</div>
+  </div>
+</section>
 <section id="viewPublish" hidden>
   <div class="row" style="justify-content:space-between;margin-bottom:12px">
     <h1 class="page-title">Publicar <span class="muted" style="font-size:15px;font-weight:500">· en una o varias cuentas</span></h1>
@@ -2544,12 +2567,88 @@ async function pbHist() {
   $('pbHist').innerHTML = d.items.map(h => `<div style="padding:5px 0;border-bottom:1px solid var(--line)"><span class="muted">${new Date(h.at).toLocaleString('es-AR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}</span> · <b>${esc(h.title)}</b><br>${h.results.map(x => x.ok ? `✅ ${esc(x.account)}: ${x.link ? `<a class="lnk" href="${esc(x.link)}" target="_blank" rel="noopener">${esc(x.id)}</a>` : esc(x.id)}` : `❌ ${esc(x.account)}: ${esc(x.error)}`).join(' · ')}</div>`).join('') || '<span class="muted">Todavía no publicaste nada desde el panel.</span>';
 }
 
+// ---------- Competencia ----------
+let cpData = null, cpDays = 30, cpPoll = null, cpOpen = new Set();
+const CP_REC = { down: ['var(--err)', '⬇️'], up: ['var(--ok)', '⬆️'], ok: ['var(--ok)', '✓'], info: ['var(--muted)', 'ℹ️'] };
+async function loadComp() {
+  const acc = $('cpAcc').value;
+  const d = await (await fetch(`/api/competition?days=${cpDays}${acc ? '&account=' + acc : ''}`)).json().catch(() => ({ ok: false, error: 'Sin conexión.' }));
+  if (!d.ok) { $('cpList').innerHTML = `<div class="card err-t" style="padding:20px">${esc(d.error)}</div>`; return; }
+  cpData = d;
+  if ($('cpAcc').options.length <= 1) {
+    const accs = {}; for (const g of d.items) for (const i of g.mine) accs[i.account_id] = i.account;
+    $('cpAcc').innerHTML = '<option value="">Todas las cuentas</option>' + Object.entries(accs).map(([k, v]) => `<option value="${esc(k)}">${esc(v)}</option>`).join('');
+  }
+  $('cpAdd').innerHTML = '<option value="">Elegí un producto tuyo…</option>' + d.others.map(o => `<option value="${esc(o.key)}">${esc(o.title)}${o.sku ? ' · ' + esc(o.sku) : ''} (${esc(o.accounts.join(', '))})</option>`).join('');
+  const first = d.first_day ? new Date(d.first_day + 'T12:00:00').toLocaleDateString('es-AR') : null;
+  const measured = d.first_day ? Math.round((Date.now() - new Date(d.first_day + 'T12:00:00')) / 86400e3) : 0;
+  $('cpInfo').innerHTML = d.job.running ? `↻ Analizando competencia… (${d.job.done} de ${d.job.total || '…'} productos)` : !d.listings_at ? 'Primero entrá a <b>Mis publicaciones</b> para que el panel traiga tus publicaciones.' :
+    `${d.items.length} productos seguidos · actualizado ${d.updated_at ? new Date(d.updated_at).toLocaleString('es-AR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '—'}${first ? ` · se mide desde el ${first}` : ''}${first && measured < cpDays ? ` <span style="color:#d97706">(las ventas de la competencia cubren ${measured} ${measured === 1 ? 'día' : 'días'} hasta ahora; se completan a medida que pasan los días)</span>` : ''}. Se actualiza solo una vez por día.`;
+  $('cpMsg').innerHTML = (d.errors || []).length ? `<span class="err-t">⚠️ ${esc(d.errors.slice(0, 3).join(' · '))}</span>` : '';
+  renderComp();
+  if (d.job.running) cpWatch();
+}
+function cpWatch() {
+  clearInterval(cpPoll);
+  cpPoll = setInterval(async () => { const s = await (await fetch('/api/competition/status')).json().catch(() => null); if (!s) return; if (!s.job.running) { clearInterval(cpPoll); loadComp(); } else $('cpInfo').textContent = `↻ Analizando competencia… (${s.job.done} de ${s.job.total || '…'} productos)`; }, 4000);
+}
+function renderComp() {
+  if (!cpData) return;
+  const q = $('cpQ').value.trim().toLowerCase(), rec = $('cpRec').value, days = cpData.days;
+  const list = cpData.items.filter(g => (!rec || g.rec.level === rec) && (!q || [g.title, g.sku, g.product_name].join(' ').toLowerCase().includes(q)));
+  const sold = (v) => v == null ? '<span class="muted">midiendo</span>' : v;
+  $('cpList').innerHTML = list.map(g => {
+    const [col, ic] = CP_REC[g.rec.level] || CP_REC.info, open = cpOpen.has(g.key);
+    return `<div class="card" style="padding:12px 14px">
+      <div class="row" style="gap:12px;align-items:flex-start;flex-wrap:wrap">
+        <div class="ls-pub" style="flex:1;min-width:260px">${g.thumb ? `<img src="${esc(g.thumb)}" alt="" loading="lazy">` : '<div class="ls-noimg">📦</div>'}<div style="min-width:0"><div class="t">${esc(g.title)}</div>
+          <div class="ls-meta">${g.sku ? `<span>SKU ${esc(g.sku)}</span>` : ''}${g.mine.map(i => `<a class="lnk" href="${esc(i.link)}" target="_blank" rel="noopener">${esc(i.account)} ${money(i.price)}${i.logistic === 'fulfillment' ? ' · Full' : ''}</a>`).join(' · ')}${g.pinned ? '<span class="ls-tag">📌 fijado</span>' : ''}${g.buybox_mine === true ? '<span class="ls-tag" style="color:var(--ok)">Ganás el catálogo</span>' : g.buybox_mine === false ? '<span class="ls-tag" style="color:var(--err)">No ganás el catálogo</span>' : ''}</div></div></div>
+        <div class="row" style="gap:18px;flex-wrap:wrap;font-size:13px">
+          <div><div class="muted" style="font-size:11.5px">Tus ventas ${days} d</div><b style="font-size:17px">${g.my_units}</b></div>
+          <div><div class="muted" style="font-size:11.5px">Competidores</div><b style="font-size:17px">${g.competitors.length}</b></div>
+          <div><div class="muted" style="font-size:11.5px">Ventas competencia ${days} d</div><b style="font-size:17px">${sold(g.comp_units)}</b></div>
+          <div><div class="muted" style="font-size:11.5px">Precio mín. · mediana</div><b style="font-size:14px">${g.min ? money(g.min) : '—'} · ${g.median ? money(g.median) : '—'}</b></div>
+        </div>
+      </div>
+      <div style="margin-top:8px;font-size:13.5px;border-left:3px solid ${col};padding:4px 10px">${ic} ${esc(g.rec.text)}</div>
+      <div class="row" style="gap:8px;margin-top:8px;flex-wrap:wrap;font-size:12.5px"><a href="#" class="lnk" data-cpopen="${esc(g.key)}">${open ? '▾ Ocultar competidores' : `▸ Ver competidores (${g.competitors.length})`}</a><a href="#" class="lnk" data-cplink="${esc(g.key)}">Cambiar producto vinculado</a><a href="#" class="lnk" data-cppin="${esc(g.key)}" data-on="${g.pinned ? '' : '1'}">${g.pinned ? 'Desfijar' : '📌 Fijar'}</a><span class="muted">${g.product_name ? `Catálogo: ${esc(g.product_name)}${g.match === 'search' ? ' (encontrado por título: revisá que sea el mismo)' : ''}` : 'Sin vincular'}</span></div>
+      <div id="cpLink-${esc(g.key)}" hidden></div>
+      ${open ? `<div class="table-wrap" style="margin-top:8px"><table class="sales-table"><thead><tr><th>Vendedor</th><th>Publicación</th><th style="text-align:right">Precio</th><th style="text-align:right">Vendió en ${days} d</th><th style="text-align:right">Vendidos total</th><th style="text-align:right">Stock</th><th>Envío</th></tr></thead><tbody>${g.competitors.map(c => {
+        const ch = c.price_before && c.price_before !== c.price ? Math.round((c.price / c.price_before - 1) * 100) : 0;
+        return `<tr><td><b>${esc(c.seller || '—')}</b>${c.official ? ' <span class="ls-tag">Tienda oficial</span>' : ''}${c.power ? ` <span class="ls-tag">${esc(c.power === 'platinum' ? 'MercadoLíder Platinum' : c.power === 'gold' ? 'MercadoLíder Gold' : 'MercadoLíder')}</span>` : ''}</td><td style="max-width:280px"><a class="lnk" href="${esc(c.link || '#')}" target="_blank" rel="noopener">${esc(c.title || c.id)}</a></td><td style="text-align:right">${c.original_price ? `<div class="ls-was">${money(c.original_price)}</div>` : ''}${money(c.price)}${ch ? `<div style="font-size:11px;color:${ch > 0 ? 'var(--err)' : 'var(--ok)'}">${ch > 0 ? '▲' : '▼'} ${Math.abs(ch)}% en ${c.measured_days} d</div>` : ''}</td><td style="text-align:right"><b>${sold(c.sold)}</b></td><td style="text-align:right">${c.sold_total ?? '—'}</td><td style="text-align:right">${c.stock ?? '—'}</td><td style="font-size:12px">${c.full ? 'Full' : ''}${c.free_ship ? ' gratis' : ''}</td></tr>`; }).join('') || '<tr><td colspan="7" class="muted">Nadie más lo vende en el catálogo.</td></tr>'}</tbody></table></div>` : ''}
+    </div>`;
+  }).join('') || `<div class="card muted" style="padding:20px">${cpData.job.running ? 'Analizando…' : 'No hay productos con ese filtro.'}</div>`;
+}
+$('cpList').addEventListener('click', async (e) => {
+  const o = e.target.closest('[data-cpopen]'); if (o) { e.preventDefault(); const k = o.dataset.cpopen; cpOpen.has(k) ? cpOpen.delete(k) : cpOpen.add(k); renderComp(); return; }
+  const p = e.target.closest('[data-cppin]'); if (p) { e.preventDefault(); await lsPost('/api/competition/follow', { key: p.dataset.cppin, on: !!p.dataset.on }); loadComp(); return; }
+  const l = e.target.closest('[data-cplink]');
+  if (l) {
+    e.preventDefault(); const key = l.dataset.cplink, box = document.getElementById('cpLink-' + key), g = cpData.items.find(x => x.key === key);
+    box.hidden = false;
+    box.innerHTML = `<div class="row" style="gap:6px;margin-top:8px"><input type="text" class="cpQ2" value="${esc(g.title)}" style="flex:1"><button class="btn small cpGo">Buscar en el catálogo</button><button class="btn small cpNone">No tiene competencia / desvincular</button></div><div class="cpRes" style="margin-top:6px"></div>`;
+    const go = async () => {
+      const r = await (await fetch('/api/competition/products?q=' + encodeURIComponent(box.querySelector('.cpQ2').value))).json().catch(() => ({ ok: false, error: 'Sin conexión.' }));
+      const res = box.querySelector('.cpRes');
+      if (!r.ok) { res.innerHTML = `<span class="err-t">${esc(r.error)}</span>`; return; }
+      res.innerHTML = r.items.map((x, i) => `<button class="pb-cat" data-cpp="${i}" style="display:flex;gap:8px;align-items:center;margin:3px 0;width:100%">${x.thumb ? `<img src="${esc(x.thumb)}" style="width:36px;height:36px;object-fit:contain;background:#fff;border-radius:6px">` : ''}<span><b>${esc(x.name)}</b><div class="muted">${esc(x.attrs)}</div></span></button>`).join('') || '<span class="muted">Sin resultados.</span>';
+      res.querySelectorAll('[data-cpp]').forEach(b => b.onclick = async () => { const x = r.items[+b.dataset.cpp]; await lsPost('/api/competition/link', { key, product_id: x.id, name: x.name }); $('cpMsg').innerHTML = '<span style="color:var(--ok)">✓ Vinculado. Tocá "Actualizar ahora" para traer sus vendedores.</span>'; loadComp(); });
+    };
+    box.querySelector('.cpGo').onclick = go; box.querySelector('.cpNone').onclick = async () => { await lsPost('/api/competition/link', { key, product_id: '' }); loadComp(); };
+    go();
+  }
+});
+$('cpRefresh').onclick = async () => { await lsPost('/api/competition/refresh'); $('cpInfo').textContent = '↻ Analizando competencia…'; cpWatch(); };
+$('cpDays').onclick = (e) => { const b = e.target.closest('[data-d]'); if (!b) return; cpDays = Number(b.dataset.d); $('cpDays').querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b)); loadComp(); };
+$('cpAcc').onchange = loadComp; $('cpQ').oninput = renderComp; $('cpRec').onchange = renderComp;
+$('cpAddBtn').onclick = async () => { const k = $('cpAdd').value; if (!k) return; await lsPost('/api/competition/follow', { key: k, on: true }); await lsPost('/api/competition/refresh'); $('cpMsg').innerHTML = '<span style="color:var(--ok)">✓ Agregado. Analizando…</span>'; cpWatch(); };
+
 function showView() {
-  const v = ({ '#ventas': 'ventas', '#ranking': 'ranking', '#precios': 'precios', '#presupuestos': 'presupuestos', '#estados': 'estados', '#gastos': 'gastos', '#full': 'full', '#flex': 'flex', '#resultado': 'resultado', '#tareas': 'tareas', '#recompras': 'recompras', '#preguntas': 'preguntas', '#stock': 'stock', '#sugerencias': 'sugerencias', '#web': 'web', '#horarios': 'horarios', '#manuales': 'manuales', '#calculadora': 'calculadora', '#etiquetas': 'etiquetas', '#impresion': 'impresion', '#reclamos': 'reclamos', '#publicaciones': 'publicaciones', '#publicar': 'publicar', '#tuyo': 'tuyo' })[location.hash] || 'ventas';
+  const v = ({ '#ventas': 'ventas', '#ranking': 'ranking', '#precios': 'precios', '#presupuestos': 'presupuestos', '#estados': 'estados', '#gastos': 'gastos', '#full': 'full', '#flex': 'flex', '#resultado': 'resultado', '#tareas': 'tareas', '#recompras': 'recompras', '#preguntas': 'preguntas', '#stock': 'stock', '#sugerencias': 'sugerencias', '#web': 'web', '#horarios': 'horarios', '#manuales': 'manuales', '#calculadora': 'calculadora', '#etiquetas': 'etiquetas', '#impresion': 'impresion', '#reclamos': 'reclamos', '#publicaciones': 'publicaciones', '#publicar': 'publicar', '#competencia': 'competencia', '#tuyo': 'tuyo' })[location.hash] || 'ventas';
   $('viewQuotes').hidden = v !== 'presupuestos';
   $('viewStatus').hidden = v !== 'estados';
   $('viewExpenses').hidden = v !== 'gastos'; $('viewFull').hidden = v !== 'full';
-  $('viewResults').hidden = v !== 'resultado'; $('viewStock').hidden = v !== 'stock'; $('viewSuggest').hidden = v !== 'sugerencias'; $('viewWeb').hidden = v !== 'web'; $('viewHours').hidden = v !== 'horarios'; $('viewManuals').hidden = v !== 'manuales'; $('viewCalc').hidden = v !== 'calculadora'; $('viewPLabel').hidden = v !== 'etiquetas'; $('viewShipLabels').hidden = v !== 'impresion'; $('viewClaims').hidden = v !== 'reclamos'; $('viewListings').hidden = v !== 'publicaciones'; $('viewPublish').hidden = v !== 'publicar'; $('viewTuyo').hidden = v !== 'tuyo';
+  $('viewResults').hidden = v !== 'resultado'; $('viewStock').hidden = v !== 'stock'; $('viewSuggest').hidden = v !== 'sugerencias'; $('viewWeb').hidden = v !== 'web'; $('viewHours').hidden = v !== 'horarios'; $('viewManuals').hidden = v !== 'manuales'; $('viewCalc').hidden = v !== 'calculadora'; $('viewPLabel').hidden = v !== 'etiquetas'; $('viewShipLabels').hidden = v !== 'impresion'; $('viewClaims').hidden = v !== 'reclamos'; $('viewListings').hidden = v !== 'publicaciones'; $('viewPublish').hidden = v !== 'publicar'; $('viewComp').hidden = v !== 'competencia'; $('viewTuyo').hidden = v !== 'tuyo';
   $('viewFlex').hidden = v !== 'flex'; $('viewSales').hidden = v !== 'ventas'; $('viewTasks').hidden = v !== 'tareas'; $('viewRefill').hidden = v !== 'recompras'; $('viewQuestions').hidden = v !== 'preguntas';
   $('viewRanking').hidden = v !== 'ranking'; $('viewPrices').hidden = v !== 'precios';
   document.querySelectorAll('.side .nav').forEach(a => a.classList.toggle('active', a.dataset.view === v));
@@ -2572,6 +2671,7 @@ function showView() {
   if (v === 'reclamos') loadClaims(false);
   if (v === 'publicaciones') loadListings();
   if (v === 'publicar') loadPublish();
+  if (v === 'competencia') loadComp();
   if (v === 'tuyo') loadTuyo();
   if (v === 'tareas') loadTasks();
   if (v === 'recompras') loadRefill();
