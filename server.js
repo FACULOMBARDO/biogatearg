@@ -793,6 +793,27 @@ async function refillPush(force) {
 }
 
 // ---------- Preguntas de compradores ----------
+// Mis publicaciones (todas las cuentas): precios, stock, descuentos, calidad, ficha y fotos
+const listings = require('./lib/listings');
+const lsWrap = (fn) => async (req, res) => { try { res.json({ ok: true, ...(await fn(req)) }); } catch (e) { res.status(400).json({ ok: false, error: e.message }); } };
+app.get('/api/listings', (req, res) => { const l = listings.list(); if (!l.updated_at && !l.job.running) { listings.sync(); l.job = listings.status(); } res.json({ ok: true, ...l }); });
+app.post('/api/listings/sync', (req, res) => { listings.sync(); res.json({ ok: true, job: listings.status() }); });
+app.get('/api/listings/status', (req, res) => res.json({ ok: true, job: listings.status() }));
+app.post('/api/listings/apply', lsWrap(req => listings.apply((req.body || {}).changes, (req.body || {}).by)));
+app.post('/api/listings/undo', lsWrap(req => listings.undo((req.body || {}).by)));
+app.get('/api/listings/:acc/:id/promos', lsWrap(async req => ({ promos: await listings.itemPromos(req.params.acc, req.params.id) })));
+app.post('/api/listings/discount', lsWrap(req => listings.ownDiscount((req.body || {}).items, req.body.pct, req.body.from, req.body.to)));
+app.post('/api/listings/:acc/:id/promos/join', lsWrap(async req => ({ done: await listings.joinPromo(req.params.acc, req.params.id, req.body || {}) })));
+app.post('/api/listings/:acc/:id/promos/leave', lsWrap(async req => ({ done: await listings.leavePromo(req.params.acc, req.params.id, (req.body || {}).type, (req.body || {}).promotion_id) })));
+app.get('/api/listings/campaigns', lsWrap(req => listings.campaigns(String(req.query.accounts || '').split(',').filter(Boolean))));
+app.get('/api/listings/campaigns/:acc/:promo', lsWrap(async req => ({ items: await listings.campaignItems(req.params.acc, req.params.promo, req.query.type) })));
+app.get('/api/listings/:acc/:id/detail', lsWrap(async req => ({ ...(await listings.detail(req.params.acc, req.params.id)), twins: listings.twins(req.params.id).map(t => ({ id: t.id, account: t.account })) })));
+app.put('/api/listings/:acc/:id/attributes', lsWrap(req => listings.saveAttrs(req.params.acc, req.params.id, (req.body || {}).attributes, (req.body || {}).twins)));
+app.put('/api/listings/:acc/:id/description', lsWrap(req => listings.saveDescription(req.params.acc, req.params.id, (req.body || {}).text, (req.body || {}).twins)));
+app.put('/api/listings/:acc/:id/pictures', lsWrap(req => listings.savePictures(req.params.acc, req.params.id, (req.body || {}).order, (req.body || {}).uploads, (req.body || {}).twins)));
+app.post('/api/listings/ai/description', lsWrap(req => require('./lib/ai').describe(req.body || {})));
+app.post('/api/listings/ai/photos', lsWrap(req => require('./lib/ai').reviewPhotos((req.body || {}).title, (req.body || {}).urls)));
+
 // Reclamos de Mercado Libre (todas las cuentas)
 const claims = require('./lib/claims');
 app.get('/api/claims', async (req, res) => {

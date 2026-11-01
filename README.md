@@ -114,6 +114,17 @@ En **Presupuestos**, cada recibo tiene la columna **Envío** con el botón **�
 ### 🏷️ Etiquetas de envío (10 × 15, horizontal)
 Para los recibos/presupuestos y pedidos web que tienen **Envío** (no para los Flex de Mercado Libre, que ya traen su etiqueta). Botón **🏷️ Etiqueta** en Presupuestos, en Ventas web y en Envíos Flex. Se abre una vista previa con destinatario, teléfono, dirección, localidad y CP, aclaraciones y el teléfono del local; lo que corrijas queda guardado en el envío. **Descargar etiqueta (PDF)** baja un PDF de 15 × 10 cm en blanco y negro, con el logo de Biogate. En Envíos Flex, **🏷️ Etiquetas del período** junta en un PDF todas las de ese día, semana o mes (una por página).
 
+### 🗂️ Mis publicaciones (todas las cuentas)
+Al final del menú lateral. Trae todas las publicaciones activas y pausadas de todas las cuentas (botón **↻ Actualizar desde ML**; la primera vez tarda un poco). Filtros: cuenta, activas/pausadas, sin stock, stock bajo, con descuento, Full, calidad baja, con plazo de entrega, y buscador por título, SKU, marca o número MLA.
+- **Precio y stock uno por uno:** cambiás el número en la tabla, la fila queda marcada y abajo aparece **Guardar en Mercado Libre** (con confirmación). Nada se cambia en ML hasta que guardás.
+- **Cambios masivos:** tildás publicaciones (o **＋ Mismo SKU en todas las cuentas**) y aparece la barra de acciones: subir/bajar/fijar precio en % o $ con redondeo (a $100, $1.000 o terminado en 999), fijar/sumar/restar stock, pausar o activar. Primero se previsualiza en la tabla y después se guarda.
+- **Descuentos propios:** % con fecha desde/hasta, para una o muchas publicaciones (ML muestra el precio anterior tachado).
+- **🏷️ Campañas de ML:** las campañas que Mercado Libre te ofrece en cada cuenta, con las publicaciones que podés sumar y el rango de precio permitido; se suman de a varias.
+- **↩️ Deshacer último cambio:** vuelve precios, stock y estados del último guardado a como estaban.
+- **Editar** (en cada fila) abre el detalle: **Calidad y ficha** (puntaje de ML, qué sugiere y los datos que faltan de la ficha técnica para completarlos ahí), **Descripción** (editar o escribir con IA), **Fotos** (ordenar, elegir la principal, quitar, subir nuevas y revisarlas con IA), **Descuentos** (activos, campañas para sumarse y crear el tuyo) y **Variantes** (stock de cada una).
+- En el detalle, si el mismo producto (mismo SKU) está en otras cuentas, se puede tildar **Aplicar también en las otras cuentas**.
+- Las publicaciones Full no permiten cambiar stock (lo maneja ML). El precio mayorista todavía no está.
+
 ### ⚠️ Reclamos (Mercado Libre, todas las cuentas)
 En el menú lateral, **Reclamos** junta los reclamos de todas las cuentas. El número rojo del menú indica cuántos esperan tu respuesta.
 - **Te toca responder**: reclamos abiertos donde el último mensaje es del comprador o de Mercado Libre, o donde ML te pide una acción obligatoria. Muestra qué tenés que hacer y hasta cuándo ("quedan X h").

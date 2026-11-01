@@ -30,7 +30,6 @@
 <aside class="side">
   <a href="#ventas" class="nav" data-view="ventas"><span class="ic">💰</span><span>Ventas</span></a>
   <a href="#preguntas" class="nav" data-view="preguntas"><span class="ic">💬</span><span>Preguntas</span><span class="nav-badge" id="qsBadge" hidden></span></a>
-  <a href="#reclamos" class="nav" data-view="reclamos"><span class="ic">⚠️</span><span>Reclamos</span><span class="nav-badge" id="clBadge" hidden></span></a>
   <a href="#resultado" class="nav" data-view="resultado"><span class="ic">📊</span><span>Resultado del mes</span></a>
   <a href="#tareas" class="nav" data-view="tareas"><span class="ic">✅</span><span>Tareas</span></a>
   <a href="#recompras" class="nav" data-view="recompras"><span class="ic">🔔</span><span>Recompras</span><span class="nav-badge" id="rfBadge" hidden></span></a>
@@ -39,7 +38,6 @@
   <a href="#full" class="nav" data-view="full"><span class="ic">⚡</span><span>Full</span></a>
   <a href="#tuyo" class="nav" data-view="tuyo"><span class="ic">🛒</span><span>TUYO</span></a>
   <a href="#flex" class="nav" data-view="flex"><span class="ic">🛵</span><span>Envíos Flex</span></a>
-  <a href="#impresion" class="nav" data-view="impresion"><span class="ic">🖨️</span><span>Impresión de etiquetas</span></a>
   <a href="#ranking" class="nav" data-view="ranking"><span class="ic">🏆</span><span>Ranking</span></a>
   <a href="#precios" class="nav" data-view="precios"><span class="ic">📋</span><span>Lista de precios</span></a>
   <a href="#presupuestos" class="nav" data-view="presupuestos"><span class="ic">🧾</span><span>Presupuestos</span></a>
@@ -50,6 +48,10 @@
   <a href="#estados" class="nav" data-view="estados"><span class="ic">📱</span><span>Estados de WhatsApp</span></a>
   <a href="#sugerencias" class="nav" data-view="sugerencias"><span class="ic">💡</span><span>Sugerencias</span></a>
   <a href="#web" class="nav" data-view="web"><span class="ic">🌐</span><span>Ventas web</span></a>
+  <div class="muted hide-sm" style="font-size:11px;text-transform:uppercase;letter-spacing:.05em;margin:12px 12px 4px">Nuevas</div>
+  <a href="#reclamos" class="nav" data-view="reclamos"><span class="ic">⚠️</span><span>Reclamos</span><span class="nav-badge" id="clBadge" hidden></span></a>
+  <a href="#impresion" class="nav" data-view="impresion"><span class="ic">🖨️</span><span>Impresión de etiquetas</span></a>
+  <a href="#publicaciones" class="nav" data-view="publicaciones"><span class="ic">🗂️</span><span>Mis publicaciones</span></a>
   <div class="side-foot hide-sm muted">Todas tus cuentas de Mercado Libre en un lugar.</div>
 </aside>
 <main>
@@ -615,6 +617,66 @@
   <div class="mn-vbody" id="mnVBody"></div>
 </div>
 
+<section id="viewListings" hidden>
+  <div class="row" style="justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px">
+    <h1 class="page-title">Mis publicaciones <span class="muted" style="font-size:15px;font-weight:500">· de todas tus cuentas</span></h1>
+    <div class="row" style="gap:6px;flex-wrap:wrap"><button class="btn" id="lsUndo" hidden>↩️ Deshacer último cambio</button><button class="btn" id="lsCampBtn">🏷️ Campañas de ML</button><button class="btn" id="lsSync">↻ Actualizar desde ML</button></div>
+  </div>
+  <div class="card" style="padding:12px 14px">
+    <div class="row" style="flex-wrap:wrap;gap:8px">
+      <select id="lsAcc"><option value="">Todas las cuentas</option></select>
+      <div class="seg" id="lsState"><button data-s="active" class="on">Activas</button><button data-s="paused">Pausadas</button><button data-s="">Todas</button></div>
+      <select id="lsFilter"><option value="">Sin filtro</option><option value="nostock">Sin stock</option><option value="lowstock">Stock bajo (≤ 3)</option><option value="deal">Con descuento</option><option value="full">Full</option><option value="nofull">No Full</option><option value="quality">Calidad baja</option><option value="manuf">Con plazo de entrega</option></select>
+      <input type="search" id="lsQ" placeholder="Buscar título, SKU, marca o MLA…" style="max-width:280px;flex:1">
+      <span class="muted" id="lsInfo" style="margin-left:auto;font-size:12.5px"></span>
+    </div>
+    <div id="lsMsg" style="font-size:13px;margin-top:6px"></div>
+  </div>
+  <div class="card" id="lsBulk" style="padding:12px 14px" hidden>
+    <div class="row" style="flex-wrap:wrap;gap:10px;align-items:center">
+      <b id="lsSelN"></b>
+      <button class="btn small" id="lsSameSku" title="Selecciona el mismo producto en todas las cuentas">＋ Mismo SKU en todas las cuentas</button>
+      <button class="btn small" id="lsSelNone">Quitar selección</button>
+    </div>
+    <div class="row" style="flex-wrap:wrap;gap:6px;align-items:center;margin-top:10px;font-size:13px">
+      <b style="min-width:70px">💲 Precio</b>
+      <select id="lsPDir"><option value="up">Subir</option><option value="down">Bajar</option><option value="set">Fijar en</option></select>
+      <input type="number" id="lsPVal" placeholder="10" style="width:100px">
+      <select id="lsPUnit"><option value="pct">%</option><option value="ars">$</option></select>
+      <select id="lsPRound"><option value="100">Redondear a $100</option><option value="1000">Redondear a $1.000</option><option value="999">Terminar en 999</option><option value="1">Sin redondeo</option></select>
+      <button class="btn small" id="lsPPrev">Previsualizar</button>
+    </div>
+    <div class="row" style="flex-wrap:wrap;gap:6px;align-items:center;margin-top:8px;font-size:13px">
+      <b style="min-width:70px">📦 Stock</b>
+      <select id="lsSDir"><option value="set">Fijar en</option><option value="add">Sumar</option><option value="sub">Restar</option></select>
+      <input type="number" id="lsSVal" placeholder="0" min="0" style="width:100px">
+      <button class="btn small" id="lsSPrev">Previsualizar</button>
+      <span style="width:12px"></span>
+      <button class="btn small" id="lsPause">⏸ Pausar</button><button class="btn small" id="lsActivate">▶ Activar</button>
+    </div>
+    <div class="row" style="flex-wrap:wrap;gap:6px;align-items:center;margin-top:8px;font-size:13px">
+      <b style="min-width:70px">🏷️ Descuento</b>
+      <input type="number" id="lsDPct" placeholder="10" min="5" max="80" style="width:80px"> %
+      desde <input type="date" id="lsDFrom"> hasta <input type="date" id="lsDTo">
+      <button class="btn small" id="lsDApply">Aplicar descuento</button>
+      <span class="muted" style="font-size:12px">Descuento propio de Mercado Libre (se ve tachado el precio anterior).</span>
+    </div>
+  </div>
+  <div class="card" style="padding:0">
+    <div class="table-wrap">
+      <table class="sales-table" id="lsTable">
+        <thead><tr><th style="width:30px"><input type="checkbox" id="lsAll" title="Seleccionar todas las que se ven"></th><th>Publicación</th><th style="text-align:right">Precio</th><th style="text-align:right">Stock</th><th style="text-align:right">Vendidos</th><th>Envío</th><th>Calidad</th><th></th></tr></thead>
+        <tbody id="lsRows"><tr><td colspan="8" class="muted" style="padding:16px">Cargando…</td></tr></tbody>
+      </table>
+    </div>
+    <div class="row" id="lsMore" style="justify-content:center;padding:10px" hidden><button class="btn small" id="lsMoreBtn">Ver más</button></div>
+  </div>
+  <div class="ls-save" id="lsSave" hidden>
+    <span id="lsSaveTxt"></span>
+    <button class="btn" id="lsDiscard">Descartar</button>
+    <button class="btn primary" id="lsSaveBtn">Guardar en Mercado Libre</button>
+  </div>
+</section>
 <section id="viewClaims" hidden>
   <div class="row" style="justify-content:space-between;margin-bottom:12px">
     <h1 class="page-title">Reclamos <span class="muted" style="font-size:15px;font-weight:500">· de todas tus cuentas</span></h1>
@@ -1003,6 +1065,29 @@
       <div class="row"><button class="btn" id="shCancel">Cancelar</button><button class="btn primary" id="shSave">Guardar envío</button></div>
     </div>
     <div id="shMsg" style="font-size:13px;margin-top:6px"></div>
+  </div>
+</div>
+
+<!-- Mis publicaciones: detalle de una publicación -->
+<div class="modal-bg" id="lsModal">
+  <div class="modal ls-modal">
+    <div class="row" style="justify-content:space-between;align-items:flex-start;gap:10px">
+      <div style="min-width:0"><h3 id="ldTitle" style="margin:0 0 4px">Publicación</h3><div class="muted" id="ldSub" style="font-size:13px"></div></div>
+      <button class="btn small" id="ldClose">✕</button>
+    </div>
+    <label id="ldTwinsBox" class="muted" style="display:flex;gap:6px;align-items:center;font-size:13px;margin-top:8px" hidden><input type="checkbox" id="ldTwins"> <span id="ldTwinsTxt"></span></label>
+    <div class="ls-tabs" id="ldTabs"><button data-t="calidad" class="on">Calidad y ficha</button><button data-t="desc">Descripción</button><button data-t="fotos">Fotos</button><button data-t="promos">Descuentos</button><button data-t="vars" hidden>Variantes</button></div>
+    <div id="ldBody"><div class="muted">Cargando…</div></div>
+    <div id="ldMsg" style="font-size:13px;margin-top:8px"></div>
+  </div>
+</div>
+<!-- Mis publicaciones: campañas de ML -->
+<div class="modal-bg" id="lcModal">
+  <div class="modal ls-modal">
+    <div class="row" style="justify-content:space-between"><h3 style="margin:0">🏷️ Campañas de Mercado Libre</h3><button class="btn small" id="lcClose">✕</button></div>
+    <p class="muted" style="font-size:13px">Campañas y promociones que Mercado Libre te ofrece en cada cuenta. Elegí una para ver qué publicaciones podés sumar y a qué precio.</p>
+    <div id="lcBody"><div class="muted">Cargando…</div></div>
+    <div id="lcMsg" style="font-size:13px;margin-top:8px"></div>
   </div>
 </div>
 
@@ -1794,12 +1879,351 @@ $('clAcc').onchange = renderClaims; $('clQ').oninput = renderClaims;
 $('clTab').onclick = (e) => { const b = e.target.closest('[data-t]'); if (!b) return; clTab = b.dataset.t; renderClaims(); };
 setTimeout(clCheck, 2500); setInterval(clCheck, 60e3);
 
+// ---------- Mis publicaciones (todas las cuentas) ----------
+let lsData = null, lsState = 'active', lsEdits = {}, lsSel = new Set(), lsLimit = 200, lsPoll = null;
+const LS_GOALS = { picture: 'Mejorar las fotos', pictures: 'Mejorar las fotos', technical_specification: 'Completar la ficha técnica', attributes: 'Completar la ficha técnica', product_identifiers: 'Cargar el código universal (EAN)', gtin: 'Cargar el código universal (EAN)', variations: 'Agregar variantes', free_shipping: 'Ofrecer envío gratis', fulfillment: 'Mandar a Full', flex: 'Activar Flex', buybox: 'Ganar en el catálogo', catalog: 'Publicar en catálogo', video: 'Agregar un clip', clips: 'Agregar un clip', description: 'Mejorar la descripción', title: 'Mejorar el título', installments: 'Ofrecer cuotas', warranty: 'Informar la garantía', listing_type: 'Mejorar el tipo de publicación' };
+const LS_LOG = { fulfillment: 'Full', self_service: 'Flex', cross_docking: 'Colecta', xd_drop_off: 'Places', drop_off: 'Correo', default: 'Mercado Envíos' };
+const lsPost = async (url, body, method) => (await fetch(url, { method: method || 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body || {}) })).json().catch(() => ({ ok: false, error: 'Sin conexión.' }));
+const lsItem = (id) => (lsData ? lsData.items.find(x => x.id === id) : null);
+const lsQual = (it) => it.health != null ? it.health : (it.quality ? it.quality.health : null);
+async function loadListings() {
+  const d = await (await fetch('/api/listings')).json().catch(() => ({ ok: false, error: 'Sin conexión.' }));
+  if (!d.ok) { $('lsRows').innerHTML = `<tr><td colspan="8" class="err-t" style="padding:16px">${esc(d.error)}</td></tr>`; return; }
+  lsData = d;
+  const accs = {}; for (const x of d.items) accs[x.account_id] = x.account;
+  const a0 = $('lsAcc').value;
+  $('lsAcc').innerHTML = '<option value="">Todas las cuentas</option>' + Object.entries(accs).sort((a, b) => a[1].localeCompare(b[1])).map(([k, v]) => `<option value="${esc(k)}">${esc(v)} (${d.items.filter(x => x.account_id === k).length})</option>`).join('');
+  if (accs[a0]) $('lsAcc').value = a0;
+  $('lsUndo').hidden = !d.can_undo;
+  if (d.last_change) $('lsUndo').title = `Último cambio: ${d.last_change.n} cambios el ${new Date(d.last_change.at).toLocaleString('es-AR')}`;
+  lsStatusMsg(d.job);
+  renderListings();
+  if (d.job && d.job.running) lsWatch();
+}
+function lsStatusMsg(job) {
+  const err = (lsData && lsData.errors || []).join(' · ');
+  if (job && job.running) $('lsMsg').innerHTML = `<span class="muted">↻ Trayendo publicaciones de Mercado Libre… (${job.done} de ${job.total} cuentas)</span>`;
+  else $('lsMsg').innerHTML = err ? `<span class="err-t">⚠️ ${esc(err)}</span>` : '';
+}
+function lsWatch() {
+  clearInterval(lsPoll);
+  lsPoll = setInterval(async () => {
+    const d = await (await fetch('/api/listings/status')).json().catch(() => null);
+    if (!d) return;
+    lsStatusMsg(d.job);
+    if (!d.job.running) { clearInterval(lsPoll); loadListings(); }
+  }, 3000);
+}
+function lsVisible() {
+  if (!lsData) return [];
+  const acc = $('lsAcc').value, f = $('lsFilter').value, q = $('lsQ').value.trim().toLowerCase();
+  return lsData.items.filter(x => (!acc || x.account_id === acc) && (!lsState || x.status === lsState)
+    && (!f || (f === 'nostock' && x.stock <= 0) || (f === 'lowstock' && x.stock > 0 && x.stock <= 3) || (f === 'deal' && x.original_price) || (f === 'full' && x.logistic === 'fulfillment') || (f === 'nofull' && x.logistic !== 'fulfillment') || (f === 'quality' && lsQual(x) != null && lsQual(x) < 0.7) || (f === 'manuf' && x.manufacturing))
+    && (!q || [x.title, x.sku, x.brand, x.id, x.account].join(' ').toLowerCase().includes(q)))
+    .sort((a, b) => b.sold - a.sold);
+}
+function renderListings() {
+  const list = lsVisible(), shown = list.slice(0, lsLimit);
+  const all = lsData ? lsData.items.length : 0;
+  $('lsInfo').textContent = lsData ? `${list.length} de ${all} publicaciones${lsData.updated_at ? ' · actualizado ' + new Date(lsData.updated_at).toLocaleString('es-AR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : ''}` : '';
+  $('lsRows').innerHTML = shown.map(x => {
+    const e = lsEdits[x.id] || {}, full = x.logistic === 'fulfillment', multi = x.variations.length > 1;
+    const q = lsQual(x), qc = q == null ? '' : q >= 0.8 ? 'var(--ok)' : q >= 0.5 ? '#d97706' : 'var(--err)';
+    const st = e.status || x.status;
+    return `<tr class="ls-row${Object.keys(e).length ? ' changed' : ''}">
+      <td><input type="checkbox" data-lsel="${esc(x.id)}" ${lsSel.has(x.id) ? 'checked' : ''}></td>
+      <td><div class="ls-pub">${x.thumb ? `<img src="${esc(x.thumb)}" alt="" loading="lazy">` : '<div class="ls-noimg">📦</div>'}<div style="min-width:0"><a class="lnk t" href="${esc(x.link)}" target="_blank" rel="noopener">${esc(x.title)}</a>
+        <div class="ls-meta"><span class="pill" style="color:var(--brand);border-color:var(--brand);font-size:11px;padding:0 6px">${esc(x.account)}</span>${x.sku ? `<span>SKU ${esc(x.sku)}</span>` : '<span style="color:var(--err)">sin SKU</span>'}<span>${esc(x.id)}</span>${x.listing_type === 'gold_pro' ? '<span class="ls-tag">Premium</span>' : x.listing_type === 'gold_special' ? '<span class="ls-tag">Clásica</span>' : ''}${x.catalog ? '<span class="ls-tag">Catálogo</span>' : ''}${x.manufacturing ? `<span class="ls-tag">Plazo ${esc(x.manufacturing)}</span>` : ''}${st !== 'active' ? `<span class="ls-tag" style="color:var(--err)">${st === 'paused' ? 'Pausada' : esc(st)}</span>` : ''}${multi ? `<span class="ls-tag">${x.variations.length} variantes</span>` : ''}</div></div></div></td>
+      <td style="text-align:right">${x.original_price ? `<div class="ls-was">${money(x.original_price)}</div>` : ''}<input type="number" class="ls-in${e.price != null ? ' chg' : ''}" data-lsp="${esc(x.id)}" value="${e.price ?? x.price}" min="1">${e.price != null ? `<div class="muted" style="font-size:11px">antes ${money(x.price)}</div>` : ''}${x.original_price ? '<div style="font-size:11px;color:var(--ok)">con descuento</div>' : ''}</td>
+      <td style="text-align:right">${full ? `<span title="El stock de Full lo maneja Mercado Libre">${x.stock} <span class="ls-tag">Full</span></span>` : multi ? `<a href="#" class="lnk" data-ldet="${esc(x.id)}" data-tab="vars">${x.stock} · por variante</a>` : `<input type="number" class="ls-in${e.stock != null ? ' chg' : ''}" style="width:80px" data-lss="${esc(x.id)}" value="${e.stock ?? x.stock}" min="0">${e.stock != null ? `<div class="muted" style="font-size:11px">antes ${x.stock}</div>` : ''}`}</td>
+      <td style="text-align:right">${x.sold}</td>
+      <td style="font-size:12.5px">${esc(LS_LOG[x.logistic] || x.logistic || '')}${x.free_ship ? '<div class="muted" style="font-size:11px">envío gratis</div>' : ''}</td>
+      <td>${q == null ? '<span class="muted">—</span>' : `<b style="color:${qc}">${Math.round(q * 100)}%</b>`}</td>
+      <td><button class="btn small" data-ldet="${esc(x.id)}">Editar</button></td>
+    </tr>`;
+  }).join('') || `<tr><td colspan="8" class="muted" style="padding:16px">${lsData && lsData.job && lsData.job.running ? 'Trayendo publicaciones…' : 'No hay publicaciones con ese filtro.'}</td></tr>`;
+  $('lsMore').hidden = list.length <= lsLimit;
+  $('lsAll').checked = !!shown.length && shown.every(x => lsSel.has(x.id));
+  $('lsBulk').hidden = !lsSel.size; $('lsSelN').textContent = `${lsSel.size} ${lsSel.size === 1 ? 'publicación seleccionada' : 'publicaciones seleccionadas'}`;
+  const n = Object.keys(lsEdits).length;
+  $('lsSave').hidden = !n; $('lsSaveTxt').textContent = `${n} ${n === 1 ? 'publicación con cambios' : 'publicaciones con cambios'} sin guardar`;
+}
+function lsSet(id, field, val) {
+  const it = lsItem(id); if (!it) return;
+  const e = lsEdits[id] = lsEdits[id] || {};
+  const base = field === 'status' ? it.status : field === 'price' ? it.price : it.stock;
+  if (val === '' || val == null || Number(val) === Number(base) || val === base) delete e[field]; else e[field] = field === 'status' ? val : Number(val);
+  if (!Object.keys(e).length) delete lsEdits[id];
+}
+const lsRound = (v, r) => r === 999 ? Math.max(999, Math.round(v / 1000) * 1000 - 1) : Math.max(r, Math.round(v / r) * r);
+$('lsRows').addEventListener('change', (e) => {
+  const t = e.target;
+  if (t.dataset.lsel) { t.checked ? lsSel.add(t.dataset.lsel) : lsSel.delete(t.dataset.lsel); renderListings(); return; }
+  if (t.dataset.lsp) { lsSet(t.dataset.lsp, 'price', t.value); renderListings(); }
+  if (t.dataset.lss) { lsSet(t.dataset.lss, 'stock', t.value); renderListings(); }
+});
+$('lsRows').addEventListener('click', (e) => { const b = e.target.closest('[data-ldet]'); if (!b) return; e.preventDefault(); openListing(b.dataset.ldet, b.dataset.tab); });
+$('lsAll').onchange = () => { for (const x of lsVisible().slice(0, lsLimit)) $('lsAll').checked ? lsSel.add(x.id) : lsSel.delete(x.id); renderListings(); };
+$('lsSelNone').onclick = () => { lsSel.clear(); renderListings(); };
+$('lsSameSku').onclick = () => {
+  const norm = (s) => String(s || '').toUpperCase().replace(/\s+/g, '');
+  const skus = new Set([...lsSel].map(id => norm((lsItem(id) || {}).sku)).filter(Boolean));
+  for (const x of lsData.items) if (skus.has(norm(x.sku))) lsSel.add(x.id);
+  renderListings();
+};
+$('lsPPrev').onclick = () => {
+  const v = Number($('lsPVal').value), dir = $('lsPDir').value, unit = $('lsPUnit').value, r = Number($('lsPRound').value);
+  if (!(v > 0)) { $('lsMsg').innerHTML = '<span class="err-t">Poné el valor del cambio de precio.</span>'; return; }
+  for (const id of lsSel) { const x = lsItem(id); if (!x) continue;
+    let p = dir === 'set' ? v : unit === 'pct' ? x.price * (dir === 'up' ? 1 + v / 100 : 1 - v / 100) : x.price + (dir === 'up' ? v : -v);
+    lsSet(id, 'price', lsRound(p, r)); }
+  $('lsMsg').innerHTML = '<span class="muted">Revisá los precios nuevos en la tabla (marcados) y tocá "Guardar en Mercado Libre".</span>'; renderListings();
+};
+$('lsSPrev').onclick = () => {
+  const v = Number($('lsSVal').value), dir = $('lsSDir').value; let skip = 0;
+  if (!(v >= 0) || $('lsSVal').value === '') return;
+  for (const id of lsSel) { const x = lsItem(id); if (!x) continue; if (x.logistic === 'fulfillment' || x.variations.length > 1) { skip++; continue; }
+    lsSet(id, 'stock', Math.max(0, dir === 'set' ? v : dir === 'add' ? x.stock + v : x.stock - v)); }
+  $('lsMsg').innerHTML = skip ? `<span class="muted">${skip} no se cambian (Full o con variantes: esas se editan en "Editar").</span>` : ''; renderListings();
+};
+$('lsPause').onclick = () => { for (const id of lsSel) lsSet(id, 'status', 'paused'); renderListings(); };
+$('lsActivate').onclick = () => { for (const id of lsSel) lsSet(id, 'status', 'active'); renderListings(); };
+$('lsDiscard').onclick = () => { lsEdits = {}; renderListings(); };
+$('lsSaveBtn').onclick = async () => {
+  const changes = [];
+  for (const [id, e] of Object.entries(lsEdits)) { const x = lsItem(id); if (x) changes.push({ account_id: x.account_id, item_id: id, ...e }); }
+  if (!changes.length) return;
+  const pc = changes.filter(c => c.price != null).length, sc = changes.filter(c => c.stock != null).length, tc = changes.filter(c => c.status).length;
+  if (!confirm(`Vas a cambiar en Mercado Libre:\n${pc ? `• ${pc} precios\n` : ''}${sc ? `• ${sc} stocks\n` : ''}${tc ? `• ${tc} estados (pausar/activar)\n` : ''}\nLos cambios se ven al instante en las publicaciones. ¿Seguimos?`)) return;
+  $('lsSaveBtn').disabled = true; $('lsSaveBtn').textContent = 'Guardando…';
+  const d = await lsPost('/api/listings/apply', { changes, by: rfBy() });
+  $('lsSaveBtn').disabled = false; $('lsSaveBtn').textContent = 'Guardar en Mercado Libre';
+  if (!d.ok) { $('lsMsg').innerHTML = `<span class="err-t">${esc(d.error)}</span>`; return; }
+  const failIds = new Set(d.failed.map(f => f.item_id));
+  for (const id of Object.keys(lsEdits)) if (!failIds.has(id)) delete lsEdits[id];
+  $('lsMsg').innerHTML = `<span style="color:var(--ok)">✓ ${d.ok} ${d.ok === 1 ? 'publicación actualizada' : 'publicaciones actualizadas'}.</span>` + (d.failed.length ? `<div class="err-t" style="margin-top:4px">No se pudieron cambiar ${d.failed.length}: ${d.failed.slice(0, 8).map(f => `${esc(f.item_id)} (${esc(f.error)})`).join(' · ')}</div>` : '');
+  await loadListings();
+};
+$('lsUndo').onclick = async () => {
+  if (!confirm('¿Deshacer el último cambio guardado? Vuelve precios, stock y estados a como estaban.')) return;
+  const d = await lsPost('/api/listings/undo', { by: rfBy() });
+  $('lsMsg').innerHTML = d.ok ? `<span style="color:var(--ok)">✓ Deshecho (${d.ok} publicaciones).</span>${d.failed.length ? ` <span class="err-t">${d.failed.length} no se pudieron volver atrás.</span>` : ''}` : `<span class="err-t">${esc(d.error)}</span>`;
+  loadListings();
+};
+$('lsDApply').onclick = async () => {
+  const pct = Number($('lsDPct').value), from = $('lsDFrom').value, to = $('lsDTo').value;
+  const sel = [...lsSel].map(lsItem).filter(Boolean);
+  if (!sel.length) return;
+  if (!confirm(`¿Aplicar ${pct}% de descuento a ${sel.length} publicaciones, del ${from} al ${to}?`)) return;
+  $('lsDApply').disabled = true;
+  const d = await lsPost('/api/listings/discount', { items: sel.map(x => ({ account_id: x.account_id, item_id: x.id })), pct, from, to });
+  $('lsDApply').disabled = false;
+  $('lsMsg').innerHTML = d.ok !== undefined && d.results ? `<span style="color:var(--ok)">✓ Descuento aplicado en ${d.ok}.</span>${d.failed.length ? `<div class="err-t" style="margin-top:4px">No se pudo en ${d.failed.length}: ${d.failed.slice(0, 8).map(f => `${esc(f.item_id)} (${esc(f.error)})`).join(' · ')}</div>` : ''}` : `<span class="err-t">${esc(d.error)}</span>`;
+  loadListings();
+};
+$('lsSync').onclick = async () => { await lsPost('/api/listings/sync'); lsStatusMsg({ running: true, done: 0, total: '…' }); lsWatch(); };
+$('lsAcc').onchange = renderListings; $('lsFilter').onchange = renderListings; $('lsQ').oninput = () => { lsLimit = 200; renderListings(); };
+$('lsState').onclick = (e) => { const b = e.target.closest('[data-s]'); if (!b) return; lsState = b.dataset.s; $('lsState').querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b)); renderListings(); };
+$('lsMoreBtn').onclick = () => { lsLimit += 200; renderListings(); };
+(() => { const t = new Date(), f = (d) => d.toLocaleDateString('sv-SE'); $('lsDFrom').value = f(t); $('lsDTo').value = f(new Date(Date.now() + 7 * 86400e3)); })();
+
+// --- Detalle de una publicación ---
+let ld = null;
+async function openListing(id, tab) {
+  const x = lsItem(id); if (!x) return;
+  ld = { id, acc: x.account_id, item: x, tab: tab || 'calidad', data: null, pics: null, uploads: [] };
+  $('ldTitle').textContent = x.title; $('ldSub').innerHTML = `${esc(x.account)} · ${esc(x.id)} · <a class="lnk" href="${esc(x.link)}" target="_blank" rel="noopener">Ver en Mercado Libre ↗</a>`;
+  $('ldTabs').querySelector('[data-t="vars"]').hidden = x.variations.length <= 1;
+  $('ldTwinsBox').hidden = true; $('ldTwins').checked = false; $('ldMsg').textContent = '';
+  $('lsModal').classList.add('show');
+  ldTab(ld.tab);
+  const d = await (await fetch(`/api/listings/${x.account_id}/${id}/detail`)).json().catch(() => ({ ok: false, error: 'Sin conexión.' }));
+  if (!ld || ld.id !== id) return;
+  if (!d.ok) { $('ldBody').innerHTML = `<div class="err-t">${esc(d.error)}</div>`; return; }
+  ld.data = d; ld.pics = d.pictures.map(p => ({ ...p }));
+  if (d.twins.length) { $('ldTwinsBox').hidden = false; $('ldTwinsTxt').textContent = `Aplicar también en el mismo producto de otras cuentas: ${d.twins.map(t => t.account).join(', ')}`; }
+  ldTab(ld.tab);
+}
+function ldTab(t) {
+  ld.tab = t; $('ldTabs').querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.t === t));
+  $('ldMsg').textContent = '';
+  if (t === 'promos') return ldPromos();
+  if (t === 'vars') return ldVars();
+  if (!ld.data) { $('ldBody').innerHTML = '<div class="muted">Cargando…</div>'; return; }
+  if (t === 'calidad') ldQuality(); else if (t === 'desc') ldDesc(); else if (t === 'fotos') ldPics();
+}
+$('ldTabs').onclick = (e) => { const b = e.target.closest('[data-t]'); if (b && ld) ldTab(b.dataset.t); };
+$('ldClose').onclick = () => { $('lsModal').classList.remove('show'); ld = null; renderListings(); };
+const ldRes = (d, okTxt) => d.ok !== undefined && d.results ? `<span style="color:var(--ok)">✓ ${okTxt} (${d.ok} ${d.ok === 1 ? 'publicación' : 'publicaciones'}).</span>${d.failed.length ? `<div class="err-t">No se pudo en ${d.failed.length}: ${d.failed.map(f => `${esc(f.item_id)} (${esc(f.error)})`).join(' · ')}</div>` : ''}` : `<span class="err-t">${esc(d.error)}</span>`;
+function ldQuality() {
+  const d = ld.data, h = d.health;
+  const req = d.missing.filter(a => a.required), opt = d.missing.filter(a => !a.required);
+  const field = (a) => {
+    const inp = a.values.length ? `<select data-attr="${esc(a.id)}"><option value="">—</option>${a.values.map(v => `<option value="id:${esc(v.id)}">${esc(v.name)}</option>`).join('')}${a.type === 'list' ? '' : '<option value="other">Otro (escribir)…</option>'}</select>` : `<input type="text" data-attr="${esc(a.id)}" placeholder="${esc(a.hint || '')}" style="width:100%">`;
+    return `<div>${esc(a.name)}${a.required ? ' <b style="color:var(--err)">*</b>' : ''}</div><div class="row" style="gap:6px">${inp}${a.units.length ? `<select data-unit="${esc(a.id)}">${a.units.map(u => `<option ${u === a.unit ? 'selected' : ''}>${esc(u)}</option>`).join('')}</select>` : ''}</div>`;
+  };
+  $('ldBody').innerHTML = `
+    <div class="row" style="gap:16px;flex-wrap:wrap;align-items:center">
+      <div class="stat" style="min-width:150px"><div class="k">Calidad según ML</div><div class="v" style="color:${h == null ? 'inherit' : h >= 0.8 ? 'var(--ok)' : h >= 0.5 ? '#d97706' : 'var(--err)'}">${h == null ? '—' : Math.round(h * 100) + '%'}</div></div>
+      <div style="flex:1;min-width:220px;font-size:13px">${d.goals.length ? `<b>Mercado Libre sugiere:</b><ul style="margin:4px 0 0;padding-left:18px">${[...new Set(d.goals.map(g => LS_GOALS[g] || g.replace(/_/g, ' ')))].map(g => `<li>${esc(g)}</li>`).join('')}</ul>` : '<span style="color:var(--ok)">✓ Mercado Libre no sugiere mejoras.</span>'}
+        <div class="muted" style="margin-top:6px">${d.pictures.length} fotos${d.pictures.some(p => p.small) ? ` · <span style="color:var(--err)">${d.pictures.filter(p => p.small).length} con baja resolución</span>` : ''} · descripción ${d.description ? `de ${d.description.length} caracteres` : '<span style="color:var(--err)">vacía</span>'}</div></div>
+    </div>
+    <h4 style="margin:16px 0 6px">Ficha técnica: ${d.missing.length ? `faltan ${d.missing.length} datos${req.length ? ` (${req.length} importantes)` : ''}` : 'completa ✓'}</h4>
+    ${d.missing.length ? `<div class="ls-attr">${req.map(field).join('')}${opt.length ? `<div style="grid-column:1/-1"><details><summary class="lnk" style="cursor:pointer;font-size:13px">Ver ${opt.length} datos opcionales</summary><div class="ls-attr" style="margin-top:6px">${opt.map(field).join('')}</div></details></div>` : ''}</div>
+    <div class="row" style="justify-content:flex-end;margin-top:10px"><button class="btn primary" id="ldAttrSave">Guardar ficha técnica</button></div>` : ''}
+    <details style="margin-top:12px"><summary class="lnk" style="cursor:pointer;font-size:13px">Datos ya cargados (${d.filled.length})</summary><div class="ls-attr" style="margin-top:6px">${d.filled.map(f => `<div class="muted">${esc(f.name)}</div><div>${esc(f.value)}</div>`).join('')}</div></details>`;
+  $('ldBody').querySelectorAll('select[data-attr]').forEach(s => s.onchange = () => { if (s.value === 'other') { const i = document.createElement('input'); i.type = 'text'; i.dataset.attr = s.dataset.attr; i.placeholder = 'Escribí el valor'; s.replaceWith(i); i.focus(); } });
+  if ($('ldAttrSave')) $('ldAttrSave').onclick = async () => {
+    const attrs = [];
+    $('ldBody').querySelectorAll('[data-attr]').forEach(el => { const v = el.value.trim(); if (!v) return; const unit = $('ldBody').querySelector(`[data-unit="${el.dataset.attr}"]`);
+      attrs.push(v.startsWith('id:') ? { id: el.dataset.attr, value_id: v.slice(3) } : { id: el.dataset.attr, value_name: unit && /^[\d.,]+$/.test(v) ? `${v} ${unit.value}` : v }); });
+    if (!attrs.length) { $('ldMsg').innerHTML = '<span class="err-t">Completá al menos un dato.</span>'; return; }
+    $('ldAttrSave').disabled = true;
+    const r = await lsPost(`/api/listings/${ld.acc}/${ld.id}/attributes`, { attributes: attrs, twins: $('ldTwins').checked }, 'PUT');
+    $('ldAttrSave').disabled = false; $('ldMsg').innerHTML = ldRes(r, 'Ficha técnica guardada');
+    if (r.ok) openListing(ld.id, 'calidad');
+  };
+}
+function ldDesc() {
+  $('ldBody').innerHTML = `<textarea id="ldDescTxt" style="min-height:260px;width:100%">${esc(ld.descDraft ?? ld.data.description)}</textarea>
+    <div class="row" style="gap:6px;flex-wrap:wrap;margin-top:8px"><input type="text" id="ldDescHint" placeholder="Indicaciones para la IA (opcional): ej. remarcar que es importado, 60 servicios…" style="flex:1;min-width:220px"><button class="btn" id="ldDescAi">✨ Escribir con IA</button><button class="btn primary" id="ldDescSave">Guardar descripción</button></div>
+    <div class="muted" style="font-size:12px;margin-top:6px">Mercado Libre solo acepta texto (sin negritas ni links). La IA usa la ficha técnica, la descripción actual y las fotos; revisala antes de guardar.</div>`;
+  $('ldDescTxt').oninput = () => { ld.descDraft = $('ldDescTxt').value; };
+  $('ldDescAi').onclick = async () => {
+    const b = $('ldDescAi'); b.disabled = true; b.textContent = '✨ Escribiendo…';
+    const d = ld.data;
+    const r = await lsPost('/api/listings/ai/description', { title: d.title, price: ld.item.price, attrs: d.filled.map(f => `${f.name}: ${f.value}`), description: $('ldDescTxt').value, pictures: d.pictures.map(p => p.url), extra: $('ldDescHint').value });
+    b.disabled = false; b.textContent = '✨ Escribir con IA';
+    if (!r.ok) { $('ldMsg').innerHTML = `<span class="err-t">${esc(r.error)}</span>`; return; }
+    $('ldDescTxt').value = ld.descDraft = r.text;
+    $('ldMsg').innerHTML = r.missing ? `<span style="color:#d97706">⚠️ Convendría agregar: ${esc(r.missing)}</span>` : '<span class="muted">Revisala y tocá "Guardar descripción".</span>';
+  };
+  $('ldDescSave').onclick = async () => {
+    if (!confirm('¿Reemplazar la descripción en Mercado Libre?')) return;
+    const r = await lsPost(`/api/listings/${ld.acc}/${ld.id}/description`, { text: $('ldDescTxt').value, twins: $('ldTwins').checked }, 'PUT');
+    $('ldMsg').innerHTML = ldRes(r, 'Descripción guardada');
+    if (r.ok) { ld.data.description = $('ldDescTxt').value; ld.descDraft = null; }
+  };
+}
+async function ldCompress(file) {
+  const img = await new Promise((ok, no) => { const i = new Image(); i.onload = () => ok(i); i.onerror = no; i.src = URL.createObjectURL(file); });
+  const max = 1600, k = Math.min(1, max / Math.max(img.width, img.height));
+  const c = document.createElement('canvas'); c.width = Math.round(img.width * k); c.height = Math.round(img.height * k);
+  const g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height); g.drawImage(img, 0, 0, c.width, c.height);
+  return { data: c.toDataURL('image/jpeg', 0.9), w: c.width, h: c.height };
+}
+function ldPics() {
+  const p = ld.pics;
+  $('ldBody').innerHTML = `<div class="ls-pics">${p.map((x, i) => `<div class="ls-pic"><span class="n">${i === 0 ? 'Principal' : i + 1}</span>${x.small ? '<span class="warn" title="Menos de 1200 px">baja resolución</span>' : ''}<img src="${esc(x.url)}" alt=""><div class="bar"><button data-pm="${i}" data-d="-1" title="Mover a la izquierda">◀</button><button data-pmain="${i}" title="Hacer principal">★</button><button data-pdel="${i}" title="Quitar">✕</button><button data-pm="${i}" data-d="1" title="Mover a la derecha">▶</button></div></div>`).join('')}
+    <label class="ls-pic" style="display:grid;place-items:center;cursor:pointer;min-height:110px;background:var(--card-2)"><input type="file" id="ldPicAdd" accept="image/jpeg,image/png,image/webp" multiple hidden><span style="text-align:center;font-size:13px">＋<br>Agregar fotos</span></label></div>
+    <div class="row" style="justify-content:space-between;gap:8px;flex-wrap:wrap;margin-top:10px"><button class="btn" id="ldPicAi">✨ Revisar fotos con IA</button><button class="btn primary" id="ldPicSave">Guardar fotos</button></div>
+    <div id="ldPicReview" style="font-size:13px;margin-top:10px"></div>
+    <div class="muted" style="font-size:12px;margin-top:6px">La principal tiene que ser el producto solo con fondo blanco, sin textos ni logos. Recomendado: 1200 px o más.</div>`;
+  if (ld.review) ldShowReview(ld.review);
+  $('ldBody').querySelectorAll('[data-pm]').forEach(b => b.onclick = () => { const i = +b.dataset.pm, j = i + +b.dataset.d; if (j < 0 || j >= p.length) return; [p[i], p[j]] = [p[j], p[i]]; ldPics(); });
+  $('ldBody').querySelectorAll('[data-pmain]').forEach(b => b.onclick = () => { const i = +b.dataset.pmain; p.unshift(...p.splice(i, 1)); ldPics(); });
+  $('ldBody').querySelectorAll('[data-pdel]').forEach(b => b.onclick = () => { if (p.length <= 1) return; p.splice(+b.dataset.pdel, 1); ldPics(); });
+  $('ldPicAdd').onchange = async (e) => {
+    for (const f of [...e.target.files].slice(0, 10)) { try { const c = await ldCompress(f); const ref = Math.random().toString(36).slice(2, 8); ld.uploads.push({ ref, name: f.name.replace(/\.\w+$/, '') + '.jpg', data: c.data }); p.push({ id: 'new:' + ref, url: c.data, small: Math.max(c.w, c.h) < 1200, isNew: true }); } catch { $('ldMsg').innerHTML = '<span class="err-t">No pude leer una de las fotos.</span>'; } }
+    ldPics();
+  };
+  $('ldPicAi').onclick = async () => {
+    const b = $('ldPicAi'); b.disabled = true; b.textContent = '✨ Revisando…';
+    const r = await lsPost('/api/listings/ai/photos', { title: ld.data.title, urls: ld.data.pictures.map(x => x.url) });
+    b.disabled = false; b.textContent = '✨ Revisar fotos con IA';
+    if (!r.ok) { $('ldMsg').innerHTML = `<span class="err-t">${esc(r.error)}</span>`; return; }
+    ld.review = r; ldShowReview(r);
+  };
+  $('ldPicSave').onclick = async () => {
+    const used = ld.uploads.filter(u => p.some(x => x.id === 'new:' + u.ref));
+    if (used.reduce((n, u) => n + u.data.length, 0) > 3.5e6) { $('ldMsg').innerHTML = '<span class="err-t">Son muchas fotos juntas: guardá de a 3 o 4 por vez.</span>'; return; }
+    if (!confirm(`¿Guardar ${p.length} fotos en Mercado Libre con este orden?`)) return;
+    $('ldPicSave').disabled = true; $('ldPicSave').textContent = 'Subiendo…';
+    const r = await lsPost(`/api/listings/${ld.acc}/${ld.id}/pictures`, { order: p.map(x => x.id), uploads: used, twins: $('ldTwins').checked }, 'PUT');
+    $('ldPicSave').disabled = false; $('ldPicSave').textContent = 'Guardar fotos';
+    $('ldMsg').innerHTML = ldRes(r, 'Fotos guardadas');
+    if (r.ok) { ld.uploads = []; ld.review = null; openListing(ld.id, 'fotos'); }
+  };
+}
+function ldShowReview(r) {
+  $('ldPicReview').innerHTML = `<div class="card" style="margin:0;padding:10px 12px"><b>✨ Revisión de la IA:</b> ${esc(r.summary)}
+    ${r.photos.length ? `<ul style="margin:6px 0 0;padding-left:18px">${r.photos.map(f => `<li>Foto ${f.n}${f.n === 1 ? ' (principal)' : ''}: ${f.ok ? '<span style="color:var(--ok)">bien</span>' : `<span style="color:var(--err)">${esc(f.problema)}</span>`}${f.sugerencia ? ` — ${esc(f.sugerencia)}` : ''}</li>`).join('')}</ul>` : ''}
+    ${r.add.length ? `<div style="margin-top:6px"><b>Fotos para agregar:</b> ${r.add.map(esc).join(' · ')}</div>` : ''}</div>`;
+}
+async function ldPromos() {
+  $('ldBody').innerHTML = '<div class="muted">Buscando descuentos y campañas…</div>';
+  const id = ld.id, d = await (await fetch(`/api/listings/${ld.acc}/${id}/promos`)).json().catch(() => ({ ok: false, error: 'Sin conexión.' }));
+  if (!ld || ld.id !== id || ld.tab !== 'promos') return;
+  if (!d.ok) { $('ldBody').innerHTML = `<div class="err-t">${esc(d.error)}</div>`; return; }
+  const dt = (v) => v ? new Date(v).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: '2-digit' }) : '';
+  const on = d.promos.filter(p => ['started', 'pending', 'active'].includes(p.status)), cand = d.promos.filter(p => p.status === 'candidate');
+  const price = ld.item.original_price || ld.item.price;
+  $('ldBody').innerHTML = `<div class="muted" style="font-size:13px;margin-bottom:8px">Precio de lista: <b style="color:var(--text)">${money(price)}</b>${ld.item.original_price ? ` · hoy se vende a ${money(ld.item.price)}` : ''}</div>
+    <h4 style="margin:6px 0">Activos o programados</h4>
+    ${on.length ? on.map(p => `<div class="row" style="justify-content:space-between;gap:8px;border-bottom:1px solid var(--line);padding:6px 0;flex-wrap:wrap"><div><b>${esc(p.type_label)}</b>${p.name && p.name !== p.type_label ? ` · ${esc(p.name)}` : ''}<div class="muted" style="font-size:12.5px">${p.price ? `${money(p.price)} (${Math.round((1 - p.price / price) * 100)}% off)` : ''} · ${p.status === 'pending' ? 'empieza' : 'desde'} ${dt(p.start)} hasta ${dt(p.finish)}${p.meli_pct ? ` · ML pone ${p.meli_pct}%` : ''}</div></div><button class="btn small" data-leave="${esc(p.type)}" data-pid="${esc(p.id)}" style="color:var(--err)">Quitar</button></div>`).join('') : '<div class="muted" style="font-size:13px">Ninguno.</div>'}
+    <h4 style="margin:14px 0 6px">Campañas de ML que podés sumar</h4>
+    ${cand.length ? cand.map((p, i) => { const sug = p.suggested || (p.offers[0] && p.offers[0].price) || p.max_price || ''; return `<div class="row" style="justify-content:space-between;gap:8px;border-bottom:1px solid var(--line);padding:6px 0;flex-wrap:wrap"><div style="min-width:200px"><b>${esc(p.type_label)}</b>${p.name ? ` · ${esc(p.name)}` : ''}<div class="muted" style="font-size:12.5px">${dt(p.start)} al ${dt(p.finish)}${p.min_price && p.max_price ? ` · precio entre ${money(p.min_price)} y ${money(p.max_price)}` : ''}${p.meli_pct ? ` · ML pone ${p.meli_pct}%` : ''}</div></div>
+      <div class="row" style="gap:6px">${p.offers.length && !p.min_price ? `<span style="font-size:13px">${money(sug)}</span>` : `<input type="number" id="ldJoinP${i}" value="${esc(sug)}" style="width:110px">`}<button class="btn small primary" data-join="${i}">Sumar</button></div></div>`; }).join('') : '<div class="muted" style="font-size:13px">Mercado Libre no te ofrece campañas para esta publicación ahora.</div>'}
+    <h4 style="margin:14px 0 6px">Crear descuento propio</h4>
+    <div class="row" style="gap:6px;flex-wrap:wrap;font-size:13px"><input type="number" id="ldOwnPct" placeholder="10" min="5" max="80" style="width:80px"> % · desde <input type="date" id="ldOwnFrom" value="${new Date().toLocaleDateString('sv-SE')}"> hasta <input type="date" id="ldOwnTo" value="${new Date(Date.now() + 7 * 86400e3).toLocaleDateString('sv-SE')}"><button class="btn small primary" id="ldOwnBtn">Crear descuento</button><span class="muted" id="ldOwnPrev"></span></div>`;
+  $('ldOwnPct').oninput = () => { const v = Number($('ldOwnPct').value); $('ldOwnPrev').textContent = v > 0 ? `→ ${money(Math.round(price * (1 - v / 100)))}` : ''; };
+  $('ldBody').querySelectorAll('[data-leave]').forEach(b => b.onclick = async () => { if (!confirm('¿Quitar este descuento?')) return; const r = await lsPost(`/api/listings/${ld.acc}/${ld.id}/promos/leave`, { type: b.dataset.leave, promotion_id: b.dataset.pid }); $('ldMsg').innerHTML = r.ok ? '<span style="color:var(--ok)">✓ Quitado.</span>' : `<span class="err-t">${esc(r.error)}</span>`; if (r.ok) ldPromos(); });
+  $('ldBody').querySelectorAll('[data-join]').forEach(b => b.onclick = async () => { const p = cand[+b.dataset.join], inp = $('ldJoinP' + b.dataset.join);
+    const r = await lsPost(`/api/listings/${ld.acc}/${ld.id}/promos/join`, { promotion_id: p.id, promotion_type: p.type, offer_id: p.offers[0] && p.offers[0].id, deal_price: inp ? inp.value : undefined });
+    $('ldMsg').innerHTML = r.ok ? '<span style="color:var(--ok)">✓ Sumada a la campaña.</span>' : `<span class="err-t">${esc(r.error)}</span>`; if (r.ok) ldPromos(); });
+  $('ldOwnBtn').onclick = async () => {
+    const r = await lsPost('/api/listings/discount', { items: [{ account_id: ld.acc, item_id: ld.id }, ...($('ldTwins').checked && ld.data ? ld.data.twins.map(t => ({ account_id: (lsItem(t.id) || {}).account_id, item_id: t.id })) : [])], pct: $('ldOwnPct').value, from: $('ldOwnFrom').value, to: $('ldOwnTo').value });
+    $('ldMsg').innerHTML = ldRes(r, 'Descuento creado'); if (r.ok) ldPromos();
+  };
+}
+function ldVars() {
+  const x = lsItem(ld.id), full = x.logistic === 'fulfillment';
+  $('ldBody').innerHTML = `<table class="sales-table"><thead><tr><th>Variante</th><th>SKU</th><th style="text-align:right">Vendidos</th><th style="text-align:right">Stock</th></tr></thead><tbody>${x.variations.map(v => `<tr><td>${esc(v.name || v.id)}</td><td>${esc(v.sku)}</td><td style="text-align:right">${v.sold}</td><td style="text-align:right">${full ? v.stock : `<input type="number" min="0" class="ls-in" style="width:80px" data-vstock="${esc(v.id)}" value="${v.stock}">`}</td></tr>`).join('')}</tbody></table>
+    ${full ? '<div class="muted" style="font-size:12.5px;margin-top:6px">Es Full: el stock lo maneja Mercado Libre.</div>' : '<div class="row" style="justify-content:flex-end;margin-top:10px"><button class="btn primary" id="ldVarSave">Guardar stock</button></div>'}`;
+  if ($('ldVarSave')) $('ldVarSave').onclick = async () => {
+    const changes = [...$('ldBody').querySelectorAll('[data-vstock]')].filter(i => Number(i.value) !== (x.variations.find(v => v.id === i.dataset.vstock) || {}).stock).map(i => ({ account_id: x.account_id, item_id: x.id, variation_id: i.dataset.vstock, stock: Number(i.value) }));
+    if (!changes.length) { $('ldMsg').textContent = 'No cambiaste nada.'; return; }
+    const r = await lsPost('/api/listings/apply', { changes, by: rfBy() });
+    $('ldMsg').innerHTML = ldRes(r, 'Stock guardado'); if (r.ok) { await loadListings(); ldVars(); }
+  };
+}
+
+// --- Campañas de ML ---
+async function openCampaigns() {
+  $('lcModal').classList.add('show'); $('lcMsg').textContent = ''; $('lcBody').innerHTML = '<div class="muted">Buscando campañas en tus cuentas…</div>';
+  const acc = $('lsAcc').value;
+  const d = await (await fetch('/api/listings/campaigns' + (acc ? '?accounts=' + acc : ''))).json().catch(() => ({ ok: false, error: 'Sin conexión.' }));
+  if (!d.ok) { $('lcBody').innerHTML = `<div class="err-t">${esc(d.error)}</div>`; return; }
+  const dt = (v) => v ? new Date(v).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' }) : '';
+  $('lcBody').innerHTML = (d.errors.length ? `<div class="err-t" style="font-size:12.5px">⚠️ ${esc(d.errors.join(' · '))}</div>` : '') + (d.items.length ? `<table class="sales-table"><thead><tr><th>Cuenta</th><th>Campaña</th><th>Tipo</th><th>Vigencia</th><th>Estado</th><th></th></tr></thead><tbody>${d.items.map((c, i) => `<tr><td>${esc(c.account)}</td><td><b>${esc(c.name)}</b></td><td>${esc(c.type_label)}</td><td>${dt(c.start)} al ${dt(c.finish)}${c.deadline ? `<div class="muted" style="font-size:11px">sumarse hasta ${dt(c.deadline)}</div>` : ''}</td><td>${esc(c.status)}</td><td><button class="btn small" data-lc="${i}">Ver productos</button></td></tr><tr id="lcRow${i}" hidden><td colspan="6" id="lcItems${i}"></td></tr>`).join('')}</tbody></table>` : '<div class="muted">No hay campañas disponibles ahora.</div>');
+  $('lcBody').querySelectorAll('[data-lc]').forEach(b => b.onclick = async () => {
+    const i = +b.dataset.lc, c = d.items[i], row = $('lcRow' + i), box = $('lcItems' + i);
+    if (!row.hidden) { row.hidden = true; return; }
+    row.hidden = false; box.innerHTML = '<span class="muted">Cargando productos…</span>';
+    const r = await (await fetch(`/api/listings/campaigns/${c.account_id}/${encodeURIComponent(c.id)}?type=${encodeURIComponent(c.type)}`)).json().catch(() => ({ ok: false, error: 'Sin conexión.' }));
+    if (!r.ok) { box.innerHTML = `<span class="err-t">${esc(r.error)}</span>`; return; }
+    const cand = r.items.filter(x => x.status === 'candidate'), inn = r.items.filter(x => x.status !== 'candidate');
+    box.innerHTML = `<div class="muted" style="font-size:12.5px;margin-bottom:6px">${inn.length} ya sumadas · ${cand.length} podés sumar</div>${cand.length ? `<table class="sales-table"><tbody>${cand.map((x, k) => `<tr><td><input type="checkbox" data-lcc="${k}" checked></td><td>${esc(x.title)}</td><td style="text-align:right">${x.original_price ? money(x.original_price) : ''}</td><td style="text-align:right">${x.min_price && x.max_price ? `<span class="muted" style="font-size:11px">${money(x.min_price)} – ${money(x.max_price)}</span> ` : ''}<input type="number" data-lcp="${k}" value="${esc(x.suggested || x.max_price || '')}" style="width:100px"></td></tr>`).join('')}</tbody></table><div class="row" style="justify-content:flex-end;margin-top:6px"><button class="btn small primary" data-lcjoin>Sumar seleccionadas</button></div>` : ''}`;
+    const jb = box.querySelector('[data-lcjoin]');
+    if (jb) jb.onclick = async () => {
+      const pick = cand.map((x, k) => ({ x, k })).filter(({ k }) => box.querySelector(`[data-lcc="${k}"]`).checked);
+      if (!pick.length || !confirm(`¿Sumar ${pick.length} publicaciones a "${c.name}"?`)) return;
+      jb.disabled = true; let ok = 0; const bad = [];
+      for (const { x, k } of pick) { const r2 = await lsPost(`/api/listings/${c.account_id}/${x.id}/promos/join`, { promotion_id: c.id, promotion_type: c.type, offer_id: x.offer_id, deal_price: box.querySelector(`[data-lcp="${k}"]`).value }); r2.ok ? ok++ : bad.push(`${x.id} (${r2.error})`); jb.textContent = `Sumando… ${ok + bad.length}/${pick.length}`; }
+      jb.disabled = false; jb.textContent = 'Sumar seleccionadas';
+      $('lcMsg').innerHTML = `<span style="color:var(--ok)">✓ ${ok} sumadas.</span>${bad.length ? ` <span class="err-t">No se pudo: ${esc(bad.slice(0, 6).join(' · '))}</span>` : ''}`;
+    };
+  });
+}
+$('lsCampBtn').onclick = openCampaigns;
+$('lcClose').onclick = () => { $('lcModal').classList.remove('show'); loadListings(); };
+
 function showView() {
-  const v = ({ '#ventas': 'ventas', '#ranking': 'ranking', '#precios': 'precios', '#presupuestos': 'presupuestos', '#estados': 'estados', '#gastos': 'gastos', '#full': 'full', '#flex': 'flex', '#resultado': 'resultado', '#tareas': 'tareas', '#recompras': 'recompras', '#preguntas': 'preguntas', '#stock': 'stock', '#sugerencias': 'sugerencias', '#web': 'web', '#horarios': 'horarios', '#manuales': 'manuales', '#calculadora': 'calculadora', '#etiquetas': 'etiquetas', '#impresion': 'impresion', '#reclamos': 'reclamos', '#tuyo': 'tuyo' })[location.hash] || 'ventas';
+  const v = ({ '#ventas': 'ventas', '#ranking': 'ranking', '#precios': 'precios', '#presupuestos': 'presupuestos', '#estados': 'estados', '#gastos': 'gastos', '#full': 'full', '#flex': 'flex', '#resultado': 'resultado', '#tareas': 'tareas', '#recompras': 'recompras', '#preguntas': 'preguntas', '#stock': 'stock', '#sugerencias': 'sugerencias', '#web': 'web', '#horarios': 'horarios', '#manuales': 'manuales', '#calculadora': 'calculadora', '#etiquetas': 'etiquetas', '#impresion': 'impresion', '#reclamos': 'reclamos', '#publicaciones': 'publicaciones', '#tuyo': 'tuyo' })[location.hash] || 'ventas';
   $('viewQuotes').hidden = v !== 'presupuestos';
   $('viewStatus').hidden = v !== 'estados';
   $('viewExpenses').hidden = v !== 'gastos'; $('viewFull').hidden = v !== 'full';
-  $('viewResults').hidden = v !== 'resultado'; $('viewStock').hidden = v !== 'stock'; $('viewSuggest').hidden = v !== 'sugerencias'; $('viewWeb').hidden = v !== 'web'; $('viewHours').hidden = v !== 'horarios'; $('viewManuals').hidden = v !== 'manuales'; $('viewCalc').hidden = v !== 'calculadora'; $('viewPLabel').hidden = v !== 'etiquetas'; $('viewShipLabels').hidden = v !== 'impresion'; $('viewClaims').hidden = v !== 'reclamos'; $('viewTuyo').hidden = v !== 'tuyo';
+  $('viewResults').hidden = v !== 'resultado'; $('viewStock').hidden = v !== 'stock'; $('viewSuggest').hidden = v !== 'sugerencias'; $('viewWeb').hidden = v !== 'web'; $('viewHours').hidden = v !== 'horarios'; $('viewManuals').hidden = v !== 'manuales'; $('viewCalc').hidden = v !== 'calculadora'; $('viewPLabel').hidden = v !== 'etiquetas'; $('viewShipLabels').hidden = v !== 'impresion'; $('viewClaims').hidden = v !== 'reclamos'; $('viewListings').hidden = v !== 'publicaciones'; $('viewTuyo').hidden = v !== 'tuyo';
   $('viewFlex').hidden = v !== 'flex'; $('viewSales').hidden = v !== 'ventas'; $('viewTasks').hidden = v !== 'tareas'; $('viewRefill').hidden = v !== 'recompras'; $('viewQuestions').hidden = v !== 'preguntas';
   $('viewRanking').hidden = v !== 'ranking'; $('viewPrices').hidden = v !== 'precios';
   document.querySelectorAll('.side .nav').forEach(a => a.classList.toggle('active', a.dataset.view === v));
@@ -1820,6 +2244,7 @@ function showView() {
   if (v === 'etiquetas') loadPLabel();
   if (v === 'impresion') loadShipLabels();
   if (v === 'reclamos') loadClaims(false);
+  if (v === 'publicaciones') loadListings();
   if (v === 'tuyo') loadTuyo();
   if (v === 'tareas') loadTasks();
   if (v === 'recompras') loadRefill();
