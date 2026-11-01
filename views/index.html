@@ -1943,7 +1943,8 @@ function renderListings() {
     </tr>`;
   }).join('') || `<tr><td colspan="8" class="muted" style="padding:16px">${lsData && lsData.job && lsData.job.running ? 'Trayendo publicaciones…' : 'No hay publicaciones con ese filtro.'}</td></tr>`;
   $('lsMore').hidden = list.length <= lsLimit;
-  $('lsAll').checked = !!shown.length && shown.every(x => lsSel.has(x.id));
+  $('lsAll').checked = !!list.length && list.every(x => lsSel.has(x.id));
+  $('lsAll').title = `Seleccionar las ${list.length} publicaciones del filtro`;
   $('lsBulk').hidden = !lsSel.size; $('lsSelN').textContent = `${lsSel.size} ${lsSel.size === 1 ? 'publicación seleccionada' : 'publicaciones seleccionadas'}`;
   const n = Object.keys(lsEdits).length;
   $('lsSave').hidden = !n; $('lsSaveTxt').textContent = `${n} ${n === 1 ? 'publicación con cambios' : 'publicaciones con cambios'} sin guardar`;
@@ -1963,7 +1964,7 @@ $('lsRows').addEventListener('change', (e) => {
   if (t.dataset.lss) { lsSet(t.dataset.lss, 'stock', t.value); renderListings(); }
 });
 $('lsRows').addEventListener('click', (e) => { const b = e.target.closest('[data-ldet]'); if (!b) return; e.preventDefault(); openListing(b.dataset.ldet, b.dataset.tab); });
-$('lsAll').onchange = () => { for (const x of lsVisible().slice(0, lsLimit)) $('lsAll').checked ? lsSel.add(x.id) : lsSel.delete(x.id); renderListings(); };
+$('lsAll').onchange = () => { for (const x of lsVisible()) $('lsAll').checked ? lsSel.add(x.id) : lsSel.delete(x.id); renderListings(); };
 $('lsSelNone').onclick = () => { lsSel.clear(); renderListings(); };
 $('lsSameSku').onclick = () => {
   const norm = (s) => String(s || '').toUpperCase().replace(/\s+/g, '');
@@ -1995,10 +1996,14 @@ $('lsSaveBtn').onclick = async () => {
   if (!changes.length) return;
   const pc = changes.filter(c => c.price != null).length, sc = changes.filter(c => c.stock != null).length, tc = changes.filter(c => c.status).length;
   if (!confirm(`Vas a cambiar en Mercado Libre:\n${pc ? `• ${pc} precios\n` : ''}${sc ? `• ${sc} stocks\n` : ''}${tc ? `• ${tc} estados (pausar/activar)\n` : ''}\nLos cambios se ven al instante en las publicaciones. ¿Seguimos?`)) return;
-  $('lsSaveBtn').disabled = true; $('lsSaveBtn').textContent = 'Guardando…';
-  const d = await lsPost('/api/listings/apply', { changes, by: rfBy() });
+  $('lsSaveBtn').disabled = true;
+  const d = { ok: 0, failed: [] };
+  for (let i = 0; i < changes.length; i += 150) { // de a 150 para que no se corte
+    $('lsSaveBtn').textContent = `Guardando… ${Math.min(i + 150, changes.length)} de ${changes.length}`;
+    const r = await lsPost('/api/listings/apply', { changes: changes.slice(i, i + 150), by: rfBy() });
+    if (r.results) { d.ok += r.ok; d.failed.push(...r.failed); } else d.failed.push(...changes.slice(i, i + 150).map(c => ({ item_id: c.item_id, error: r.error || 'error' })));
+  }
   $('lsSaveBtn').disabled = false; $('lsSaveBtn').textContent = 'Guardar en Mercado Libre';
-  if (!d.ok) { $('lsMsg').innerHTML = `<span class="err-t">${esc(d.error)}</span>`; return; }
   const failIds = new Set(d.failed.map(f => f.item_id));
   for (const id of Object.keys(lsEdits)) if (!failIds.has(id)) delete lsEdits[id];
   $('lsMsg').innerHTML = `<span style="color:var(--ok)">✓ ${d.ok} ${d.ok === 1 ? 'publicación actualizada' : 'publicaciones actualizadas'}.</span>` + (d.failed.length ? `<div class="err-t" style="margin-top:4px">No se pudieron cambiar ${d.failed.length}: ${d.failed.slice(0, 8).map(f => `${esc(f.item_id)} (${esc(f.error)})`).join(' · ')}</div>` : '');
@@ -2016,9 +2021,14 @@ $('lsDApply').onclick = async () => {
   if (!sel.length) return;
   if (!confirm(`¿Aplicar ${pct}% de descuento a ${sel.length} publicaciones, del ${from} al ${to}?`)) return;
   $('lsDApply').disabled = true;
-  const d = await lsPost('/api/listings/discount', { items: sel.map(x => ({ account_id: x.account_id, item_id: x.id })), pct, from, to });
-  $('lsDApply').disabled = false;
-  $('lsMsg').innerHTML = d.ok !== undefined && d.results ? `<span style="color:var(--ok)">✓ Descuento aplicado en ${d.ok}.</span>${d.failed.length ? `<div class="err-t" style="margin-top:4px">No se pudo en ${d.failed.length}: ${d.failed.slice(0, 8).map(f => `${esc(f.item_id)} (${esc(f.error)})`).join(' · ')}</div>` : ''}` : `<span class="err-t">${esc(d.error)}</span>`;
+  const d = { ok: 0, failed: [], results: [] };
+  for (let i = 0; i < sel.length; i += 150) {
+    $('lsDApply').textContent = `Aplicando… ${Math.min(i + 150, sel.length)} de ${sel.length}`;
+    const r = await lsPost('/api/listings/discount', { items: sel.slice(i, i + 150).map(x => ({ account_id: x.account_id, item_id: x.id })), pct, from, to });
+    if (r.results) { d.ok += r.ok; d.failed.push(...r.failed); } else { d.error = r.error; break; }
+  }
+  $('lsDApply').disabled = false; $('lsDApply').textContent = 'Aplicar descuento';
+  $('lsMsg').innerHTML = !d.error ? `<span style="color:var(--ok)">✓ Descuento aplicado en ${d.ok}.</span>${d.failed.length ? `<div class="err-t" style="margin-top:4px">No se pudo en ${d.failed.length}: ${d.failed.slice(0, 8).map(f => `${esc(f.item_id)} (${esc(f.error)})`).join(' · ')}</div>` : ''}` : `<span class="err-t">${esc(d.error)}</span>`;
   loadListings();
 };
 $('lsSync').onclick = async () => { await lsPost('/api/listings/sync'); lsStatusMsg({ running: true, done: 0, total: '…' }); lsWatch(); };
