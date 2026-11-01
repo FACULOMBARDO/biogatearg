@@ -643,6 +643,18 @@
         <div class="fld"><span>Tipo de publicación</span><div class="seg" id="pbType"><button data-t="gold_special" class="on">Clásica</button><button data-t="gold_pro">Premium (cuotas sin interés)</button></div></div>
         <label class="fld" id="pbCatalogBox" hidden><span>Catálogo</span><span style="display:flex;gap:6px;align-items:center;font-size:13px"><input type="checkbox" id="pbCatalog" style="width:auto"> Publicar en el catálogo de ML</span></label>
       </div>
+      <h4 style="margin:14px 0 6px">Código universal y paquete <span class="muted" id="pbReqInfo" style="font-size:12.5px;font-weight:400"></span></h4>
+      <div class="pb-grid" style="margin-top:4px">
+        <label class="fld"><span>Código universal (EAN/UPC, el número del código de barras)</span><input type="text" id="pbGtin" inputmode="numeric" placeholder="Ej.: 748927028669"></label>
+        <div class="fld"><span>&nbsp;</span><label style="display:flex;gap:6px;align-items:center;font-size:13px"><input type="checkbox" id="pbNoGtin" style="width:auto"> El producto no tiene código universal</label><select id="pbGtinReason" hidden></select></div>
+      </div>
+      <div class="pb-grid">
+        <label class="fld"><span>Alto del paquete (cm)</span><input type="number" id="pbPkH" min="1"></label>
+        <label class="fld"><span>Ancho del paquete (cm)</span><input type="number" id="pbPkW" min="1"></label>
+        <label class="fld"><span>Largo del paquete (cm)</span><input type="number" id="pbPkL" min="1"></label>
+        <label class="fld"><span>Peso con embalaje (gramos)</span><input type="number" id="pbPkG" min="1"></label>
+      </div>
+      <div class="muted" style="font-size:12px;margin-top:4px">Medidas del paquete ya armado para enviar. Mercado Libre las usa para calcular el envío.</div>
       <h4 style="margin:14px 0 6px">Fotos</h4>
       <div class="ls-pics" id="pbPics"></div>
       <div class="muted" style="font-size:12px;margin-top:6px">La primera es la principal: producto solo, fondo blanco, sin textos ni logos.</div>
@@ -2081,7 +2093,7 @@ $('lsSaveBtn').onclick = async () => {
 $('lsUndo').onclick = async () => {
   if (!confirm('¿Deshacer el último cambio guardado? Vuelve precios, stock y estados a como estaban.')) return;
   const d = await lsPost('/api/listings/undo', { by: rfBy() });
-  $('lsMsg').innerHTML = d.ok ? `<span style="color:var(--ok)">✓ Deshecho (${d.ok} publicaciones).</span>${d.failed.length ? ` <span class="err-t">${d.failed.length} no se pudieron volver atrás.</span>` : ''}` : `<span class="err-t">${esc(d.error)}</span>`;
+  $('lsMsg').innerHTML = d.results ? `<span style="color:var(--ok)">✓ Deshecho (${d.ok} publicaciones).</span>${d.failed.length ? ` <span class="err-t">${d.failed.length} no se pudieron volver atrás.</span>` : ''}` : `<span class="err-t">${esc(d.error)}</span>`;
   loadListings();
 };
 $('lsDApply').onclick = async () => {
@@ -2330,6 +2342,10 @@ $('pbFetch').onclick = async () => {
     Object.assign(pb, { source_id: d.source_id, title: d.title, category_id: d.category_id || '', catalog_product_id: d.catalog_product_id || null, pictures: d.pictures || [], srcAttrs: d.attributes || [], bullets: d.bullets || [], usd: d.usd, weight_kg: d.weight_kg, listing_type: d.listing_type || 'gold_special' });
     $('pbDesc').value = d.description || '';
     $('pbPrice').value = d.price || '';
+    $('pbGtin').value = d.gtin || ''; $('pbNoGtin').checked = false; $('pbGtinReason').hidden = true;
+    const pk = d.pkg || {}, dm = d.dims_cm || [];
+    $('pbPkH').value = pk.h || dm[2] || ''; $('pbPkW').value = pk.w || dm[1] || ''; $('pbPkL').value = pk.l || dm[0] || '';
+    $('pbPkG').value = pk.g || (d.weight_kg ? Math.ceil(d.weight_kg * 1000 * 1.1 / 10) * 10 : '');
     if (src === 'amazon') {
       $('pbUsd').value = d.usd || ''; $('pbW').value = d.weight_kg || ''; $('pbWUnit').value = 'kg';
       document.querySelector('input[name=pbDel][value=days]').checked = false;
@@ -2338,7 +2354,7 @@ $('pbFetch').onclick = async () => {
     } else {
       $('pbSrcMsg').innerHTML = `<span style="color:var(--ok)">✓ Datos traídos de ${esc(d.source_id)}</span>${d.own_listing ? ' (es tuya)' : ' · <span class="muted">Es de otro vendedor: conviene usar fotos y descripción propias, ML puede bajar la publicación si el dueño denuncia.</span>'}${d.variations > 1 ? ` · <span style="color:#d97706">tiene ${d.variations} variantes: se publica sin variantes</span>` : ''}`;
     }
-  } else { $('pbSrcMsg').textContent = ''; $('pbDesc').value = ''; $('pbPrice').value = ''; }
+  } else { $('pbSrcMsg').textContent = ''; $('pbDesc').value = ''; $('pbPrice').value = ''; ['pbGtin', 'pbPkH', 'pbPkW', 'pbPkL', 'pbPkG'].forEach(i => $(i).value = ''); $('pbNoGtin').checked = false; $('pbGtinReason').hidden = true; }
   $('pbTitle').value = pb.title; pbTitleN();
   $('pbType').querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.t === pb.listing_type));
   $('pbCatalogBox').hidden = !pb.catalog_product_id; $('pbCatalog').checked = false;
@@ -2347,6 +2363,7 @@ $('pbFetch').onclick = async () => {
   if (pb.category_id) pbSetCat(pb.category_id); else { $('pbCatName').textContent = 'Sin elegir'; $('pbAttrs').innerHTML = '<span class="muted">Elegí la categoría para ver los datos.</span>'; if (pb.title) { $('pbCatQ').value = pb.title; pbFindCats(); } }
   if (pb.title) { $('pbMktQ').value = pb.title.split(' ').slice(0, 7).join(' '); pbMarket(); }
 };
+$('pbNoGtin').onchange = () => { const on = $('pbNoGtin').checked; $('pbGtinReason').hidden = !on || !$('pbGtinReason').options.length; $('pbGtin').disabled = on; if (on) $('pbGtin').value = ''; };
 function pbTitleN() { $('pbTitleN').textContent = `(${$('pbTitle').value.length}/60)`; }
 $('pbTitle').oninput = pbTitleN;
 $('pbType').onclick = (e) => { const b = e.target.closest('[data-t]'); if (!b) return; pb.listing_type = b.dataset.t; $('pbType').querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b)); };
@@ -2363,7 +2380,9 @@ async function pbSetCat(cat) {
   pb.category_id = cat; $('pbCatName').textContent = 'Cargando…';
   const r = await (await fetch('/api/publish/category/' + encodeURIComponent(cat))).json().catch(() => ({ ok: false, error: 'Sin conexión.' }));
   if (!r.ok) { $('pbCatName').textContent = cat; $('pbAttrs').innerHTML = `<span class="err-t">${esc(r.error)}</span>`; return; }
-  pb.category_name = r.category.name; pb.catAttrs = r.category.attributes;
+  pb.category_name = r.category.name; pb.catAttrs = r.category.attributes; pb.catGtin = r.category.gtin; pb.catPkg = r.category.package;
+  $('pbGtinReason').innerHTML = (r.category.gtin_reasons || []).map(v => `<option value="${esc(v.id)}">${esc(v.name)}</option>`).join('');
+  $('pbReqInfo').textContent = [r.category.gtin && 'esta categoría pide el código universal (o marcar que no tiene)', r.category.package && 'y las medidas del paquete'].filter(Boolean).join(' ');
   $('pbCatName').textContent = r.category.name;
   pbRenderAttrs();
 }
@@ -2485,11 +2504,16 @@ $('pbGo').onclick = () => {
     if (!(Number($('pbPrice').value) > 0)) return err('Falta el precio.');
     if (!pb.pictures.length && !pb.uploads.length) return err('Agregá al menos una foto.');
     if (pb.uploads.reduce((n, u) => n + u.data.length, 0) > 3.5e6) return err('Las fotos subidas pesan mucho juntas: dejá hasta 4.');
+    const gtin = $('pbGtin').value.replace(/\D/g, ''), noGtin = $('pbNoGtin').checked;
+    if (gtin && !(gtin.length >= 8 && gtin.length <= 14)) return err('El código universal tiene que tener entre 8 y 14 números.');
+    if (pb.catGtin && !gtin && !noGtin) return err('Mercado Libre pide el <b>código universal</b> (EAN/UPC) para esta categoría. Cargalo o tildá "El producto no tiene código universal".');
+    const pkg = { h: Number($('pbPkH').value), w: Number($('pbPkW').value), l: Number($('pbPkL').value), g: Number($('pbPkG').value) };
+    if (pb.catPkg && !(pkg.h > 0 && pkg.w > 0 && pkg.l > 0 && pkg.g > 0)) return err('Mercado Libre pide las <b>medidas y el peso del paquete</b> (alto, ancho, largo en cm y peso en gramos).');
     const attrs = pbCollectAttrs();
     const missing = pb.catAttrs.filter(a => a.required).filter(a => !attrs.some(x => x.id === a.id));
     const days = del.value === 'days' ? Number($('pbDays').value) : 0;
     const names = accounts.map(id => (pbAccsList.find(a => a.id === id) || {}).nickname || id);
-    pbPending = { title: $('pbTitle').value.trim(), category_id: pb.category_id, price: Number($('pbPrice').value), stock: Number($('pbStock').value) || 1, sku: $('pbSku').value.trim().toUpperCase(), listing_type: pb.listing_type, attributes: attrs, pictures: pb.pictures, uploads: pb.uploads, description: $('pbDesc').value, delivery: del.value, days, accounts, catalog: $('pbCatalog').checked, catalog_product_id: pb.catalog_product_id, usd: pb.src === 'amazon' ? Number($('pbUsd').value) || 0 : 0, weight_kg: pbKg() };
+    pbPending = { title: $('pbTitle').value.trim(), category_id: pb.category_id, price: Number($('pbPrice').value), stock: Number($('pbStock').value) || 1, sku: $('pbSku').value.trim().toUpperCase(), listing_type: pb.listing_type, attributes: attrs, pictures: pb.pictures, uploads: pb.uploads, description: $('pbDesc').value, delivery: del.value, days, accounts, catalog: $('pbCatalog').checked, catalog_product_id: pb.catalog_product_id, usd: pb.src === 'amazon' ? Number($('pbUsd').value) || 0 : 0, weight_kg: pbKg(), gtin, gtin_reason: noGtin ? ($('pbGtinReason').value || '') : '', pkg, attrNames: Object.fromEntries(pb.catAttrs.map(a => [a.id, a.name])) };
     $('pbResult').innerHTML = '';
     $('pbConfirm').hidden = false;
     $('pbConfirm').innerHTML = `<b>¿Publicamos?</b><div style="margin:6px 0;line-height:1.7"><b>${esc(pbPending.title)}</b><br>Precio ${money(pbPending.price)} · Stock ${pbPending.stock} · ${pb.listing_type === 'gold_pro' ? 'Premium' : 'Clásica'}<br>Entrega: <b>${days ? `A PLAZO, ${days} días desde la compra` : 'INMEDIATA'}</b><br>Cuentas: <b>${esc(names.join(', '))}</b></div>${missing.length ? `<div style="color:#d97706;font-size:13px">⚠️ Faltan datos obligatorios de la ficha: ${esc(missing.map(a => a.name).join(', '))}. Mercado Libre puede rechazarla.</div>` : ''}<div class="row" style="gap:8px;justify-content:flex-end;margin-top:8px"><button class="btn" id="pbNo">Cancelar</button><button class="btn primary" id="pbYes">✅ Sí, publicar</button></div>`;
@@ -2507,7 +2531,7 @@ async function pbDoPublish() {
   let r;
   try { r = await lsPost('/api/publish', body); } catch (e) { r = { ok: false, error: e.message }; }
   $('pbGo').disabled = false; $('pbAccs').onchange();
-  if (!r.ok) { $('pbResult').innerHTML = `<div class="pb-res bad">❌ <b>No se publicó.</b> ${esc(r.error || 'Error desconocido')}<div class="muted" style="font-size:12.5px;margin-top:4px">Si dice "Sin conexión", fijate en "Últimas publicaciones" (abajo) o en Mercado Libre si igual se creó antes de volver a intentar.</div></div>`; pbHist(); return; }
+  if (!r.results) { $('pbResult').innerHTML = `<div class="pb-res bad">❌ <b>No se publicó.</b> ${esc(r.error || 'Error desconocido')}<div class="muted" style="font-size:12.5px;margin-top:4px">Si dice "Sin conexión", fijate en "Últimas publicaciones" (abajo) o en Mercado Libre si igual se creó antes de volver a intentar.</div></div>`; pbHist(); return; }
   const okN = r.results.filter(x => x.ok).length, bad = r.results.filter(x => !x.ok);
   $('pbResult').innerHTML = `<div class="pb-res ${bad.length ? (okN ? 'warn' : 'bad') : 'good'}">${okN ? `<b>✅ ${okN === 1 ? 'Publicada con éxito' : `Publicada con éxito en ${okN} cuentas`}</b>` : '<b>❌ No se pudo publicar</b>'}
     ${r.results.map(x => x.ok ? `<div style="margin-top:6px">✅ <b>${esc(x.account)}</b>: número de publicación <b style="font-size:15px">${esc(x.id)}</b> · <a class="lnk" href="${esc(x.link)}" target="_blank" rel="noopener">Ver en Mercado Libre ↗</a>${x.status && x.status !== 'active' ? ` <span style="color:#d97706">(estado: ${esc(x.status === 'paused' ? 'pausada' : x.status === 'under_review' ? 'en revisión de ML' : x.status)})</span>` : ''}${x.warning ? `<div style="color:#d97706;font-size:12.5px">⚠️ ${esc(x.warning)}</div>` : ''}</div>` : `<div style="margin-top:6px">❌ <b>${esc(x.account || x.account_id)}</b>: ${esc(x.error)}</div>`).join('')}</div>`;
