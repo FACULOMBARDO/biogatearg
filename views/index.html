@@ -1249,6 +1249,18 @@
     <div id="ldMsg" style="font-size:13px;margin-top:8px"></div>
   </div>
 </div>
+<!-- Cambiar mi contraseña -->
+<div class="modal-bg" id="pwModal">
+  <div class="modal" style="max-width:420px">
+    <h3 style="margin-top:0">🔒 Cambiar mi contraseña</h3>
+    <p class="muted" id="pwSub" style="font-size:13px;margin-top:-4px"></p>
+    <input type="password" id="pwOld" placeholder="Contraseña actual" autocomplete="current-password">
+    <input type="password" id="pwNew" placeholder="Contraseña nueva" autocomplete="new-password" style="margin-top:8px">
+    <input type="password" id="pwNew2" placeholder="Repetí la contraseña nueva" autocomplete="new-password" style="margin-top:8px">
+    <div id="pwMsg" style="font-size:13px;margin-top:8px"></div>
+    <div class="row" style="justify-content:flex-end;gap:8px;margin-top:12px"><button class="btn" id="pwCancel">Cancelar</button><button class="btn primary" id="pwSave">Cambiar contraseña</button></div>
+  </div>
+</div>
 <!-- Comparar con la competencia -->
 <div class="modal-bg" id="cmpModal">
   <div class="modal ls-modal" style="max-width:1000px">
@@ -2843,19 +2855,29 @@ async function loadMe() {
   try { ME = await (await fetch('/api/me')).json(); } catch { ME = null; }
   if (!ME || !ME.ok) { ME = null; return; }
   document.querySelectorAll('.side .nav').forEach(a => { a.hidden = !ME.perms.includes(a.dataset.view); });
+  $('meBtn').hidden = false; $('meBtn').textContent = ME.owner ? '🔒 Mi contraseña' : '👤 ' + ME.name;
   if (!ME.owner) {
     $('settingsBtn').hidden = true;
     document.querySelectorAll('a[href="/connect"]').forEach(a => { a.hidden = true; });
     if (!ME.perms.includes('flex')) document.querySelectorAll('a[href="/escanear"]').forEach(a => { a.hidden = true; });
-    $('meBtn').hidden = false; $('meBtn').textContent = '👤 ' + ME.name;
+
     // Etiqueta "Nuevas" del menú: se oculta si no queda nada debajo
   }
 }
-$('meBtn').onclick = async () => {
-  const old = prompt('Tu contraseña actual:'); if (!old) return;
-  const nw = prompt('Contraseña nueva (mínimo 6):'); if (!nw) return;
-  const d = await lsPost('/api/me/password', { old, new: nw });
-  alert(d.ok ? 'Listo, contraseña cambiada.' : d.error);
+$('meBtn').onclick = () => {
+  ['pwOld', 'pwNew', 'pwNew2'].forEach(i => { $(i).value = ''; }); $('pwMsg').textContent = '';
+  $('pwSub').textContent = ME && ME.owner ? 'Mínimo 8 caracteres. Al cambiarla se cierra la sesión del dueño en todas las otras compus y celulares (los empleados siguen entrando con su usuario).' : 'Mínimo 6 caracteres.';
+  $('pwModal').classList.add('show'); $('pwOld').focus();
+};
+$('pwCancel').onclick = () => $('pwModal').classList.remove('show');
+$('pwSave').onclick = async () => {
+  if ($('pwNew').value !== $('pwNew2').value) { $('pwMsg').innerHTML = '<span class="err-t">Las contraseñas nuevas no coinciden.</span>'; return; }
+  $('pwSave').disabled = true;
+  const d = await lsPost('/api/me/password', { old: $('pwOld').value, new: $('pwNew').value });
+  $('pwSave').disabled = false;
+  if (!d.ok) { $('pwMsg').innerHTML = `<span class="err-t">${esc(d.error)}</span>`; return; }
+  $('pwMsg').innerHTML = '<span style="color:var(--ok)">✓ Contraseña cambiada.' + (ME && ME.owner ? ' Se cerraron las demás sesiones con tu usuario.' : '') + '</span>';
+  setTimeout(() => $('pwModal').classList.remove('show'), 2500);
 };
 
 // ---------- Sueldos (solo dueño) ----------

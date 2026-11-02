@@ -100,10 +100,13 @@ function getUser(req) {
   if (!c) return null;
   const parts = c.split('.');
   if (!parts[0] || Number(parts[0]) < Date.now()) return null;
-  if (parts.length === 2) { if (safeEq(parts[1], sign(parts[0]))) req._user = { id: 'owner', name: 'Dueño', owner: true, perms: [] }; return req._user; }
+  const OWNER = { id: 'owner', name: 'Dueño', owner: true, perms: [] };
+  // Sesión vieja del dueño (sin versión): vale solo si nunca se cambió la contraseña desde el panel.
+  if (parts.length === 2) { if (!users.ownerVersion() && safeEq(parts[1], sign(parts[0]))) req._user = OWNER; return req._user; }
   if (parts.length === 4) {
     const [exp, uid, v, sig] = parts;
     if (!safeEq(sig, sign(`${exp}.${uid}.${v}`))) return null;
+    if (uid === 'owner') { if (v === (users.ownerVersion() || '1')) req._user = OWNER; return req._user; }
     const u = users.get(uid);
     if (!u || u.active === false || String(u.v || 1) !== v) return null;
     req._user = { id: u.id, name: u.name, owner: false, perms: u.perms || [], task_person: u.task_person || '' };
@@ -113,7 +116,8 @@ function getUser(req) {
 const isLogged = (req) => !!getUser(req);
 function startSession(res, u) {
   const exp = String(Date.now() + SESSION_DAYS * 86400000);
-  const val = u ? `${exp}.${u.id}.${u.v || 1}.${sign(`${exp}.${u.id}.${u.v || 1}`)}` : `${exp}.${sign(exp)}`;
+  const id = u ? u.id : 'owner', v = u ? (u.v || 1) : (users.ownerVersion() || '1');
+  const val = `${exp}.${id}.${v}.${sign(`${exp}.${id}.${v}`)}`;
   setCookie(res, 'fx_sess', val, SESSION_DAYS * 86400);
 }
 function setCookie(res, name, value, maxAgeSec) {
@@ -164,8 +168,7 @@ app.post('/login', (req, res) => {
     if (u) { startSession(res, u); return res.redirect(next); }
     return res.redirect('/login?error=1');
   }
-  const a = Buffer.from(pw), b = Buffer.from(process.env.ADMIN_PASSWORD);
-  if (a.length === b.length && crypto.timingSafeEqual(a, b)) { startSession(res, null); return res.redirect(next); }
+  if (users.checkOwner(pw)) { startSession(res, null); return res.redirect(next); }
   res.redirect('/login?error=1');
 });
 // Link de activación: la persona crea su contraseña (sin login).
@@ -284,7 +287,14 @@ app.use((req, res, next) => {
 // ---------- Usuarios del equipo (solo dueño) y sueldos ----------
 const payroll = require('./lib/payroll');
 app.get('/api/me', (req, res) => res.json({ ok: true, id: req.user.id, name: req.user.name, owner: req.user.owner, perms: req.user.owner ? Object.keys(users.SECTIONS).concat(['sueldos', 'usuarios']) : req.user.perms, task_person: req.user.task_person || '' }));
-app.post('/api/me/password', (req, res) => { try { if (req.user.owner) throw new Error('La contraseña del dueño se cambia en Vercel (ADMIN_PASSWORD).'); users.changeOwn(req.user.id, (req.body || {}).old, (req.body || {}).new); res.json({ ok: true }); } catch (e) { res.status(400).json({ ok: false, error: e.message }); } });
+app.post('/api/me/password', (req, res) => {
+  try {
+    const b = req.body || {};
+    if (req.user.owner) { users.setOwnerPassword(b.old, b.new); startSession(res, null); } // cierra todas las otras sesiones del dueño; esta sigue abierta
+    else users.changeOwn(req.user.id, b.old, b.new);
+    res.json({ ok: true });
+  } catch (e) { res.status(400).json({ ok: false, error: e.message }); }
+});
 const inviteUrl = (t) => t ? process.env.BASE_URL.replace(/\/$/, '') + '/activar/' + t : null;
 app.get('/api/users', (req, res) => res.json({ ok: true, items: users.all().map(u => ({ ...u, invite_url: inviteUrl(users.inviteFor(u.id)) })), sections: users.SECTIONS, groups: users.GROUPS, task_people: (tasks.people() || []).map(p => ({ id: p.id, name: p.name })) }));
 app.post('/api/users', (req, res) => { try { const u = users.save(req.body || {}); res.json({ ok: true, user: { ...u, invite_url: inviteUrl(users.inviteFor(u.id)) } }); } catch (e) { res.status(400).json({ ok: false, error: e.message }); } });
