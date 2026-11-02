@@ -1793,7 +1793,6 @@ $('msgText').oninput = countMsg;
 $('tplWelcome').onclick = () => { $('msgText').value = welcome; countMsg(); };
 document.querySelectorAll('[data-tpl]').forEach(b => b.onclick = () => { $('msgText').value = b.dataset.tpl; countMsg(); });
 $('msgSend').onclick = async () => {
-  if (!(await spellGate($('msgText'), $('msgResult'), $('msgSend')))) return;
   const ids = [...msgTargets];
   $('msgSend').disabled = true; $('msgSend').textContent = 'Enviando ' + ids.length + '…';
   try {
@@ -3085,8 +3084,8 @@ async function spellGate(ta, msgEl, btn) {
   msgEl.innerHTML = `<span style="color:var(--ok)">✏️ Corregí la ortografía${d.changes.length ? ': ' + d.changes.map(c => `<s class="muted">${esc(c.antes)}</s> → <b>${esc(c.despues)}</b>`).join(' · ') : ''}. Revisala y tocá de nuevo para enviar.</span>`;
   return false;
 }
-// Subrayado de faltas del navegador mientras se escribe
-const spellOn = () => document.querySelectorAll('textarea, input[type=text]').forEach(el => { if (!el.dataset.sp) { el.dataset.sp = '1'; el.spellcheck = true; el.lang = 'es-AR'; } });
+// Subrayado de faltas del navegador mientras se escribe (solo en las respuestas de Preguntas)
+const spellOn = () => document.querySelectorAll('#qsList textarea').forEach(el => { if (!el.dataset.sp) { el.dataset.sp = '1'; el.spellcheck = true; el.lang = 'es-AR'; } });
 spellOn(); new MutationObserver(spellOn).observe(document.body, { childList: true, subtree: true });
 
 function showView() {
@@ -4567,9 +4566,7 @@ $('rfMText').oninput = rfCount;
 $('rfMKind').onclick = (e) => { const b = e.target.closest('[data-k]'); if (b) rfSetKind(b.dataset.k); };
 $('rfMClose').onclick = () => $('rfModal').classList.remove('show');
 $('rfMSend').onclick = async () => {
-  if (!$('rfMText').value.trim()) return;
-  if (!(await spellGate($('rfMText'), $('rfMMsg'), $('rfMSend')))) return;
-  const text = $('rfMText').value.trim();
+  const text = $('rfMText').value.trim(); if (!text) return;
   if (rfKind === 'wa') {
     const u = waLink(rfCur.phone);
     if (!u) { $('rfMMsg').innerHTML = '<span class="err-t">El teléfono no parece válido.</span>'; return; }
