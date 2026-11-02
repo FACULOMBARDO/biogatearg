@@ -245,7 +245,7 @@ function readState(state) {
   if (parts[3] !== sign('oauth:' + body).slice(0, 32)) return null;
   return { t: Number(parts[0]), fromInvite: parts[1] === '1' };
 }
-app.get('/connect', (req, res) => (isLogged(req) ? startOAuth(res, false) : res.redirect('/login?next=/connect')));
+app.get('/connect', (req, res) => { const u = getUser(req); if (!u) return res.redirect('/login?next=/connect'); if (!u.owner) return res.redirect('/'); startOAuth(res, false); });
 app.get('/vincular/:code', (req, res) => {
   if (req.params.code !== INVITE) return res.status(404).send('Link inválido.');
   startOAuth(res, true);
@@ -1167,6 +1167,7 @@ app.get('/api/expenses', (req, res) => {
     names: Object.entries(all.reduce((o, e) => { o[e.category] = (o[e.category] || 0) + 1; return o; }, {})).sort((a, b) => b[1] - a[1]).map(x => x[0]),
     items: all.filter(e => e.date.startsWith(m)).sort((a, b) => b.date.localeCompare(a.date) || b.created_at.localeCompare(a.created_at)),
     prev_total: prev.reduce((t, e) => t + e.amount, 0), prev_fixed: prev.filter(e => e.fixed).length,
+    payroll: req.user && req.user.owner ? require('./lib/payroll').totalFor(m) : null,
   });
 });
 function cleanExpense(b) {

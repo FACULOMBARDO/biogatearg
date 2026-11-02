@@ -14,10 +14,11 @@
     <div style="text-align:center;margin-bottom:18px">
       <img src="/logo-biogate.png" alt="BIOGATE" style="height:130px;max-width:240px;object-fit:contain">
       <h2 style="margin:12px 0 2px;font-size:18px">Ventas y envíos</h2>
-      <div class="muted" style="font-size:14px">Ingresá la contraseña del panel</div>
+      <div class="muted" style="font-size:14px">Ingresá tu usuario y contraseña</div>
     </div>
-    <p id="err" class="msg" style="display:none;background:var(--err-bg);color:var(--err)">Contraseña incorrecta.</p>
-    <input type="password" name="password" placeholder="Contraseña" autofocus required>
+    <p id="err" class="msg" style="display:none;background:var(--err-bg);color:var(--err)">Usuario o contraseña incorrectos.</p>
+    <input type="text" name="username" placeholder="Usuario (el dueño lo deja vacío)" autocomplete="username" autocapitalize="none" autofocus>
+    <input type="password" name="password" placeholder="Contraseña" autocomplete="current-password" required style="margin-top:8px">
     <button class="btn primary" style="width:100%;margin-top:12px;padding:11px">Entrar</button>
   </form>
 </main>

@@ -21,6 +21,7 @@
   <button class="icon-btn" id="settingsBtn" title="Precios, logo y tema" aria-label="Configuración">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
   </button>
+  <button class="btn small" id="meBtn" hidden title="Cambiar mi contraseña"></button>
   <a class="icon-btn" href="/logout" title="Salir" aria-label="Salir">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>
   </a>
@@ -56,6 +57,8 @@
   <a href="#competencia" class="nav" data-view="competencia"><span class="ic">🔎</span><span>Competencia</span></a>
   <a href="#embudo" class="nav" data-view="embudo"><span class="ic">📈</span><span>Embudo de ventas</span></a>
   <a href="#salud" class="nav" data-view="salud"><span class="ic">🛡️</span><span>Salud de cuentas</span><span class="nav-badge" id="hlBadge" hidden></span></a>
+  <a href="#sueldos" class="nav" data-view="sueldos"><span class="ic">💼</span><span>Sueldos</span></a>
+  <a href="#usuarios" class="nav" data-view="usuarios"><span class="ic">👥</span><span>Usuarios</span></a>
   <div class="side-foot hide-sm muted">Todas tus cuentas de Mercado Libre en un lugar.</div>
 </aside>
 <main>
@@ -258,6 +261,7 @@
       <button class="btn" id="exCsv">Descargar Excel</button>
     </div>
   </div>
+  <div id="exPayroll"></div>
   <div class="card">
     <div class="ex-form">
       <label class="fld"><span>Fecha</span><input type="date" id="exDate"></label>
@@ -621,6 +625,31 @@
   <div class="mn-vbody" id="mnVBody"></div>
 </div>
 
+<section id="viewPayroll" hidden>
+  <div class="row" style="justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px">
+    <h1 class="page-title">Sueldos <span class="muted" style="font-size:15px;font-weight:500">· solo lo ves vos</span></h1>
+    <div class="row" style="gap:6px"><button class="btn small" id="prPrev">◀</button><input type="month" id="prMonth" style="width:auto"><button class="btn small" id="prNext">▶</button></div>
+  </div>
+  <div class="stats" id="prStats"></div>
+  <div class="card" style="padding:0">
+    <div class="table-wrap"><table class="sales-table">
+      <thead><tr><th>Persona</th><th style="text-align:right">Sueldo</th><th>Cargas sociales</th><th style="text-align:right">Comisiones del mes</th><th style="text-align:right">Total</th><th>Nota</th><th></th></tr></thead>
+      <tbody id="prRows"></tbody>
+    </table></div>
+    <div class="row" style="justify-content:space-between;padding:12px 14px;gap:8px;flex-wrap:wrap"><button class="btn small" id="prAdd">＋ Agregar persona</button><div class="row" style="gap:8px;align-items:center"><span id="prMsg" style="font-size:13px"></span><button class="btn primary" id="prSave">Guardar mes</button></div></div>
+  </div>
+  <div class="muted" style="font-size:12.5px">El total de cada mes se descuenta en <b>Resultado del mes</b> (NETO NETO) y en el informe PDF, como un gasto más. Los empleados no ven esta sección ni ese total. Sueldo y cargas sociales quedan fijos para los meses siguientes; las comisiones se cargan cada mes.</div>
+  <div class="card" style="margin-top:12px;padding:12px 14px"><b style="font-size:14px">Últimos meses</b><div id="prHist" class="row" style="gap:8px;flex-wrap:wrap;margin-top:8px;font-size:13px"></div></div>
+</section>
+<section id="viewUsers" hidden>
+  <div class="row" style="justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px">
+    <h1 class="page-title">Usuarios <span class="muted" style="font-size:15px;font-weight:500">· quién entra al panel y qué ve</span></h1>
+    <button class="btn primary" id="usNew">＋ Nuevo usuario</button>
+  </div>
+  <div id="usForm" class="card" hidden></div>
+  <div id="usList"></div>
+  <div class="muted" style="font-size:12.5px;margin-top:8px">Vos entrás dejando el usuario vacío y con tu contraseña de siempre, y ves todo. Cada persona entra con su usuario y la contraseña que crea con su link. <b>Sueldos, Usuarios, Configuración y conectar cuentas</b> son siempre solo tuyos.</div>
+</section>
 <section id="viewFunnel" hidden>
   <div class="row" style="justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px">
     <h1 class="page-title">Embudo de ventas <span class="muted" style="font-size:15px;font-weight:500">· visitas → ventas, últimos 30 días</span></h1>
@@ -2808,12 +2837,148 @@ document.addEventListener('click', async (e) => {
   }
 });
 
+// ---------- Quién entró y qué puede ver ----------
+let ME = null;
+async function loadMe() {
+  try { ME = await (await fetch('/api/me')).json(); } catch { ME = null; }
+  if (!ME || !ME.ok) { ME = null; return; }
+  document.querySelectorAll('.side .nav').forEach(a => { a.hidden = !ME.perms.includes(a.dataset.view); });
+  if (!ME.owner) {
+    $('settingsBtn').hidden = true;
+    document.querySelectorAll('a[href="/connect"]').forEach(a => { a.hidden = true; });
+    if (!ME.perms.includes('flex')) document.querySelectorAll('a[href="/escanear"]').forEach(a => { a.hidden = true; });
+    $('meBtn').hidden = false; $('meBtn').textContent = '👤 ' + ME.name;
+    // Etiqueta "Nuevas" del menú: se oculta si no queda nada debajo
+  }
+}
+$('meBtn').onclick = async () => {
+  const old = prompt('Tu contraseña actual:'); if (!old) return;
+  const nw = prompt('Contraseña nueva (mínimo 6):'); if (!nw) return;
+  const d = await lsPost('/api/me/password', { old, new: nw });
+  alert(d.ok ? 'Listo, contraseña cambiada.' : d.error);
+};
+
+// ---------- Sueldos (solo dueño) ----------
+let prData = null, prMonthV = null;
+const prMoney = (v) => (Number(v) || 0) ? money(v) : '<span class="muted">—</span>';
+async function loadPayroll() {
+  if (!prMonthV) prMonthV = new Date(Date.now() - 3 * 3600e3).toISOString().slice(0, 7);
+  $('prMonth').value = prMonthV;
+  const d = await (await fetch('/api/payroll?month=' + prMonthV)).json().catch(() => ({ ok: false, error: 'Sin conexión.' }));
+  if (!d.ok) { $('prRows').innerHTML = `<tr><td colspan="7" class="err-t" style="padding:14px">${esc(d.error)}</td></tr>`; return; }
+  prData = d; renderPayroll();
+}
+function prCalc() {
+  let s = 0, c = 0, k = 0;
+  $('prRows').querySelectorAll('tr[data-pid]').forEach(tr => {
+    const g = (n) => Number(tr.querySelector(`[data-f="${n}"]`).value) || 0, has = tr.querySelector('[data-f="has_charges"]').checked;
+    tr.querySelector('[data-f="charges"]').disabled = !has;
+    const t = g('salary') + (has ? g('charges') : 0) + g('commission');
+    tr.querySelector('.pr-tot').textContent = money(t);
+    s += g('salary'); c += has ? g('charges') : 0; k += g('commission');
+  });
+  const tot = s + c + k;
+  $('prStats').innerHTML = `<div class="stat"><div class="k">Total del mes</div><div class="v">${money(tot)}</div><div class="sub">${prData.saved ? 'guardado' : '<span style="color:#d97706">sin guardar: precargado con los sueldos fijos</span>'}</div></div>
+    <div class="stat"><div class="k">Sueldos</div><div class="v">${money(s)}</div></div><div class="stat"><div class="k">Cargas sociales</div><div class="v">${money(c)}</div></div><div class="stat"><div class="k">Comisiones</div><div class="v">${money(k)}</div></div>`;
+}
+function renderPayroll() {
+  const d = prData;
+  $('prRows').innerHTML = d.rows.map(r => `<tr data-pid="${esc(r.person_id)}">
+    <td><b>${esc(r.name)}</b>${r.active ? '' : ' <span class="ls-tag">de baja</span>'}<div><a href="#" class="lnk" style="font-size:11.5px" data-predit="${esc(r.person_id)}">editar datos fijos</a></div></td>
+    <td style="text-align:right"><input type="number" min="0" data-f="salary" value="${r.salary || ''}" style="width:130px;text-align:right"></td>
+    <td><label style="display:flex;gap:6px;align-items:center;font-size:13px"><input type="checkbox" data-f="has_charges" ${r.has_charges ? 'checked' : ''} style="width:auto"> Tiene</label><input type="number" min="0" data-f="charges" value="${r.charges || ''}" placeholder="monto" style="width:120px;margin-top:4px;text-align:right"></td>
+    <td style="text-align:right"><input type="number" min="0" data-f="commission" value="${r.commission || ''}" placeholder="0" style="width:120px;text-align:right"></td>
+    <td style="text-align:right"><b class="pr-tot"></b></td>
+    <td><input type="text" data-f="note" value="${esc(r.note || '')}" placeholder="opcional" style="width:150px"></td>
+    <td><button class="x" data-prdel="${esc(r.person_id)}" title="Dar de baja">✕</button></td></tr>`).join('') || '<tr><td colspan="7" class="muted" style="padding:14px">Todavía no cargaste a nadie. Tocá "＋ Agregar persona".</td></tr>';
+  $('prRows').querySelectorAll('input').forEach(i => i.oninput = prCalc);
+  $('prRows').querySelectorAll('input[type=checkbox]').forEach(i => i.onchange = prCalc);
+  prCalc();
+  $('prHist').innerHTML = d.history.map(h => `<a href="#" class="pb-cat" data-prm="${h.month}" style="text-decoration:none"><b>${new Date(h.month + '-15').toLocaleDateString('es-AR', { month: 'short', year: '2-digit' })}</b><div class="muted">${h.total == null ? 'sin cargar' : money(h.total)}</div></a>`).join('');
+}
+$('prRows').addEventListener('click', async (e) => {
+  const del = e.target.closest('[data-prdel]');
+  if (del) { if (!confirm('¿Dar de baja a esta persona? Sus meses anteriores quedan guardados.')) return; await (await fetch('/api/payroll/people/' + del.dataset.prdel, { method: 'DELETE' })).json().catch(() => null); loadPayroll(); return; }
+  const ed = e.target.closest('[data-predit]');
+  if (ed) {
+    e.preventDefault(); const p = prData.people.find(x => x.id === ed.dataset.predit); if (!p) return;
+    const name = prompt('Nombre:', p.name); if (name === null) return;
+    const salary = prompt('Sueldo mensual fijo ($):', p.salary || ''); if (salary === null) return;
+    const charges = prompt('Cargas sociales por mes ($). Dejalo vacío si no tiene:', p.has_charges ? p.charges : '');
+    const d = await lsPost('/api/payroll/people', { id: p.id, name, salary, has_charges: !!Number(charges), charges });
+    $('prMsg').innerHTML = d.ok ? '<span style="color:var(--ok)">✓ Datos fijos guardados (se usan en los meses que todavía no guardaste)</span>' : `<span class="err-t">${esc(d.error)}</span>`; loadPayroll();
+  }
+});
+$('prHist').addEventListener('click', (e) => { const a = e.target.closest('[data-prm]'); if (!a) return; e.preventDefault(); prMonthV = a.dataset.prm; loadPayroll(); });
+$('prAdd').onclick = async () => {
+  const name = prompt('Nombre de la persona:'); if (!name) return;
+  const salary = prompt('Sueldo mensual ($):', ''); if (salary === null) return;
+  const charges = prompt('Cargas sociales por mes ($). Dejalo vacío si no tiene:', '');
+  const d = await lsPost('/api/payroll/people', { name, salary, has_charges: !!Number(charges), charges });
+  if (!d.ok) { $('prMsg').innerHTML = `<span class="err-t">${esc(d.error)}</span>`; return; }
+  await loadPayroll();
+};
+$('prSave').onclick = async () => {
+  const rows = [...$('prRows').querySelectorAll('tr[data-pid]')].map(tr => { const v = (n) => tr.querySelector(`[data-f="${n}"]`); return { person_id: tr.dataset.pid, salary: v('salary').value, has_charges: v('has_charges').checked, charges: v('charges').value, commission: v('commission').value, note: v('note').value }; });
+  const d = await lsPost('/api/payroll/' + prMonthV, { rows }, 'PUT');
+  $('prMsg').innerHTML = d.ok ? '<span style="color:var(--ok)">✓ Mes guardado. Ya se descuenta en Resultado del mes.</span>' : `<span class="err-t">${esc(d.error)}</span>`;
+  if (d.ok) loadPayroll();
+};
+$('prMonth').onchange = () => { if ($('prMonth').value) { prMonthV = $('prMonth').value; loadPayroll(); } };
+const prShift = (k) => { const [y, m] = prMonthV.split('-').map(Number); const d = new Date(Date.UTC(y, m - 1 + k, 1)); prMonthV = d.toISOString().slice(0, 7); loadPayroll(); };
+$('prPrev').onclick = () => prShift(-1); $('prNext').onclick = () => prShift(1);
+
+// ---------- Usuarios (solo dueño) ----------
+let usData = null;
+async function loadUsers() {
+  const d = await (await fetch('/api/users')).json().catch(() => ({ ok: false, error: 'Sin conexión.' }));
+  if (!d.ok) { $('usList').innerHTML = `<div class="card err-t">${esc(d.error)}</div>`; return; }
+  usData = d;
+  $('usList').innerHTML = d.items.map(u => `<div class="card" style="padding:12px 14px${u.active ? '' : ';opacity:.6'}">
+    <div class="row" style="justify-content:space-between;gap:8px;flex-wrap:wrap"><div><b style="font-size:15px">${esc(u.name)}</b> <span class="muted">· usuario <b>${esc(u.username)}</b></span>${u.active ? '' : ' <span class="ls-tag" style="color:var(--err)">desactivado</span>'}
+      <div class="muted" style="font-size:12px">${u.has_password ? (u.last_login ? 'Último ingreso ' + new Date(u.last_login).toLocaleString('es-AR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : 'Todavía no entró') : '<span style="color:#d97706">Falta que cree su contraseña con el link</span>'}</div></div>
+      <div class="row" style="gap:6px;flex-wrap:wrap"><button class="btn small" data-usedit="${esc(u.id)}">Editar permisos</button><button class="btn small" data-usinv="${esc(u.id)}">${u.has_password ? '🔑 Link para nueva contraseña' : '🔗 Link de activación'}</button><button class="btn small" data-ustog="${esc(u.id)}">${u.active ? 'Desactivar' : 'Activar'}</button><button class="x" data-usdel="${esc(u.id)}" title="Borrar">✕</button></div></div>
+    <div style="font-size:12.5px;margin-top:6px">${u.perms.length ? u.perms.map(k => `<span class="ls-tag">${esc(d.sections[k] || k)}</span>`).join(' ') : '<span class="muted">Sin secciones</span>'}</div>
+    ${u.invite_url ? `<div class="row" style="gap:6px;margin-top:8px;flex-wrap:wrap"><code class="qs-code" style="font-size:12px">${esc(u.invite_url)}</code><button class="btn small" data-uscopy="${esc(u.invite_url)}">Copiar</button><a class="btn small" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent(`Hola ${u.name}! Entrá a este link para crear tu contraseña del panel de Biogate. Tu usuario es: ${u.username}\n${u.invite_url}`)}">Mandar por WhatsApp</a></div>` : ''}
+  </div>`).join('') || '<div class="card muted" style="padding:16px">Todavía no creaste usuarios.</div>';
+}
+function usOpenForm(u) {
+  const d = usData, perms = new Set(u ? u.perms : []);
+  $('usForm').hidden = false;
+  $('usForm').innerHTML = `<b>${u ? 'Editar ' + esc(u.name) : 'Nuevo usuario'}</b>
+    <div class="pb-grid"><label class="fld"><span>Nombre</span><input type="text" id="usName" value="${esc(u ? u.name : '')}"></label><label class="fld"><span>Usuario (para entrar)</span><input type="text" id="usUser" value="${esc(u ? u.username : '')}" placeholder="ej. lara" autocapitalize="none"></label>
+    <label class="fld"><span>Es la persona de Tareas</span><select id="usTask"><option value="">—</option>${(d.task_people || []).map(p => `<option value="${esc(p.id)}" ${u && u.task_person === p.id ? 'selected' : ''}>${esc(p.name)}</option>`).join('')}</select></label></div>
+    <div style="margin-top:12px"><b style="font-size:13.5px">Qué secciones ve</b> <span class="muted" style="font-size:12px">(tocá un grupo para tildarlo entero)</span>
+    ${Object.entries(d.groups).map(([g, keys]) => `<div style="margin-top:8px"><a href="#" class="lnk" data-usgrp="${esc(g)}" style="font-size:13px;font-weight:600">${esc(g)}</a><div class="row" style="gap:10px;flex-wrap:wrap;margin-top:4px">${keys.map(k => `<label style="display:flex;gap:5px;align-items:center;font-size:13px"><input type="checkbox" data-usp="${k}" ${perms.has(k) ? 'checked' : ''} style="width:auto">${esc(d.sections[k])}</label>`).join('')}</div></div>`).join('')}
+    <div style="margin-top:8px"><span style="font-size:13px;font-weight:600">Datos del negocio</span> <span class="muted" style="font-size:12px">(dalo solo a gente de confianza)</span><div class="row" style="gap:10px;flex-wrap:wrap;margin-top:4px">${['resultado', 'gastos', 'salud'].map(k => `<label style="display:flex;gap:5px;align-items:center;font-size:13px"><input type="checkbox" data-usp="${k}" ${perms.has(k) ? 'checked' : ''} style="width:auto">${esc(d.sections[k])}</label>`).join('')}</div></div></div>
+    <div class="row" style="justify-content:flex-end;gap:8px;margin-top:12px"><span id="usMsg" style="font-size:13px"></span><button class="btn" id="usCancel">Cancelar</button><button class="btn primary" id="usSave">${u ? 'Guardar' : 'Crear usuario'}</button></div>`;
+  $('usForm').querySelectorAll('[data-usgrp]').forEach(a => a.onclick = (e) => { e.preventDefault(); const ks = d.groups[a.dataset.usgrp]; const boxes = ks.map(k => $('usForm').querySelector(`[data-usp="${k}"]`)); const on = !boxes.every(b => b.checked); boxes.forEach(b => b.checked = on); });
+  $('usCancel').onclick = () => { $('usForm').hidden = true; };
+  $('usSave').onclick = async () => {
+    const r = await lsPost('/api/users', { id: u ? u.id : '', name: $('usName').value, username: $('usUser').value, task_person: $('usTask').value, perms: [...$('usForm').querySelectorAll('[data-usp]')].filter(b => b.checked).map(b => b.dataset.usp), active: u ? u.active : true });
+    if (!r.ok) { $('usMsg').innerHTML = `<span class="err-t">${esc(r.error)}</span>`; return; }
+    $('usForm').hidden = true; loadUsers();
+  };
+  $('usForm').scrollIntoView({ behavior: 'smooth' });
+}
+$('usNew').onclick = () => usOpenForm(null);
+$('usList').addEventListener('click', async (e) => {
+  const b = e.target.closest('button'); if (!b || !usData) return;
+  const find = (id) => usData.items.find(x => x.id === id);
+  if (b.dataset.usedit) usOpenForm(find(b.dataset.usedit));
+  if (b.dataset.uscopy) { navigator.clipboard.writeText(b.dataset.uscopy).catch(() => {}); b.textContent = '✓ Copiado'; }
+  if (b.dataset.usinv) { if (find(b.dataset.usinv).has_password && !confirm('Esto genera un link nuevo para que cree otra contraseña y cierra sus sesiones abiertas. ¿Seguimos?')) return; await lsPost(`/api/users/${b.dataset.usinv}/invite`); loadUsers(); }
+  if (b.dataset.ustog) { const u = find(b.dataset.ustog); await lsPost('/api/users', { ...u, active: !u.active }); loadUsers(); }
+  if (b.dataset.usdel) { if (!confirm('¿Borrar este usuario? No va a poder entrar más.')) return; await fetch('/api/users/' + b.dataset.usdel, { method: 'DELETE' }); loadUsers(); }
+});
+
 function showView() {
-  const v = ({ '#ventas': 'ventas', '#ranking': 'ranking', '#precios': 'precios', '#presupuestos': 'presupuestos', '#estados': 'estados', '#gastos': 'gastos', '#full': 'full', '#flex': 'flex', '#resultado': 'resultado', '#tareas': 'tareas', '#recompras': 'recompras', '#preguntas': 'preguntas', '#stock': 'stock', '#sugerencias': 'sugerencias', '#web': 'web', '#horarios': 'horarios', '#manuales': 'manuales', '#calculadora': 'calculadora', '#etiquetas': 'etiquetas', '#impresion': 'impresion', '#reclamos': 'reclamos', '#publicaciones': 'publicaciones', '#publicar': 'publicar', '#competencia': 'competencia', '#embudo': 'embudo', '#salud': 'salud', '#tuyo': 'tuyo' })[location.hash] || 'ventas';
+  let v = ({ '#ventas': 'ventas', '#ranking': 'ranking', '#precios': 'precios', '#presupuestos': 'presupuestos', '#estados': 'estados', '#gastos': 'gastos', '#full': 'full', '#flex': 'flex', '#resultado': 'resultado', '#tareas': 'tareas', '#recompras': 'recompras', '#preguntas': 'preguntas', '#stock': 'stock', '#sugerencias': 'sugerencias', '#web': 'web', '#horarios': 'horarios', '#manuales': 'manuales', '#calculadora': 'calculadora', '#etiquetas': 'etiquetas', '#impresion': 'impresion', '#reclamos': 'reclamos', '#publicaciones': 'publicaciones', '#publicar': 'publicar', '#competencia': 'competencia', '#embudo': 'embudo', '#salud': 'salud', '#sueldos': 'sueldos', '#usuarios': 'usuarios', '#tuyo': 'tuyo' })[location.hash] || 'ventas';
+  if (ME && !ME.perms.includes(v)) { const first = ME.perms.find(k => document.querySelector(`.side .nav[data-view="${k}"]`)); if (first && v !== first) { location.hash = '#' + (document.querySelector(`.side .nav[data-view="${first}"]`).getAttribute('href') || '').replace('#', ''); return; } }
   $('viewQuotes').hidden = v !== 'presupuestos';
   $('viewStatus').hidden = v !== 'estados';
   $('viewExpenses').hidden = v !== 'gastos'; $('viewFull').hidden = v !== 'full';
-  $('viewResults').hidden = v !== 'resultado'; $('viewStock').hidden = v !== 'stock'; $('viewSuggest').hidden = v !== 'sugerencias'; $('viewWeb').hidden = v !== 'web'; $('viewHours').hidden = v !== 'horarios'; $('viewManuals').hidden = v !== 'manuales'; $('viewCalc').hidden = v !== 'calculadora'; $('viewPLabel').hidden = v !== 'etiquetas'; $('viewShipLabels').hidden = v !== 'impresion'; $('viewClaims').hidden = v !== 'reclamos'; $('viewListings').hidden = v !== 'publicaciones'; $('viewPublish').hidden = v !== 'publicar'; $('viewComp').hidden = v !== 'competencia'; $('viewFunnel').hidden = v !== 'embudo'; $('viewHealth').hidden = v !== 'salud'; $('viewTuyo').hidden = v !== 'tuyo';
+  $('viewResults').hidden = v !== 'resultado'; $('viewStock').hidden = v !== 'stock'; $('viewSuggest').hidden = v !== 'sugerencias'; $('viewWeb').hidden = v !== 'web'; $('viewHours').hidden = v !== 'horarios'; $('viewManuals').hidden = v !== 'manuales'; $('viewCalc').hidden = v !== 'calculadora'; $('viewPLabel').hidden = v !== 'etiquetas'; $('viewShipLabels').hidden = v !== 'impresion'; $('viewClaims').hidden = v !== 'reclamos'; $('viewListings').hidden = v !== 'publicaciones'; $('viewPublish').hidden = v !== 'publicar'; $('viewComp').hidden = v !== 'competencia'; $('viewFunnel').hidden = v !== 'embudo'; $('viewHealth').hidden = v !== 'salud'; $('viewPayroll').hidden = v !== 'sueldos'; $('viewUsers').hidden = v !== 'usuarios'; $('viewTuyo').hidden = v !== 'tuyo';
   $('viewFlex').hidden = v !== 'flex'; $('viewSales').hidden = v !== 'ventas'; $('viewTasks').hidden = v !== 'tareas'; $('viewRefill').hidden = v !== 'recompras'; $('viewQuestions').hidden = v !== 'preguntas';
   $('viewRanking').hidden = v !== 'ranking'; $('viewPrices').hidden = v !== 'precios';
   document.querySelectorAll('.side .nav').forEach(a => a.classList.toggle('active', a.dataset.view === v));
@@ -2838,6 +3003,8 @@ function showView() {
   if (v === 'publicar') loadPublish();
   if (v === 'competencia') loadComp();
   if (v === 'embudo') loadFunnel();
+  if (v === 'sueldos') loadPayroll();
+  if (v === 'usuarios') loadUsers();
   if (v === 'salud') loadHealth(false);
   if (v === 'tuyo') loadTuyo();
   if (v === 'tareas') loadTasks();
@@ -3690,6 +3857,7 @@ async function loadExpenses() {
   const pending = exData.prev_fixed - exData.items.filter(e => e.copied_from).length;
   $('exCopy').hidden = !(pending > 0);
   $('exCopy').textContent = `Copiar gastos fijos de ${exMonthName(exShift(exMonth, -1)).split(' ')[0].toLowerCase()} (${pending})`;
+  $('exPayroll').innerHTML = exData.payroll != null ? `<div class="card" style="padding:10px 14px;font-size:13.5px;border-left:3px solid var(--brand)">💼 <b>Sueldos, cargas sociales y comisiones de ${esc(exMonthName(exMonth).toLowerCase())}:</b> ${exData.payroll ? money(exData.payroll) : 'sin cargar'} · se descuenta en Resultado del mes · <a class="lnk" href="#sueldos">ver Sueldos</a> <span class="muted">(solo lo ves vos)</span></div>` : '';
   exRender();
 }
 function exResetForm() {
@@ -4164,7 +4332,7 @@ let rfSel = new Set(), rfData = null, rfTab = 'today', rfCur = null, rfKind = 'm
 const RF_SRC = { ml: 'Mercado Libre', quote: 'Presupuesto', web: 'Web' };
 const rfFmt = (d) => `${d.slice(8)}/${d.slice(5, 7)}/${d.slice(2, 4)}`;
 const rfLeft = (n) => n > 1 ? `en ${n} días` : n === 1 ? 'mañana' : n === 0 ? 'hoy' : n === -1 ? 'ayer' : `hace ${-n} días`;
-const rfBy = () => { try { const me = localStorage.getItem('tk_me'); const p = (tkData.people || []).find(x => x.id === me); return p ? p.name : 'Dueño'; } catch { return 'Dueño'; } };
+const rfBy = () => { if (ME && !ME.owner) return ME.name; try { const me = localStorage.getItem('tk_me'); const p = (tkData.people || []).find(x => x.id === me); return p ? p.name : 'Dueño'; } catch { return 'Dueño'; } };
 async function loadRefill() {
   const d = await (await fetch('/api/refill')).json().catch(() => null);
   if (!d || d.error) { $('rfRows').innerHTML = `<tr><td colspan="6" class="err-t">No se pudieron cargar las recompras${d && d.error ? ': ' + esc(d.error) : ''}. Revisá que esté subido server.js.</td></tr>`; return; }
@@ -5082,6 +5250,7 @@ function renderResults() {
     line('Neto de todas las ventas', c.profit, 'plus', 'después de comisiones, envíos, impuestos y costos'),
     line('Neto Mercado Libre + comisiones', (ml.net || 0) + (ml.fee || 0) + (tu.on ? (tu.net || 0) + (tu.fee || 0) : 0), 'plus net-fee', `neto que paga Mercado Libre ${money((ml.net || 0) + (tu.on ? tu.net || 0 : 0))} (antes del costo de mercadería) + comisiones ${money((ml.fee || 0) + (tu.on ? tu.fee || 0 : 0))}`),
     line('Gastos del local', c.expenses, 'minus', `${c.expenses_n} gastos cargados`),
+    ...(c.payroll ? [line('Sueldos, cargas sociales y comisiones', c.payroll, 'minus', '<a href="#sueldos">ver Sueldos</a> · solo lo ves vos')] : []),
     line('NETO NETO', c.net_net, 'total'),
   ].join('');
   $('rsNet').textContent = c.net_net < 0 ? '− ' + money(-c.net_net) : money(c.net_net);
@@ -5106,7 +5275,7 @@ function renderResults() {
       <td class="price" style="text-align:right;color:var(--err)">− ${money(m.ml.tax + m.web.tax + ((m.quotes || {}).tax || 0) + ((m.tuyo || {}).tax || 0))}</td>
       <td class="price" style="text-align:right;color:var(--err)">− ${money(m.ml.cost + m.web.cost + ((m.quotes || {}).cost || 0) + ((m.tuyo || {}).cost || 0))}</td>
       <td class="price" style="text-align:right">${money(m.profit)}</td>
-      <td class="price" style="text-align:right;color:var(--err)">${m.expenses ? '− ' + money(m.expenses) : '<span class="muted">—</span>'}</td>
+      <td class="price" style="text-align:right;color:var(--err)">${(m.expenses + (m.payroll || 0)) ? '− ' + money(m.expenses + (m.payroll || 0)) : '<span class="muted">—</span>'}</td>
       <td class="price col-net" style="text-align:right;font-size:15px;color:${m.net_net < 0 ? 'var(--err)' : 'var(--ok)'}">${m.net_net < 0 ? '− ' + money(-m.net_net) : money(m.net_net)}</td>
       <td style="text-align:right">${prev ? rsVarHtml(m.net_net, prev.net_net) : '—'}</td>
     </tr>`;
@@ -5140,7 +5309,7 @@ function renderResultsChart() {
   $('rsChart').querySelectorAll('.rs-bar').forEach(g => {
     g.addEventListener('mousemove', (e) => {
       const m = rsData.history.find(x => x.month === g.dataset.rsMonth); const tip = $('rsTip');
-      tip.innerHTML = `<b>${rsName(m.month)}</b><div>Neto neto <b>${m.net_net < 0 ? '− ' + money(-m.net_net) : money(m.net_net)}</b></div><div class="muted">Ganancia ventas ${money(m.profit)} · Gastos ${money(m.expenses)}</div><div class="muted">Facturado ${money(m.ml.gross + m.web.gross + ((m.quotes || {}).gross || 0) + ((m.tuyo || {}).gross || 0))}</div>`;
+      tip.innerHTML = `<b>${rsName(m.month)}</b><div>Neto neto <b>${m.net_net < 0 ? '− ' + money(-m.net_net) : money(m.net_net)}</b></div><div class="muted">Ganancia ventas ${money(m.profit)} · Gastos ${money(m.expenses + (m.payroll || 0))}</div><div class="muted">Facturado ${money(m.ml.gross + m.web.gross + ((m.quotes || {}).gross || 0) + ((m.tuyo || {}).gross || 0))}</div>`;
       const r = $('rsChart').getBoundingClientRect(); tip.hidden = false;
       tip.style.left = Math.min(r.width - 230, Math.max(0, e.clientX - r.left + 12)) + 'px'; tip.style.top = Math.max(0, e.clientY - r.top - 20) + 'px';
     });
@@ -5165,7 +5334,7 @@ $('rsNext').onclick = () => { rsMonth = rsShift(rsMonth, 1); loadResults(); };
 $('rsMonth').onclick = () => { rsMonth = ymd(new Date()).slice(0, 7); loadResults(); };
 $('rsCsv').onclick = () => {
   const e = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`, n = (v) => String(Math.round(v || 0));
-  const rows = rsData.history.map(m => [rsName(m.month), n(m.ml.gross_all), n(m.ml.cancelled + m.ml.returned), n(m.ml.fee), n(m.ml.ship), n(m.ml.tax), n(m.ml.cost), n(m.ml.profit), n(m.web.gross), n(m.web.profit), ...['lara', 'whatsapp', 'local', 'mail', 'instagram', ''].map(k => n((((m.quotes || {}).by || []).find(g => g.key === k) || {}).gross)), n((m.quotes || {}).gross), n((m.quotes || {}).profit), n(m.expenses), n(m.net_net)]);
+  const rows = rsData.history.map(m => [rsName(m.month), n(m.ml.gross_all), n(m.ml.cancelled + m.ml.returned), n(m.ml.fee), n(m.ml.ship), n(m.ml.tax), n(m.ml.cost), n(m.ml.profit), n(m.web.gross), n(m.web.profit), ...['lara', 'whatsapp', 'local', 'mail', 'instagram', ''].map(k => n((((m.quotes || {}).by || []).find(g => g.key === k) || {}).gross)), n((m.quotes || {}).gross), n((m.quotes || {}).profit), n(m.expenses + (m.payroll || 0)), n(m.net_net)]);
   const csv = ['Mes;Ventas brutas ML;Canceladas y devueltas;Comisiones ML;Envíos;Impuestos ML;Mercadería ML;Ganancia ML;Ventas web;Ganancia web;Recibos Pacientes de Lara;Recibos WhatsApp;Recibos Local;Recibos Mail;Recibos Instagram;Recibos sin origen;Recibos total;Ganancia recibos;Gastos del local;Neto neto'].concat(rows.map(r => r.map(e).join(';'))).join('\r\n');
   const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob(['﻿' + csv], { type: 'text/csv' })); a.download = `resultado-${rsMonth}.csv`; document.body.appendChild(a); a.click(); a.remove();
 };
@@ -5205,7 +5374,7 @@ $('rsPdf').onclick = async () => {
     const parts = [['Mercado Libre', N.ml.gross], ['TUYO', tuN], ['web', N.web.gross], ['presupuestos', N.quotes.gross]].filter(x => x[1]).map(x => `${x[0]} ${$m(x[1])}`);
     lines.push(`En ${mesN} se facturaron ${$m(totN)} en total${parts.length > 1 ? ` (${parts.slice(0, -1).join(', ')} y ${parts[parts.length - 1]})` : ''}. Frente a ${mesPl} (${$m(totP)}) la facturación ${dir(totN, totP) || 'no tiene comparación'}.`);
     lines.push(`En Mercado Libre se hicieron ${N.ml.sales} ventas (${N.ml.units} unidades) contra ${P.ml.sales} ventas (${P.ml.units} unidades) el mes pasado.` + (N.web.orders || P.web.orders ? ` En la web: ${N.web.orders} pedidos (antes ${P.web.orders}).` : '') + (N.quotes.n || P.quotes.n ? ` Presupuestos confirmados: ${N.quotes.n} (antes ${P.quotes.n}).` : ''));
-    lines.push(`La ganancia de las ventas fue ${$m(N.profit)} (${ch(N.profit, P.profit)} vs ${mesPl}). Restando ${$m(N.expenses)} de gastos del local, el neto neto quedó en ${$m(N.net_net)} (el mes pasado fue ${$m(P.net_net)}).`);
+    lines.push(`La ganancia de las ventas fue ${$m(N.profit)} (${ch(N.profit, P.profit)} vs ${mesPl}). Restando ${$m(N.expenses + (N.payroll || 0))} de gastos${N.payroll ? ' (local y sueldos)' : ' del local'}, el neto neto quedó en ${$m(N.net_net)} (el mes pasado fue ${$m(P.net_net)}).`);
     const acc = (N.ml.by_account || [])[0];
     if (acc && N.ml.gross) lines.push(`La cuenta que más vendió fue ${acc.nickname}: ${$m(acc.gross)}, el ${Math.round(acc.gross / N.ml.gross * 100)}% de lo facturado en Mercado Libre.`);
     const top = (R.top_units || [])[0];
@@ -6721,7 +6890,7 @@ async function plcSave(body) {
 $('plcSave').onclick = () => plcSave({ title: $('plcTitle').value, name: $('plcName').value, address: $('plcAddress').value, cuit: $('plcCuit').value, phone: $('plcPhone').value, origin: $('plcOrigin').value.toUpperCase() });
 $('plcReset').onclick = () => { if (confirm('¿Volver a los datos originales del importador?')) plcSave(plDef); };
 
-fxUi(); showView(); pollSales();
+fxUi(); loadMe().then(() => { showView(); pollSales(); });
 load(); loadAccounts(); pollJob();
 // Envíos: se refresca solo con la pestaña a la vista y en Envíos Flex (ahorra pedidos al servidor).
 const flexOpen = () => !document.hidden && !$('viewFlex').hidden;

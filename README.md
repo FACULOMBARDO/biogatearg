@@ -114,6 +114,17 @@ En **Presupuestos**, cada recibo tiene la columna **Envío** con el botón **�
 ### 🏷️ Etiquetas de envío (10 × 15, horizontal)
 Para los recibos/presupuestos y pedidos web que tienen **Envío** (no para los Flex de Mercado Libre, que ya traen su etiqueta). Botón **🏷️ Etiqueta** en Presupuestos, en Ventas web y en Envíos Flex. Se abre una vista previa con destinatario, teléfono, dirección, localidad y CP, aclaraciones y el teléfono del local; lo que corrijas queda guardado en el envío. **Descargar etiqueta (PDF)** baja un PDF de 15 × 10 cm en blanco y negro, con el logo de Biogate. En Envíos Flex, **🏷️ Etiquetas del período** junta en un PDF todas las de ese día, semana o mes (una por página).
 
+### 👥 Usuarios (solo dueño)
+Cada persona del equipo entra con **su usuario y su contraseña** y ve solo las secciones que le diste. Vos entrás como siempre: **usuario vacío** y tu contraseña (ADMIN_PASSWORD de Vercel), y ves todo.
+1. Menú → **Usuarios** → **＋ Nuevo usuario**: nombre, usuario para entrar, (opcional) quién es en Tareas, y qué secciones ve (tocando el nombre del grupo se tilda entero). "Datos del negocio" (Resultado del mes, Gastos, Salud de cuentas) dalo solo a gente de confianza.
+2. Se genera un **link de activación**: copialo o tocá **Mandar por WhatsApp**. La persona lo abre, crea su contraseña y entra. Nadie más conoce su contraseña.
+3. Si se olvida la contraseña: **🔑 Link para nueva contraseña** (cierra sus sesiones abiertas). **Desactivar** le corta el acceso al instante sin tocar a los demás.
+- **Sueldos, Usuarios, Configuración y conectar/quitar cuentas** son siempre solo tuyos. El servidor bloquea además Resultado del mes, Gastos, Salud de cuentas, Mis publicaciones, Publicar, Competencia, Embudo, TUYO, Reclamos e Impresión de etiquetas a quien no tenga ese permiso; las demás secciones se ocultan del menú.
+- Las respuestas a preguntas y los cambios de precio/stock quedan con el nombre de quien los hizo. Cada persona puede cambiar su contraseña tocando su nombre arriba a la derecha.
+
+### 💼 Sueldos (solo dueño)
+Por persona: **sueldo**, **cargas sociales** (si tiene, y cuánto) y **comisiones del mes**, más una nota. Elegís el mes arriba; si el mes no se guardó, aparece precargado con el sueldo y las cargas fijas de cada persona (las comisiones se cargan cada mes) → **Guardar mes**. "editar datos fijos" cambia el sueldo/cargas que se usan para los meses siguientes. El total del mes **se descuenta en Resultado del mes** (línea "Sueldos, cargas sociales y comisiones", baja el NETO NETO) y en el informe PDF, y en **Gastos del local** aparece el total del mes. Todo eso **solo lo ves vos**: aunque un empleado tenga permiso para Resultado o Gastos, no ve los sueldos.
+
 ### 📈 Embudo de ventas
 Al final del menú lateral. Para cada publicación: **visitas, ventas y conversión** (ventas cada 100 visitas) de los últimos 30 días, comparadas con los 30 anteriores. Arriba, los totales de todas las cuentas (o de la elegida). Diagnóstico de cada publicación:
 - **🔴 Visitas sin ventas:** tiene muchas visitas y convierte menos de la mitad que tus publicaciones normales → el problema es la publicación. Dice por qué puede ser: precio arriba de la competencia, calidad baja, pocas fotos, la competencia tiene Full, falta de cuotas (Premium), stock muy bajo, entrega a plazo.
