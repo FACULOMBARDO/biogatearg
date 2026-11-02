@@ -838,10 +838,12 @@
     </div>
     <div class="row" style="flex-wrap:wrap;gap:6px;align-items:center;margin-top:8px;font-size:13px">
       <b style="min-width:70px">🏷️ Descuento</b>
-      <input type="number" id="lsDPct" placeholder="10" min="5" max="80" style="width:80px"> %
+      <select id="lsDMode" style="width:auto"><option value="pct">% de descuento</option><option value="final">Precio final $</option></select>
+      <input type="number" id="lsDPct" placeholder="10" min="1" style="width:100px">
+      <span id="lsDQuick"><button class="btn small" data-dq="10">10%</button><button class="btn small" data-dq="15">15%</button><button class="btn small" data-dq="20">20%</button></span>
       desde <input type="date" id="lsDFrom"> hasta <input type="date" id="lsDTo">
-      <button class="btn small" id="lsDApply">Aplicar descuento</button>
-      <span class="muted" style="font-size:12px">Descuento propio de Mercado Libre (se ve tachado el precio anterior).</span>
+      <button class="btn small primary" id="lsDPrev">Previsualizar descuento</button>
+      <span class="muted" style="font-size:12px">Descuento propio de ML: se ve tachado el precio anterior. Si ya tenía uno tuyo, se reemplaza.</span>
     </div>
   </div>
   <div class="card" style="padding:0">
@@ -852,6 +854,11 @@
       </table>
     </div>
     <div class="row" id="lsMore" style="justify-content:center;padding:10px" hidden><button class="btn small" id="lsMoreBtn">Ver más</button></div>
+  </div>
+  <div class="ls-save" id="lsDisc" hidden style="border-color:var(--ok)">
+    <span id="lsDiscTxt"></span>
+    <button class="btn" id="lsDiscCancel">Cancelar</button>
+    <button class="btn primary" id="lsDiscGo">🏷️ Aplicar descuento en Mercado Libre</button>
   </div>
   <div class="ls-save" id="lsSave" hidden>
     <span id="lsSaveTxt"></span>
@@ -2101,10 +2108,12 @@ async function loadListings() {
   renderListings();
   if (d.job && d.job.running) lsWatch();
 }
+let lsSyncMsg = false;
 function lsStatusMsg(job) {
   const err = (lsData && lsData.errors || []).join(' · ');
-  if (job && job.running) $('lsMsg').innerHTML = `<span class="muted">↻ Trayendo publicaciones de Mercado Libre… (${job.done} de ${job.total} cuentas)</span>`;
-  else $('lsMsg').innerHTML = err ? `<span class="err-t">⚠️ ${esc(err)}</span>` : '';
+  if (job && job.running) { lsSyncMsg = true; $('lsMsg').innerHTML = `<span class="muted">↻ Trayendo publicaciones de Mercado Libre… (${job.done} de ${job.total} cuentas)</span>`; }
+  else if (err) { lsSyncMsg = true; $('lsMsg').innerHTML = `<span class="err-t">⚠️ ${esc(err)}</span>`; }
+  else if (lsSyncMsg) { lsSyncMsg = false; $('lsMsg').innerHTML = ''; } // no borra los avisos de "✓ guardado"
 }
 function lsWatch() {
   clearInterval(lsPoll);
@@ -2126,7 +2135,7 @@ function lsVisible() {
 function renderListings() {
   const list = lsVisible(), shown = list.slice(0, lsLimit);
   const all = lsData ? lsData.items.length : 0;
-  $('lsInfo').textContent = lsData ? `${list.length} de ${all} publicaciones${lsData.updated_at ? ' · actualizado ' + new Date(lsData.updated_at).toLocaleString('es-AR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : ''}` : '';
+  $('lsInfo').textContent = lsData ? `${list.length} de ${all} publicaciones${lsData.updated_at ? ' · actualizado ' + new Date(lsData.updated_at).toLocaleString('es-AR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : ''}${lsSel.size ? '' : ' · Tildá publicaciones (o la casilla de arriba de la tabla para todas) para cambiar precios, stock o crear descuentos en masa.'}` : '';
   $('lsRows').innerHTML = shown.map(x => {
     const e = lsEdits[x.id] || {}, full = x.logistic === 'fulfillment', multi = x.variations.length > 1;
     const q = lsQual(x), qc = q == null ? '' : q >= 0.8 ? 'var(--ok)' : q >= 0.5 ? '#d97706' : 'var(--err)';
@@ -2135,7 +2144,7 @@ function renderListings() {
       <td><input type="checkbox" data-lsel="${esc(x.id)}" ${lsSel.has(x.id) ? 'checked' : ''}></td>
       <td><div class="ls-pub">${x.thumb ? `<img src="${esc(x.thumb)}" alt="" loading="lazy">` : '<div class="ls-noimg">📦</div>'}<div style="min-width:0"><a class="lnk t" href="${esc(x.link)}" target="_blank" rel="noopener">${esc(x.title)}</a>
         <div class="ls-meta"><span class="pill" style="color:var(--brand);border-color:var(--brand);font-size:11px;padding:0 6px">${esc(x.account)}</span>${x.sku ? `<span>SKU ${esc(x.sku)}</span>` : '<span style="color:var(--err)">sin SKU</span>'}<span>${esc(x.id)}</span>${x.listing_type === 'gold_pro' ? '<span class="ls-tag">Premium</span>' : x.listing_type === 'gold_special' ? '<span class="ls-tag">Clásica</span>' : ''}${x.catalog ? '<span class="ls-tag">Catálogo</span>' : ''}${x.manufacturing ? `<span class="ls-tag">Plazo ${esc(x.manufacturing)}</span>` : ''}${st !== 'active' ? `<span class="ls-tag" style="color:var(--err)">${st === 'paused' ? 'Pausada' : esc(st)}</span>` : ''}${multi ? `<span class="ls-tag">${x.variations.length} variantes</span>` : ''}</div></div></div></td>
-      <td style="text-align:right">${x.original_price ? `<div class="ls-was">${money(x.original_price)}</div>` : ''}<input type="number" class="ls-in${e.price != null ? ' chg' : ''}" data-lsp="${esc(x.id)}" value="${e.price ?? x.price}" min="1">${e.price != null ? `<div class="muted" style="font-size:11px">antes ${money(x.price)}</div>` : ''}${x.original_price ? '<div style="font-size:11px;color:var(--ok)">con descuento</div>' : ''}</td>
+      <td style="text-align:right">${x.original_price ? `<div class="ls-was">${money(x.original_price)}</div>` : ''}<input type="number" class="ls-in${e.price != null ? ' chg' : ''}" data-lsp="${esc(x.id)}" value="${e.price ?? x.price}" min="1">${e.price != null ? `<div class="muted" style="font-size:11px">antes ${money(x.price)}</div>` : ''}${x.original_price ? '<div style="font-size:11px;color:var(--ok)">con descuento</div>' : ''}${lsDisc && lsDisc.items[x.id] ? `<div style="font-size:12px;color:var(--brand);font-weight:700;margin-top:2px">🏷️ ${money(lsDisc.items[x.id].deal)} (−${lsDisc.items[x.id].off}%)</div>${lsDisc.items[x.id].bad ? `<div style="font-size:11px;color:var(--err)">${esc(lsDisc.items[x.id].bad)}</div>` : ''}` : ''}</td>
       <td style="text-align:right">${full ? `<span title="El stock de Full lo maneja Mercado Libre">${x.stock} <span class="ls-tag">Full</span></span>` : multi ? `<a href="#" class="lnk" data-ldet="${esc(x.id)}" data-tab="vars">${x.stock} · por variante</a>` : `<input type="number" class="ls-in${e.stock != null ? ' chg' : ''}" style="width:80px" data-lss="${esc(x.id)}" value="${e.stock ?? x.stock}" min="0">${e.stock != null ? `<div class="muted" style="font-size:11px">antes ${x.stock}</div>` : ''}`}</td>
       <td style="text-align:right">${x.sold}</td>
       <td style="font-size:12.5px">${esc(LS_LOG[x.logistic] || x.logistic || '')}${x.free_ship ? '<div class="muted" style="font-size:11px">envío gratis</div>' : ''}</td>
@@ -2216,20 +2225,45 @@ $('lsUndo').onclick = async () => {
   $('lsMsg').innerHTML = d.results ? `<span style="color:var(--ok)">✓ Deshecho (${d.ok} publicaciones).</span>${d.failed.length ? ` <span class="err-t">${d.failed.length} no se pudieron volver atrás.</span>` : ''}` : `<span class="err-t">${esc(d.error)}</span>`;
   loadListings();
 };
-$('lsDApply').onclick = async () => {
-  const pct = Number($('lsDPct').value), from = $('lsDFrom').value, to = $('lsDTo').value;
+let lsDisc = null;
+function lsDiscBar() {
+  if (!lsDisc) { $('lsDisc').hidden = true; return; }
+  const all = Object.values(lsDisc.items), ok = all.filter(x => !x.bad).length, bad = all.length - ok;
+  const f = (d) => d.split('-').reverse().join('/');
+  $('lsDisc').hidden = false;
+  $('lsDiscTxt').innerHTML = `Descuento listo para <b>${ok}</b> ${ok === 1 ? 'publicación' : 'publicaciones'} · ${lsDisc.mode === 'pct' ? `−${lsDisc.value}%` : `precio final ${money(lsDisc.value)}`} · del ${f(lsDisc.from)} al ${f(lsDisc.to)}${bad ? ` · <span class="err-t">${bad} fuera de rango (ML acepta 5% a 80%): se saltean</span>` : ''}. Revisá los precios marcados con 🏷️.`;
+}
+$('lsDQuick').onclick = (e) => { const b = e.target.closest('[data-dq]'); if (!b) return; $('lsDMode').value = 'pct'; $('lsDPct').value = b.dataset.dq; $('lsDPrev').click(); };
+$('lsDPrev').onclick = () => {
+  const mode = $('lsDMode').value, value = Number($('lsDPct').value), from = $('lsDFrom').value, to = $('lsDTo').value;
+  if (!(value > 0)) { $('lsMsg').innerHTML = `<span class="err-t">Poné ${mode === 'pct' ? 'el % de descuento' : 'el precio final'}.</span>`; return; }
+  if (!from || !to || to < from) { $('lsMsg').innerHTML = '<span class="err-t">Elegí desde y hasta cuándo.</span>'; return; }
   const sel = [...lsSel].map(lsItem).filter(Boolean);
   if (!sel.length) return;
-  if (!confirm(`¿Aplicar ${pct}% de descuento a ${sel.length} publicaciones, del ${from} al ${to}?`)) return;
-  $('lsDApply').disabled = true;
-  const d = { ok: 0, failed: [], results: [] };
-  for (let i = 0; i < sel.length; i += 150) {
-    $('lsDApply').textContent = `Aplicando… ${Math.min(i + 150, sel.length)} de ${sel.length}`;
-    const r = await lsPost('/api/listings/discount', { items: sel.slice(i, i + 150).map(x => ({ account_id: x.account_id, item_id: x.id })), pct, from, to });
-    if (r.results) { d.ok += r.ok; d.failed.push(...r.failed); } else { d.error = r.error; break; }
+  lsDisc = { mode, value, from, to, items: {} };
+  for (const x of sel) {
+    const base = x.original_price || x.price, deal = Math.round(mode === 'pct' ? base * (1 - value / 100) : value), off = Math.round((1 - deal / base) * 1000) / 10;
+    lsDisc.items[x.id] = { account_id: x.account_id, deal, off, bad: off < 5 || off > 80 ? `queda en ${off}%` : '' };
   }
-  $('lsDApply').disabled = false; $('lsDApply').textContent = 'Aplicar descuento';
-  $('lsMsg').innerHTML = !d.error ? `<span style="color:var(--ok)">✓ Descuento aplicado en ${d.ok}.</span>${d.failed.length ? `<div class="err-t" style="margin-top:4px">No se pudo en ${d.failed.length}: ${d.failed.slice(0, 8).map(f => `${esc(f.item_id)} (${esc(f.error)})`).join(' · ')}</div>` : ''}` : `<span class="err-t">${esc(d.error)}</span>`;
+  $('lsMsg').textContent = ''; renderListings(); lsDiscBar();
+  $('lsDisc').scrollIntoView({ behavior: 'smooth', block: 'end' });
+};
+$('lsDiscCancel').onclick = () => { lsDisc = null; renderListings(); lsDiscBar(); };
+$('lsDiscGo').onclick = async () => {
+  if (!lsDisc) return;
+  const list = Object.entries(lsDisc.items).filter(([, v]) => !v.bad).map(([id, v]) => ({ account_id: v.account_id, item_id: id, deal_price: v.deal }));
+  if (!list.length) return;
+  const b = $('lsDiscGo'); b.disabled = true;
+  const d = { ok: 0, failed: [] };
+  for (let i = 0; i < list.length; i += 100) {
+    b.textContent = `Aplicando… ${Math.min(i + 100, list.length)} de ${list.length}`;
+    const r = await lsPost('/api/listings/discount', { items: list.slice(i, i + 100), pct: lsDisc.mode === 'pct' ? lsDisc.value : 0, from: lsDisc.from, to: lsDisc.to });
+    if (r.results) { d.ok += r.ok; d.failed.push(...r.failed); } else { d.failed.push(...list.slice(i, i + 100).map(x => ({ item_id: x.item_id, error: r.error || 'error' }))); }
+  }
+  b.disabled = false; b.textContent = '🏷️ Aplicar descuento en Mercado Libre';
+  lsDisc = null; lsDiscBar();
+  $('lsMsg').innerHTML = `<span style="color:var(--ok)">✓ Descuento aplicado en ${d.ok} ${d.ok === 1 ? 'publicación' : 'publicaciones'}.</span>${d.failed.length ? `<div class="err-t" style="margin-top:4px">No se pudo en ${d.failed.length}: ${d.failed.slice(0, 8).map(f => `${esc(f.item_id)} (${esc(f.error)})`).join(' · ')}${d.failed.length > 8 ? '…' : ''}</div>` : ''}`;
+  $('lsMsg').scrollIntoView({ behavior: 'smooth', block: 'center' });
   loadListings();
 };
 $('lsSync').onclick = async () => { await lsPost('/api/listings/sync'); lsStatusMsg({ running: true, done: 0, total: '…' }); lsWatch(); };
