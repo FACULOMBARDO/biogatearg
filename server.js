@@ -278,15 +278,22 @@ app.use((req, res, next) => {
       return res.redirect('/');
     }
     if (!req.user.owner && req.path === '/escanear' && !req.user.perms.includes('flex')) return res.redirect('/');
+    // Quién hizo la acción lo pone el servidor (no se puede elegir desde la pantalla)
+    if (req.body && typeof req.body === 'object' && !Buffer.isBuffer(req.body) && 'by' in req.body) req.body.by = req.user.owner ? (String(req.body.by || '').trim() || 'Dueño') : req.user.name;
     return next();
   }
   if (req.path.startsWith('/api/')) return res.status(401).json({ error: 'Sesión vencida. Volvé a entrar.' });
   res.redirect('/login?next=' + encodeURIComponent(req.originalUrl));
 });
 
+// Registro de actividad (quién hizo cada cosa)
+const activity = require('./lib/activity');
+app.use(activity.middleware);
+app.get('/api/activity', (req, res) => res.json({ ok: true, ...activity.report(req.query.days, req.query.who) }));
+
 // ---------- Usuarios del equipo (solo dueño) y sueldos ----------
 const payroll = require('./lib/payroll');
-app.get('/api/me', (req, res) => res.json({ ok: true, id: req.user.id, name: req.user.name, owner: req.user.owner, perms: req.user.owner ? Object.keys(users.SECTIONS).concat(['sueldos', 'usuarios']) : req.user.perms, task_person: req.user.task_person || '' }));
+app.get('/api/me', (req, res) => res.json({ ok: true, id: req.user.id, name: req.user.name, owner: req.user.owner, perms: req.user.owner ? Object.keys(users.SECTIONS).concat(['sueldos', 'usuarios', 'actividad']) : req.user.perms, task_person: req.user.task_person || '' }));
 app.post('/api/me/password', (req, res) => {
   try {
     const b = req.body || {};

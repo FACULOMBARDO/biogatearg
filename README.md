@@ -123,6 +123,12 @@ Cada persona del equipo entra con **su usuario y su contraseña** y ve solo las 
 - Las respuestas a preguntas y los cambios de precio/stock quedan con el nombre de quien los hizo. Cada persona puede cambiar su contraseña tocando su nombre arriba a la derecha.
 - **Tu contraseña (dueño):** arriba a la derecha → **🔒 Mi contraseña**. Al cambiarla se cierran todas las otras sesiones abiertas con tu usuario (los empleados siguen entrando con el suyo). Si te la olvidás: cambiá **ADMIN_PASSWORD** en Vercel → Environment Variables y hacé Redeploy; vuelve a valer esa.
 
+### 📋 Actividad del equipo (solo dueño)
+Registra automáticamente **quién hizo cada cosa** desde que cada persona tiene su usuario: responder preguntas (con la pregunta y la respuesta), cambios de precio/stock/estado, descuentos y campañas, fichas, fotos y descripciones, publicaciones nuevas, recibos, gastos, tareas, envíos escaneados, etiquetas descargadas, mensajes, recompras, configuración, usuarios y sueldos.
+- Arriba, **resumen por persona**: preguntas respondidas, **tiempo promedio de respuesta** de cada uno, cantidad de acciones y en qué. Las respondidas directamente en Mercado Libre aparecen como "Desde Mercado Libre (fuera del panel)".
+- Abajo, la lista de acciones con fecha y hora. Filtros: hoy, 7, 30 o 90 días y por persona.
+- El nombre lo pone el servidor según el usuario que entró (no se puede cambiar desde la pantalla). Se guardan los últimos 4 meses.
+
 ### 💼 Sueldos (solo dueño)
 **Cada mes se carga aparte**, porque todo varía mes a mes. Por persona: **sueldo**, **cargas sociales** (tildás si tiene y ponés cuánto), **diferencia de obra social**, **comisiones** y una nota. Elegís el mes arriba, cargás los montos y tocás **Guardar mes**. Un mes sin guardar aparece vacío y **no se descuenta**; para ahorrar tiempo está el botón **Copiar montos del mes anterior**, que los trae para editarlos. "＋ Agregar persona" solo pide el nombre; la ✕ da de baja (los meses anteriores quedan). El total del mes guardado **se descuenta en Resultado del mes** (línea "Sueldos, cargas sociales y comisiones", baja el NETO NETO) y en el informe PDF, y en **Gastos del local** aparece el total del mes. Todo eso **solo lo ves vos**: aunque un empleado tenga permiso para Resultado o Gastos, no ve los sueldos.
 

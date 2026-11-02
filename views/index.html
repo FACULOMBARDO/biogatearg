@@ -59,6 +59,7 @@
   <a href="#salud" class="nav" data-view="salud"><span class="ic">🛡️</span><span>Salud de cuentas</span><span class="nav-badge" id="hlBadge" hidden></span></a>
   <a href="#sueldos" class="nav" data-view="sueldos"><span class="ic">💼</span><span>Sueldos</span></a>
   <a href="#usuarios" class="nav" data-view="usuarios"><span class="ic">👥</span><span>Usuarios</span></a>
+  <a href="#actividad" class="nav" data-view="actividad"><span class="ic">📋</span><span>Actividad del equipo</span></a>
   <div class="side-foot hide-sm muted">Todas tus cuentas de Mercado Libre en un lugar.</div>
 </aside>
 <main>
@@ -640,6 +641,19 @@
   </div>
   <div class="muted" style="font-size:12.5px">El total de cada mes se descuenta en <b>Resultado del mes</b> (NETO NETO) y en el informe PDF, como un gasto más. Los empleados no ven esta sección ni ese total. Cada mes se carga aparte y se descuenta recién cuando lo guardás.</div>
   <div class="card" style="margin-top:12px;padding:12px 14px"><b style="font-size:14px">Últimos meses</b><div id="prHist" class="row" style="gap:8px;flex-wrap:wrap;margin-top:8px;font-size:13px"></div></div>
+</section>
+<section id="viewActivity" hidden>
+  <div class="row" style="justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px">
+    <h1 class="page-title">Actividad del equipo <span class="muted" style="font-size:15px;font-weight:500">· quién hizo cada cosa</span></h1>
+    <div class="row" style="gap:8px;flex-wrap:wrap"><div class="seg" id="acDays"><button data-d="1">Hoy</button><button data-d="7" class="on">7 días</button><button data-d="30">30 días</button><button data-d="90">90 días</button></div><select id="acWho"><option value="">Todas las personas</option></select></div>
+  </div>
+  <div class="card" style="padding:0"><div class="table-wrap"><table class="sales-table">
+    <thead><tr><th>Persona</th><th style="text-align:right">Preguntas respondidas</th><th style="text-align:right">Tiempo promedio de respuesta</th><th style="text-align:right">Acciones</th><th>En qué</th></tr></thead>
+    <tbody id="acSum"></tbody></table></div></div>
+  <div class="card" style="padding:0"><div class="table-wrap"><table class="sales-table">
+    <thead><tr><th style="width:120px">Cuándo</th><th style="width:150px">Quién</th><th>Qué hizo</th></tr></thead>
+    <tbody id="acList"></tbody></table></div></div>
+  <div class="muted" style="font-size:12.5px">Se registra todo lo que cambia algo (responder, precios, publicar, recibos, gastos, tareas, envíos, etc.) desde que cada persona tiene su usuario. Las preguntas respondidas directamente en Mercado Libre aparecen como "Desde Mercado Libre". Se guardan los últimos 4 meses.</div>
 </section>
 <section id="viewUsers" hidden>
   <div class="row" style="justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px">
@@ -3004,13 +3018,28 @@ $('usList').addEventListener('click', async (e) => {
   if (b.dataset.usdel) { if (!confirm('¿Borrar este usuario? No va a poder entrar más.')) return; await fetch('/api/users/' + b.dataset.usdel, { method: 'DELETE' }); loadUsers(); }
 });
 
+// ---------- Actividad del equipo (solo dueño) ----------
+let acDays = 7;
+async function loadActivity() {
+  const who = $('acWho').value;
+  const d = await (await fetch(`/api/activity?days=${acDays}${who ? '&who=' + encodeURIComponent(who) : ''}`)).json().catch(() => ({ ok: false, error: 'Sin conexión.' }));
+  if (!d.ok) { $('acList').innerHTML = `<tr><td colspan="3" class="err-t" style="padding:14px">${esc(d.error)}</td></tr>`; return; }
+  const cur = $('acWho').value;
+  $('acWho').innerHTML = '<option value="">Todas las personas</option>' + d.people.map(p => `<option ${p === cur ? 'selected' : ''}>${esc(p)}</option>`).join('');
+  $('acSum').innerHTML = d.summary.map(p => `<tr><td><b>${esc(p.who)}</b></td><td style="text-align:right">${p.answered}</td><td style="text-align:right">${p.avg_min != null ? qtFmt(p.avg_min) : '—'}</td><td style="text-align:right">${p.actions}</td><td style="font-size:12.5px">${Object.entries(p.cats).sort((a, b) => b[1] - a[1]).map(([c, n]) => `<span class="ls-tag">${esc(c)} ${n}</span>`).join(' ') || '<span class="muted">—</span>'}</td></tr>`).join('') || '<tr><td colspan="5" class="muted" style="padding:14px">Sin actividad en este período.</td></tr>';
+  const dt = (v) => new Date(v).toLocaleString('es-AR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+  $('acList').innerHTML = d.items.map(e => `<tr><td class="muted" style="font-size:12.5px;white-space:nowrap">${dt(e.at)}</td><td><b>${esc(e.who)}</b></td><td><span class="ls-tag">${esc(e.cat)}</span> ${esc(e.what)}${e.detail ? `<div class="muted" style="font-size:12px;margin-top:2px">${esc(e.detail)}</div>` : ''}</td></tr>`).join('') || '<tr><td colspan="3" class="muted" style="padding:14px">Sin acciones registradas en este período.</td></tr>';
+}
+$('acDays').onclick = (e) => { const b = e.target.closest('[data-d]'); if (!b) return; acDays = Number(b.dataset.d); $('acDays').querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b)); loadActivity(); };
+$('acWho').onchange = loadActivity;
+
 function showView() {
-  let v = ({ '#ventas': 'ventas', '#ranking': 'ranking', '#precios': 'precios', '#presupuestos': 'presupuestos', '#estados': 'estados', '#gastos': 'gastos', '#full': 'full', '#flex': 'flex', '#resultado': 'resultado', '#tareas': 'tareas', '#recompras': 'recompras', '#preguntas': 'preguntas', '#stock': 'stock', '#sugerencias': 'sugerencias', '#web': 'web', '#horarios': 'horarios', '#manuales': 'manuales', '#calculadora': 'calculadora', '#etiquetas': 'etiquetas', '#impresion': 'impresion', '#reclamos': 'reclamos', '#publicaciones': 'publicaciones', '#publicar': 'publicar', '#competencia': 'competencia', '#embudo': 'embudo', '#salud': 'salud', '#sueldos': 'sueldos', '#usuarios': 'usuarios', '#tuyo': 'tuyo' })[location.hash] || 'ventas';
+  let v = ({ '#ventas': 'ventas', '#ranking': 'ranking', '#precios': 'precios', '#presupuestos': 'presupuestos', '#estados': 'estados', '#gastos': 'gastos', '#full': 'full', '#flex': 'flex', '#resultado': 'resultado', '#tareas': 'tareas', '#recompras': 'recompras', '#preguntas': 'preguntas', '#stock': 'stock', '#sugerencias': 'sugerencias', '#web': 'web', '#horarios': 'horarios', '#manuales': 'manuales', '#calculadora': 'calculadora', '#etiquetas': 'etiquetas', '#impresion': 'impresion', '#reclamos': 'reclamos', '#publicaciones': 'publicaciones', '#publicar': 'publicar', '#competencia': 'competencia', '#embudo': 'embudo', '#salud': 'salud', '#sueldos': 'sueldos', '#usuarios': 'usuarios', '#actividad': 'actividad', '#tuyo': 'tuyo' })[location.hash] || 'ventas';
   if (ME && !ME.perms.includes(v)) { const first = ME.perms.find(k => document.querySelector(`.side .nav[data-view="${k}"]`)); if (first && v !== first) { location.hash = '#' + (document.querySelector(`.side .nav[data-view="${first}"]`).getAttribute('href') || '').replace('#', ''); return; } }
   $('viewQuotes').hidden = v !== 'presupuestos';
   $('viewStatus').hidden = v !== 'estados';
   $('viewExpenses').hidden = v !== 'gastos'; $('viewFull').hidden = v !== 'full';
-  $('viewResults').hidden = v !== 'resultado'; $('viewStock').hidden = v !== 'stock'; $('viewSuggest').hidden = v !== 'sugerencias'; $('viewWeb').hidden = v !== 'web'; $('viewHours').hidden = v !== 'horarios'; $('viewManuals').hidden = v !== 'manuales'; $('viewCalc').hidden = v !== 'calculadora'; $('viewPLabel').hidden = v !== 'etiquetas'; $('viewShipLabels').hidden = v !== 'impresion'; $('viewClaims').hidden = v !== 'reclamos'; $('viewListings').hidden = v !== 'publicaciones'; $('viewPublish').hidden = v !== 'publicar'; $('viewComp').hidden = v !== 'competencia'; $('viewFunnel').hidden = v !== 'embudo'; $('viewHealth').hidden = v !== 'salud'; $('viewPayroll').hidden = v !== 'sueldos'; $('viewUsers').hidden = v !== 'usuarios'; $('viewTuyo').hidden = v !== 'tuyo';
+  $('viewResults').hidden = v !== 'resultado'; $('viewStock').hidden = v !== 'stock'; $('viewSuggest').hidden = v !== 'sugerencias'; $('viewWeb').hidden = v !== 'web'; $('viewHours').hidden = v !== 'horarios'; $('viewManuals').hidden = v !== 'manuales'; $('viewCalc').hidden = v !== 'calculadora'; $('viewPLabel').hidden = v !== 'etiquetas'; $('viewShipLabels').hidden = v !== 'impresion'; $('viewClaims').hidden = v !== 'reclamos'; $('viewListings').hidden = v !== 'publicaciones'; $('viewPublish').hidden = v !== 'publicar'; $('viewComp').hidden = v !== 'competencia'; $('viewFunnel').hidden = v !== 'embudo'; $('viewHealth').hidden = v !== 'salud'; $('viewPayroll').hidden = v !== 'sueldos'; $('viewUsers').hidden = v !== 'usuarios'; $('viewActivity').hidden = v !== 'actividad'; $('viewTuyo').hidden = v !== 'tuyo';
   $('viewFlex').hidden = v !== 'flex'; $('viewSales').hidden = v !== 'ventas'; $('viewTasks').hidden = v !== 'tareas'; $('viewRefill').hidden = v !== 'recompras'; $('viewQuestions').hidden = v !== 'preguntas';
   $('viewRanking').hidden = v !== 'ranking'; $('viewPrices').hidden = v !== 'precios';
   document.querySelectorAll('.side .nav').forEach(a => a.classList.toggle('active', a.dataset.view === v));
@@ -3037,6 +3066,7 @@ function showView() {
   if (v === 'embudo') loadFunnel();
   if (v === 'sueldos') loadPayroll();
   if (v === 'usuarios') loadUsers();
+  if (v === 'actividad') loadActivity();
   if (v === 'salud') loadHealth(false);
   if (v === 'tuyo') loadTuyo();
   if (v === 'tareas') loadTasks();
