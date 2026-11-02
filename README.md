@@ -342,6 +342,9 @@ Menú lateral → **Preguntas**: las preguntas de los compradores de todas tus c
 - **⚡ Respuestas rápidas**: textos guardados que se insertan con un toque (ej. Stock, Envío, Cómo se toma).
 - **👤 Historial del comprador**: otras preguntas que te hizo y si ya te compró.
 
+### ✏️ Corrector de ortografía
+Antes de mandar una **respuesta a una pregunta**, un **mensaje a compradores** o un **aviso de recompra**, el panel revisa la ortografía con IA: corrige faltas, tildes, mayúsculas, signos (¿ ¡) y abreviaturas de chat ("q", "xq", "tmb"), sin cambiar lo que se dijo, el voseo, precios, nombres ni {nombre}. Si encontró algo, deja el texto corregido en el cuadro, muestra qué cambió (antes → después) y hay que tocar **Responder/Enviar de nuevo** (así se revisa antes de que salga). Si la IA no está disponible o quiso cambiar demasiado, avisa y se puede enviar igual con un segundo toque. Además, todos los cuadros de texto del panel subrayan las faltas mientras se escribe (corrector del navegador en español).
+
 ### ⏱️ Tiempo de respuesta y aviso de preguntas demoradas (Preguntas)
 Arriba de la lista de preguntas está el bloque **Tiempo de respuesta**: cuánto se tarda en promedio desde que llega una pregunta hasta que se responde, sumando las respuestas del panel y las de Mercado Libre. Se puede ver de **hoy**, de los últimos 7, 15, 30 o 60 días, o de un **mes** puntual (selector "Por mes…", últimos 12 meses), de todas las cuentas o de una sola.
 - **Promedio general**, **En horario laboral** (por defecto lunes a viernes de 9 a 18) y **Fuera de horario** (noches, fines de semana). Cada uno muestra también la mediana y el % de preguntas respondidas en menos de 1 hora. Una pregunta cuenta como "en horario" según la hora en que **llegó**.

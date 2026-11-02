@@ -289,6 +289,7 @@ app.use((req, res, next) => {
 // Registro de actividad (quién hizo cada cosa)
 const activity = require('./lib/activity');
 app.use(activity.middleware);
+app.post('/api/ai/spell', async (req, res) => { try { res.json({ ok: true, ...(await require('./lib/ai').spell((req.body || {}).text)) }); } catch (e) { res.status(400).json({ ok: false, error: e.message }); } });
 app.get('/api/activity', (req, res) => res.json({ ok: true, ...activity.report(req.query.days, req.query.who) }));
 
 // ---------- Usuarios del equipo (solo dueño) y sueldos ----------

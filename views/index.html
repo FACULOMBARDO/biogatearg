@@ -1793,6 +1793,7 @@ $('msgText').oninput = countMsg;
 $('tplWelcome').onclick = () => { $('msgText').value = welcome; countMsg(); };
 document.querySelectorAll('[data-tpl]').forEach(b => b.onclick = () => { $('msgText').value = b.dataset.tpl; countMsg(); });
 $('msgSend').onclick = async () => {
+  if (!(await spellGate($('msgText'), $('msgResult'), $('msgSend')))) return;
   const ids = [...msgTargets];
   $('msgSend').disabled = true; $('msgSend').textContent = 'Enviando ' + ids.length + '…';
   try {
@@ -3066,6 +3067,27 @@ async function loadActivity() {
 }
 $('acDays').onclick = (e) => { const b = e.target.closest('[data-d]'); if (!b) return; acDays = Number(b.dataset.d); $('acDays').querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b)); loadActivity(); };
 $('acWho').onchange = loadActivity;
+
+// ---------- Corrector de ortografía (antes de mandar cualquier texto a un cliente) ----------
+// Devuelve true si se puede mandar. Si encontró faltas, deja el texto corregido, muestra qué cambió y pide tocar de nuevo.
+async function spellGate(ta, msgEl, btn) {
+  const t = ta.value.trim();
+  if (!t || ta.dataset.spellOk === t) return true;
+  const old = btn ? btn.textContent : '';
+  if (btn) { btn.disabled = true; btn.textContent = '✏️ Revisando ortografía…'; }
+  const d = await lsPost('/api/ai/spell', { text: ta.value });
+  if (btn) { btn.disabled = false; btn.textContent = old; }
+  if (!d.ok) { ta.dataset.spellOk = t; msgEl.innerHTML = `<span style="color:#d97706">⚠️ No pude revisar la ortografía (${esc(d.error)}). Revisala vos y tocá de nuevo para enviar.</span>`; return false; }
+  if (d.warn) { ta.dataset.spellOk = t; msgEl.innerHTML = `<span style="color:#d97706">⚠️ ${esc(d.warn)}: revisá la ortografía vos y tocá de nuevo para enviar.</span>`; return false; }
+  if (!d.changed) { ta.dataset.spellOk = t; return true; }
+  ta.value = d.text; ta.dataset.spellOk = d.text.trim(); ta.dispatchEvent(new Event('input', { bubbles: true }));
+  ta.classList.add('spell-fixed'); setTimeout(() => ta.classList.remove('spell-fixed'), 2500);
+  msgEl.innerHTML = `<span style="color:var(--ok)">✏️ Corregí la ortografía${d.changes.length ? ': ' + d.changes.map(c => `<s class="muted">${esc(c.antes)}</s> → <b>${esc(c.despues)}</b>`).join(' · ') : ''}. Revisala y tocá de nuevo para enviar.</span>`;
+  return false;
+}
+// Subrayado de faltas del navegador mientras se escribe
+const spellOn = () => document.querySelectorAll('textarea, input[type=text]').forEach(el => { if (!el.dataset.sp) { el.dataset.sp = '1'; el.spellcheck = true; el.lang = 'es-AR'; } });
+spellOn(); new MutationObserver(spellOn).observe(document.body, { childList: true, subtree: true });
 
 function showView() {
   let v = ({ '#ventas': 'ventas', '#ranking': 'ranking', '#precios': 'precios', '#presupuestos': 'presupuestos', '#estados': 'estados', '#gastos': 'gastos', '#full': 'full', '#flex': 'flex', '#resultado': 'resultado', '#tareas': 'tareas', '#recompras': 'recompras', '#preguntas': 'preguntas', '#stock': 'stock', '#sugerencias': 'sugerencias', '#web': 'web', '#horarios': 'horarios', '#manuales': 'manuales', '#calculadora': 'calculadora', '#etiquetas': 'etiquetas', '#impresion': 'impresion', '#reclamos': 'reclamos', '#publicaciones': 'publicaciones', '#publicar': 'publicar', '#competencia': 'competencia', '#embudo': 'embudo', '#salud': 'salud', '#sueldos': 'sueldos', '#usuarios': 'usuarios', '#actividad': 'actividad', '#tuyo': 'tuyo' })[location.hash] || 'ventas';
@@ -4359,8 +4381,10 @@ $('qsList').onclick = async (e) => {
   }
   const sb = e.target.closest('[data-qsend]');
   if (sb) {
-    const id = sb.dataset.qsend, text = $('qsa-' + id).value.trim();
-    if (!text) { $('qsm-' + id).innerHTML = '<span class="err-t">Escribí la respuesta.</span>'; return; }
+    const id = sb.dataset.qsend;
+    if (!$('qsa-' + id).value.trim()) { $('qsm-' + id).innerHTML = '<span class="err-t">Escribí la respuesta.</span>'; return; }
+    if (!(await spellGate($('qsa-' + id), $('qsm-' + id), sb))) return;
+    const text = $('qsa-' + id).value.trim();
     sb.disabled = true; $('qsm-' + id).textContent = 'Enviando…';
     const d = await (await fetch(`/api/questions/${id}/answer`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ text, by: rfBy() }) })).json().catch(() => ({ ok: false, error: 'Sin conexión.' }));
     sb.disabled = false;
@@ -4543,7 +4567,9 @@ $('rfMText').oninput = rfCount;
 $('rfMKind').onclick = (e) => { const b = e.target.closest('[data-k]'); if (b) rfSetKind(b.dataset.k); };
 $('rfMClose').onclick = () => $('rfModal').classList.remove('show');
 $('rfMSend').onclick = async () => {
-  const text = $('rfMText').value.trim(); if (!text) return;
+  if (!$('rfMText').value.trim()) return;
+  if (!(await spellGate($('rfMText'), $('rfMMsg'), $('rfMSend')))) return;
+  const text = $('rfMText').value.trim();
   if (rfKind === 'wa') {
     const u = waLink(rfCur.phone);
     if (!u) { $('rfMMsg').innerHTML = '<span class="err-t">El teléfono no parece válido.</span>'; return; }
