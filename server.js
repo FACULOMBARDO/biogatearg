@@ -36,6 +36,7 @@ const tuyo = require('./lib/tuyo');
 const tasks = require('./lib/tasks');
 const refill = require('./lib/refill');
 const questions = require('./lib/questions');
+const users = require('./lib/users');
 const push = require('./lib/push');
 
 const MISSING = ['ML_CLIENT_ID', 'ML_CLIENT_SECRET', 'BASE_URL', 'ADMIN_PASSWORD'].filter(k => !process.env[k]);
@@ -90,13 +91,30 @@ function readCookie(req, name) {
   const m = (req.headers.cookie || '').split(/;\s*/).find(c => c.startsWith(name + '='));
   return m ? decodeURIComponent(m.slice(name.length + 1)) : null;
 }
-function isLogged(req) {
+// Sesión: "vencimiento.firma" = dueño; "vencimiento.idUsuario.versión.firma" = persona del equipo.
+const safeEq = (a, b) => a.length === b.length && crypto.timingSafeEqual(Buffer.from(a), Buffer.from(b));
+function getUser(req) {
+  if (req._user !== undefined) return req._user;
+  req._user = null;
   const c = readCookie(req, 'fx_sess');
-  if (!c) return false;
-  const [exp, sig] = c.split('.');
-  if (!exp || !sig || Number(exp) < Date.now()) return false;
-  const good = sign(exp);
-  return sig.length === good.length && crypto.timingSafeEqual(Buffer.from(sig), Buffer.from(good));
+  if (!c) return null;
+  const parts = c.split('.');
+  if (!parts[0] || Number(parts[0]) < Date.now()) return null;
+  if (parts.length === 2) { if (safeEq(parts[1], sign(parts[0]))) req._user = { id: 'owner', name: 'Dueño', owner: true, perms: [] }; return req._user; }
+  if (parts.length === 4) {
+    const [exp, uid, v, sig] = parts;
+    if (!safeEq(sig, sign(`${exp}.${uid}.${v}`))) return null;
+    const u = users.get(uid);
+    if (!u || u.active === false || String(u.v || 1) !== v) return null;
+    req._user = { id: u.id, name: u.name, owner: false, perms: u.perms || [], task_person: u.task_person || '' };
+  }
+  return req._user;
+}
+const isLogged = (req) => !!getUser(req);
+function startSession(res, u) {
+  const exp = String(Date.now() + SESSION_DAYS * 86400000);
+  const val = u ? `${exp}.${u.id}.${u.v || 1}.${sign(`${exp}.${u.id}.${u.v || 1}`)}` : `${exp}.${sign(exp)}`;
+  setCookie(res, 'fx_sess', val, SESSION_DAYS * 86400);
 }
 function setCookie(res, name, value, maxAgeSec) {
   const secure = process.env.BASE_URL.startsWith('https') ? '; Secure' : '';
@@ -139,14 +157,35 @@ app.get('/m/:id/:sig', (req, res) => {
 });
 app.get('/login', (req, res) => sendView(res, 'login'));
 app.post('/login', (req, res) => {
-  const a = Buffer.from(String(req.body.password || ''));
-  const b = Buffer.from(process.env.ADMIN_PASSWORD);
-  if (a.length === b.length && crypto.timingSafeEqual(a, b)) {
-    const exp = String(Date.now() + SESSION_DAYS * 86400000);
-    setCookie(res, 'fx_sess', `${exp}.${sign(exp)}`, SESSION_DAYS * 86400);
-    return res.redirect(req.query.next && String(req.query.next).startsWith('/') ? String(req.query.next) : '/');
+  const user = String(req.body.username || '').trim(), pw = String(req.body.password || '');
+  const next = req.query.next && String(req.query.next).startsWith('/') && !String(req.query.next).startsWith('//') ? String(req.query.next) : '/';
+  if (user && !['dueño', 'dueno', 'admin'].includes(user.toLowerCase())) {
+    const u = users.check(user, pw);
+    if (u) { startSession(res, u); return res.redirect(next); }
+    return res.redirect('/login?error=1');
   }
+  const a = Buffer.from(pw), b = Buffer.from(process.env.ADMIN_PASSWORD);
+  if (a.length === b.length && crypto.timingSafeEqual(a, b)) { startSession(res, null); return res.redirect(next); }
   res.redirect('/login?error=1');
+});
+// Link de activación: la persona crea su contraseña (sin login).
+app.get('/activar/:token', (req, res) => {
+  const u = users.byInvite(req.params.token);
+  const esc2 = (t) => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
+  res.setHeader('Content-Type', 'text/html; charset=utf-8');
+  res.send(`<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Crear contraseña · Biogate</title><link rel="stylesheet" href="/style.css"></head><body><main style="max-width:420px;padding-top:10vh"><div class="card" style="padding:26px">
+    <div style="text-align:center;margin-bottom:14px"><img src="/logo-biogate.png" alt="BIOGATE" style="height:90px;max-width:220px;object-fit:contain"></div>
+    ${u ? `<h2 style="margin:0 0 4px;font-size:18px">Hola ${esc2(u.name)} 👋</h2><p class="muted" style="font-size:14px;margin-top:0">Tu usuario es <b>${esc2(u.username)}</b>. Creá tu contraseña para entrar al panel.</p>
+    <form method="post"><input type="password" name="password" placeholder="Contraseña nueva (mínimo 6)" minlength="6" required autofocus><input type="password" name="password2" placeholder="Repetila" minlength="6" required style="margin-top:8px">
+    ${req.query.error ? `<p class="msg" style="background:var(--err-bg);color:var(--err)">${esc2(req.query.error)}</p>` : ''}<button class="btn primary" style="width:100%;margin-top:12px;padding:11px">Crear contraseña y entrar</button></form>`
+    : '<h2 style="font-size:18px">Link vencido</h2><p class="muted">Este link ya se usó o no es válido. Pedile uno nuevo al dueño del panel.</p><a class="btn" href="/login">Ir a entrar</a>'}
+  </div></main></body></html>`);
+});
+app.post('/activar/:token', (req, res) => {
+  const b = req.body || {};
+  if (String(b.password || '') !== String(b.password2 || '')) return res.redirect(`/activar/${encodeURIComponent(req.params.token)}?error=${encodeURIComponent('Las contraseñas no coinciden.')}`);
+  try { const u = users.setPassword(req.params.token, b.password); startSession(res, u); res.redirect('/'); }
+  catch (e) { res.redirect(`/activar/${encodeURIComponent(req.params.token)}?error=${encodeURIComponent(e.message)}`); }
 });
 app.get('/logout', (req, res) => { setCookie(res, 'fx_sess', '', 0); res.redirect('/login'); });
 
@@ -229,10 +268,32 @@ app.get('/auth/callback', async (req, res) => {
 
 // Todo lo de abajo requiere estar logueado.
 app.use((req, res, next) => {
-  if (isLogged(req)) return next();
+  if (isLogged(req)) {
+    req.user = getUser(req);
+    if (!users.allowed(req.user, req.method, req.path)) {
+      if (req.path.startsWith('/api/')) return res.status(403).json({ ok: false, error: 'No tenés permiso para esta sección. Pedíselo al dueño.' });
+      return res.redirect('/');
+    }
+    if (!req.user.owner && req.path === '/escanear' && !req.user.perms.includes('flex')) return res.redirect('/');
+    return next();
+  }
   if (req.path.startsWith('/api/')) return res.status(401).json({ error: 'Sesión vencida. Volvé a entrar.' });
   res.redirect('/login?next=' + encodeURIComponent(req.originalUrl));
 });
+
+// ---------- Usuarios del equipo (solo dueño) y sueldos ----------
+const payroll = require('./lib/payroll');
+app.get('/api/me', (req, res) => res.json({ ok: true, id: req.user.id, name: req.user.name, owner: req.user.owner, perms: req.user.owner ? Object.keys(users.SECTIONS).concat(['sueldos', 'usuarios']) : req.user.perms, task_person: req.user.task_person || '' }));
+app.post('/api/me/password', (req, res) => { try { if (req.user.owner) throw new Error('La contraseña del dueño se cambia en Vercel (ADMIN_PASSWORD).'); users.changeOwn(req.user.id, (req.body || {}).old, (req.body || {}).new); res.json({ ok: true }); } catch (e) { res.status(400).json({ ok: false, error: e.message }); } });
+const inviteUrl = (t) => t ? process.env.BASE_URL.replace(/\/$/, '') + '/activar/' + t : null;
+app.get('/api/users', (req, res) => res.json({ ok: true, items: users.all().map(u => ({ ...u, invite_url: inviteUrl(users.inviteFor(u.id)) })), sections: users.SECTIONS, groups: users.GROUPS, task_people: (tasks.people() || []).map(p => ({ id: p.id, name: p.name })) }));
+app.post('/api/users', (req, res) => { try { const u = users.save(req.body || {}); res.json({ ok: true, user: { ...u, invite_url: inviteUrl(users.inviteFor(u.id)) } }); } catch (e) { res.status(400).json({ ok: false, error: e.message }); } });
+app.post('/api/users/:id/invite', (req, res) => { try { res.json({ ok: true, invite_url: inviteUrl(users.newInvite(req.params.id)) }); } catch (e) { res.status(400).json({ ok: false, error: e.message }); } });
+app.delete('/api/users/:id', (req, res) => { users.remove(req.params.id); res.json({ ok: true }); });
+app.get('/api/payroll', (req, res) => { try { const m = /^\d{4}-\d{2}$/.test(req.query.month || '') ? req.query.month : new Date(Date.now() - 3 * 3600e3).toISOString().slice(0, 7); res.json({ ok: true, ...payroll.month(m), people: payroll.people(), history: payroll.history(12) }); } catch (e) { res.status(400).json({ ok: false, error: e.message }); } });
+app.post('/api/payroll/people', (req, res) => { try { res.json({ ok: true, person: payroll.savePerson(req.body || {}) }); } catch (e) { res.status(400).json({ ok: false, error: e.message }); } });
+app.delete('/api/payroll/people/:id', (req, res) => { payroll.removePerson(req.params.id); res.json({ ok: true }); });
+app.put('/api/payroll/:month', (req, res) => { try { res.json({ ok: true, ...payroll.saveMonth(req.params.month, (req.body || {}).rows) }); } catch (e) { res.status(400).json({ ok: false, error: e.message }); } });
 
 app.get(['/', '/index.html'], (req, res) => sendView(res, 'index'));
 app.get('/escanear', (req, res) => sendView(res, 'scan'));
@@ -652,8 +713,8 @@ app.get('/api/clips', (req, res) => {
 });
 
 // ---------- Resultado del mes ----------
-app.get('/api/report', (req, res) => res.json(insights.report(req.query.month, { tuyo: req.query.tuyo === '1' })));
-app.get('/api/results', (req, res) => res.json(insights.results(req.query.month, Math.min(24, Math.max(3, Number(req.query.months) || 12)), { accounts: String(req.query.accounts || ''), web: req.query.web !== '0', quotes: req.query.quotes !== '0', tuyo: req.query.tuyo === '1' })));
+app.get('/api/report', (req, res) => res.json(insights.report(req.query.month, { tuyo: req.query.tuyo === '1', payroll: !!(req.user && req.user.owner) })));
+app.get('/api/results', (req, res) => res.json(insights.results(req.query.month, Math.min(24, Math.max(3, Number(req.query.months) || 12)), { accounts: String(req.query.accounts || ''), web: req.query.web !== '0', quotes: req.query.quotes !== '0', tuyo: req.query.tuyo === '1', payroll: !!(req.user && req.user.owner) })));
 app.post('/api/results/fetch-month', (req, res) => {
   const m = String(req.body.month || '');
   if (!/^\d{4}-\d{2}$/.test(m)) return res.status(400).json({ ok: false, error: 'Mes inválido.' });
