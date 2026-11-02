@@ -633,12 +633,12 @@
   <div class="stats" id="prStats"></div>
   <div class="card" style="padding:0">
     <div class="table-wrap"><table class="sales-table">
-      <thead><tr><th>Persona</th><th style="text-align:right">Sueldo</th><th>Cargas sociales</th><th style="text-align:right">Comisiones del mes</th><th style="text-align:right">Total</th><th>Nota</th><th></th></tr></thead>
+      <thead><tr><th>Persona</th><th style="text-align:right">Sueldo</th><th>Cargas sociales</th><th style="text-align:right">Diferencia obra social</th><th style="text-align:right">Comisiones</th><th style="text-align:right">Total</th><th>Nota</th><th></th></tr></thead>
       <tbody id="prRows"></tbody>
     </table></div>
-    <div class="row" style="justify-content:space-between;padding:12px 14px;gap:8px;flex-wrap:wrap"><button class="btn small" id="prAdd">＋ Agregar persona</button><div class="row" style="gap:8px;align-items:center"><span id="prMsg" style="font-size:13px"></span><button class="btn primary" id="prSave">Guardar mes</button></div></div>
+    <div class="row" style="justify-content:space-between;padding:12px 14px;gap:8px;flex-wrap:wrap"><div class="row" style="gap:6px;flex-wrap:wrap"><button class="btn small" id="prAdd">＋ Agregar persona</button><button class="btn small" id="prCopy" hidden></button></div><div class="row" style="gap:8px;align-items:center"><span id="prMsg" style="font-size:13px"></span><button class="btn primary" id="prSave">Guardar mes</button></div></div>
   </div>
-  <div class="muted" style="font-size:12.5px">El total de cada mes se descuenta en <b>Resultado del mes</b> (NETO NETO) y en el informe PDF, como un gasto más. Los empleados no ven esta sección ni ese total. Sueldo y cargas sociales quedan fijos para los meses siguientes; las comisiones se cargan cada mes.</div>
+  <div class="muted" style="font-size:12.5px">El total de cada mes se descuenta en <b>Resultado del mes</b> (NETO NETO) y en el informe PDF, como un gasto más. Los empleados no ven esta sección ni ese total. Cada mes se carga aparte y se descuenta recién cuando lo guardás.</div>
   <div class="card" style="margin-top:12px;padding:12px 14px"><b style="font-size:14px">Últimos meses</b><div id="prHist" class="row" style="gap:8px;flex-wrap:wrap;margin-top:8px;font-size:13px"></div></div>
 </section>
 <section id="viewUsers" hidden>
@@ -2887,32 +2887,36 @@ async function loadPayroll() {
   if (!prMonthV) prMonthV = new Date(Date.now() - 3 * 3600e3).toISOString().slice(0, 7);
   $('prMonth').value = prMonthV;
   const d = await (await fetch('/api/payroll?month=' + prMonthV)).json().catch(() => ({ ok: false, error: 'Sin conexión.' }));
-  if (!d.ok) { $('prRows').innerHTML = `<tr><td colspan="7" class="err-t" style="padding:14px">${esc(d.error)}</td></tr>`; return; }
+  if (!d.ok) { $('prRows').innerHTML = `<tr><td colspan="8" class="err-t" style="padding:14px">${esc(d.error)}</td></tr>`; return; }
   prData = d; renderPayroll();
 }
 function prCalc() {
-  let s = 0, c = 0, k = 0;
+  let s = 0, c = 0, o = 0, k = 0;
   $('prRows').querySelectorAll('tr[data-pid]').forEach(tr => {
     const g = (n) => Number(tr.querySelector(`[data-f="${n}"]`).value) || 0, has = tr.querySelector('[data-f="has_charges"]').checked;
     tr.querySelector('[data-f="charges"]').disabled = !has;
-    const t = g('salary') + (has ? g('charges') : 0) + g('commission');
+    const t = g('salary') + (has ? g('charges') : 0) + g('os_diff') + g('commission');
     tr.querySelector('.pr-tot').textContent = money(t);
-    s += g('salary'); c += has ? g('charges') : 0; k += g('commission');
+    s += g('salary'); c += has ? g('charges') : 0; o += g('os_diff'); k += g('commission');
   });
-  const tot = s + c + k;
-  $('prStats').innerHTML = `<div class="stat"><div class="k">Total del mes</div><div class="v">${money(tot)}</div><div class="sub">${prData.saved ? 'guardado' : '<span style="color:#d97706">sin guardar: precargado con los sueldos fijos</span>'}</div></div>
-    <div class="stat"><div class="k">Sueldos</div><div class="v">${money(s)}</div></div><div class="stat"><div class="k">Cargas sociales</div><div class="v">${money(c)}</div></div><div class="stat"><div class="k">Comisiones</div><div class="v">${money(k)}</div></div>`;
+  const tot = s + c + o + k;
+  $('prStats').innerHTML = `<div class="stat"><div class="k">Total del mes</div><div class="v">${money(tot)}</div><div class="sub">${prData.saved ? '✓ guardado · se descuenta en Resultado del mes' : '<span style="color:#d97706">sin guardar: no se descuenta hasta que lo guardes</span>'}</div></div>
+    <div class="stat"><div class="k">Sueldos</div><div class="v">${money(s)}</div></div><div class="stat"><div class="k">Cargas sociales</div><div class="v">${money(c)}</div></div><div class="stat"><div class="k">Diferencia obra social</div><div class="v">${money(o)}</div></div><div class="stat"><div class="k">Comisiones</div><div class="v">${money(k)}</div></div>`;
 }
 function renderPayroll() {
   const d = prData;
   $('prRows').innerHTML = d.rows.map(r => `<tr data-pid="${esc(r.person_id)}">
-    <td><b>${esc(r.name)}</b>${r.active ? '' : ' <span class="ls-tag">de baja</span>'}<div><a href="#" class="lnk" style="font-size:11.5px" data-predit="${esc(r.person_id)}">editar datos fijos</a></div></td>
+    <td><b>${esc(r.name)}</b>${r.active ? '' : ' <span class="ls-tag">de baja</span>'}<div><a href="#" class="lnk" style="font-size:11.5px" data-predit="${esc(r.person_id)}">cambiar nombre</a></div></td>
     <td style="text-align:right"><input type="number" min="0" data-f="salary" value="${r.salary || ''}" style="width:130px;text-align:right"></td>
     <td><label style="display:flex;gap:6px;align-items:center;font-size:13px"><input type="checkbox" data-f="has_charges" ${r.has_charges ? 'checked' : ''} style="width:auto"> Tiene</label><input type="number" min="0" data-f="charges" value="${r.charges || ''}" placeholder="monto" style="width:120px;margin-top:4px;text-align:right"></td>
+    <td style="text-align:right"><input type="number" min="0" data-f="os_diff" value="${r.os_diff || ''}" placeholder="0" style="width:120px;text-align:right"></td>
     <td style="text-align:right"><input type="number" min="0" data-f="commission" value="${r.commission || ''}" placeholder="0" style="width:120px;text-align:right"></td>
     <td style="text-align:right"><b class="pr-tot"></b></td>
     <td><input type="text" data-f="note" value="${esc(r.note || '')}" placeholder="opcional" style="width:150px"></td>
-    <td><button class="x" data-prdel="${esc(r.person_id)}" title="Dar de baja">✕</button></td></tr>`).join('') || '<tr><td colspan="7" class="muted" style="padding:14px">Todavía no cargaste a nadie. Tocá "＋ Agregar persona".</td></tr>';
+    <td><button class="x" data-prdel="${esc(r.person_id)}" title="Dar de baja">✕</button></td></tr>`).join('') || '<tr><td colspan="8" class="muted" style="padding:14px">Todavía no cargaste a nadie. Tocá "＋ Agregar persona".</td></tr>';
+  const pv = d.previous;
+  $('prCopy').hidden = !(pv && !d.saved);
+  if (pv) $('prCopy').textContent = `Copiar montos de ${new Date(pv.month + '-15').toLocaleDateString('es-AR', { month: 'long', year: 'numeric' })} para editarlos`;
   $('prRows').querySelectorAll('input').forEach(i => i.oninput = prCalc);
   $('prRows').querySelectorAll('input[type=checkbox]').forEach(i => i.onchange = prCalc);
   prCalc();
@@ -2924,24 +2928,30 @@ $('prRows').addEventListener('click', async (e) => {
   const ed = e.target.closest('[data-predit]');
   if (ed) {
     e.preventDefault(); const p = prData.people.find(x => x.id === ed.dataset.predit); if (!p) return;
-    const name = prompt('Nombre:', p.name); if (name === null) return;
-    const salary = prompt('Sueldo mensual fijo ($):', p.salary || ''); if (salary === null) return;
-    const charges = prompt('Cargas sociales por mes ($). Dejalo vacío si no tiene:', p.has_charges ? p.charges : '');
-    const d = await lsPost('/api/payroll/people', { id: p.id, name, salary, has_charges: !!Number(charges), charges });
-    $('prMsg').innerHTML = d.ok ? '<span style="color:var(--ok)">✓ Datos fijos guardados (se usan en los meses que todavía no guardaste)</span>' : `<span class="err-t">${esc(d.error)}</span>`; loadPayroll();
+    const name = prompt('Nombre:', p.name); if (!name) return;
+    const d = await lsPost('/api/payroll/people', { id: p.id, name });
+    if (!d.ok) { $('prMsg').innerHTML = `<span class="err-t">${esc(d.error)}</span>`; return; }
+    loadPayroll();
   }
 });
 $('prHist').addEventListener('click', (e) => { const a = e.target.closest('[data-prm]'); if (!a) return; e.preventDefault(); prMonthV = a.dataset.prm; loadPayroll(); });
 $('prAdd').onclick = async () => {
   const name = prompt('Nombre de la persona:'); if (!name) return;
-  const salary = prompt('Sueldo mensual ($):', ''); if (salary === null) return;
-  const charges = prompt('Cargas sociales por mes ($). Dejalo vacío si no tiene:', '');
-  const d = await lsPost('/api/payroll/people', { name, salary, has_charges: !!Number(charges), charges });
+  const d = await lsPost('/api/payroll/people', { name });
   if (!d.ok) { $('prMsg').innerHTML = `<span class="err-t">${esc(d.error)}</span>`; return; }
   await loadPayroll();
 };
+$('prCopy').onclick = () => {
+  const pv = prData.previous; if (!pv) return;
+  $('prRows').querySelectorAll('tr[data-pid]').forEach(tr => {
+    const r = pv.rows.find(x => x.person_id === tr.dataset.pid); if (!r) return;
+    const f = (n) => tr.querySelector(`[data-f="${n}"]`);
+    f('salary').value = r.salary || ''; f('has_charges').checked = !!r.has_charges; f('charges').value = r.charges || ''; f('os_diff').value = r.os_diff || ''; f('commission').value = r.commission || '';
+  });
+  prCalc(); $('prMsg').innerHTML = '<span class="muted">Copiado. Cambiá lo que varió y tocá "Guardar mes".</span>';
+};
 $('prSave').onclick = async () => {
-  const rows = [...$('prRows').querySelectorAll('tr[data-pid]')].map(tr => { const v = (n) => tr.querySelector(`[data-f="${n}"]`); return { person_id: tr.dataset.pid, salary: v('salary').value, has_charges: v('has_charges').checked, charges: v('charges').value, commission: v('commission').value, note: v('note').value }; });
+  const rows = [...$('prRows').querySelectorAll('tr[data-pid]')].map(tr => { const v = (n) => tr.querySelector(`[data-f="${n}"]`); return { person_id: tr.dataset.pid, salary: v('salary').value, has_charges: v('has_charges').checked, charges: v('charges').value, os_diff: v('os_diff').value, commission: v('commission').value, note: v('note').value }; });
   const d = await lsPost('/api/payroll/' + prMonthV, { rows }, 'PUT');
   $('prMsg').innerHTML = d.ok ? '<span style="color:var(--ok)">✓ Mes guardado. Ya se descuenta en Resultado del mes.</span>' : `<span class="err-t">${esc(d.error)}</span>`;
   if (d.ok) loadPayroll();
