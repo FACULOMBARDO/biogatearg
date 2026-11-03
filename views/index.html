@@ -951,7 +951,7 @@
 <section id="viewPLabel" hidden>
   <div class="row" style="justify-content:space-between;margin-bottom:12px">
     <h1 class="page-title">Etiquetas de producto</h1>
-    <span class="muted" style="font-size:13px">Elegí la marca, escribí el SKU y descargá la etiqueta de 10 × 5 cm</span>
+    <span class="muted" style="font-size:13px">Elegí la marca, escribí el SKU y descargá la etiqueta (10 × 5 cm; BIOGATE 5 × 5 cm)</span>
   </div>
   <div class="pl-grid">
     <div class="card" style="margin:0">
@@ -975,14 +975,14 @@
     <div class="card pl-prevcard" style="margin:0">
       <div class="k-title" style="margin-bottom:8px">Vista previa</div>
       <div class="pl-prev" id="plPrev"></div>
-      <div class="muted" style="font-size:12.5px;margin-top:8px">Tamaño real: 100 × 50 mm. En el PDF sale igual.</div>
+      <div class="muted" id="plSizeTxt" style="font-size:12.5px;margin-top:8px">Tamaño real: 100 × 50 mm. En el PDF sale igual.</div>
     </div>
   </div>
   <div class="card" id="plListCard" hidden>
     <div class="row" style="justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:10px">
       <div class="k-title">Lista para imprimir <span class="muted" id="plListInfo" style="font-weight:400"></span></div>
       <div class="row" style="gap:8px;flex-wrap:wrap">
-        <label class="fld inline"><select id="plFormat"><option value="roll">Rollo / impresora de etiquetas (1 por página, 10×5)</option><option value="a4">Hoja A4 (10 por hoja)</option></select></label>
+        <label class="fld inline"><select id="plFormat"><option value="roll">Rollo / impresora de etiquetas (1 por página: 10×5, BIOGATE 5×5)</option><option value="a4">Hoja A4 (10 por hoja; BIOGATE 20 por hoja)</option></select></label>
         <button class="btn primary" id="plListPdf">⬇️ Descargar todas</button>
         <button class="btn" id="plListClear">Vaciar</button>
       </div>
@@ -998,6 +998,8 @@
       <label class="fld"><span>C.U.I.T.</span><input type="text" id="plcCuit"></label>
       <label class="fld"><span>Teléfono</span><input type="text" id="plcPhone"></label>
       <label class="fld"><span>Origen por defecto</span><input type="text" id="plcOrigin"></label>
+      <label class="fld"><span>Dirección en las de BIOGATE</span><input type="text" id="plcBioAddress"></label>
+      <label class="fld"><span>Teléfono en las de BIOGATE</span><input type="text" id="plcBioPhone"></label>
     </div>
     <div class="row" style="gap:8px;margin-top:10px"><button class="btn primary small" id="plcSave">Guardar</button><button class="btn small" id="plcReset">Volver a los datos originales</button><span class="muted" id="plcMsg" style="font-size:13px"></span></div>
   </details>
@@ -7149,7 +7151,51 @@ function plSkuPt(sku) {
 }
 async function plFonts() { try { await Promise.all([document.fonts.load('100px PLDejaVu'), document.fonts.load('bold 100px PLDejaVu')]); } catch { /* sigue */ } }
 
+// ---- BIOGATE: etiqueta cuadrada de 5 × 5 cm, con su dirección y teléfono ----
+const PL_SQ = { BIOGATE: true };
+const plIsSq = (brand) => !!PL_SQ[brand];
+// Corta un texto en renglones que entren en el ancho (mm) con esa letra.
+function plWrap(txt, pt, bold, max) {
+  const words = String(txt || '').split(/\s+/).filter(Boolean), out = []; let cur = '';
+  for (const w of words) { const t = cur ? cur + ' ' + w : w; if (cur && plW(t, pt, bold) > max) { out.push(cur); cur = w; } else cur = t; }
+  if (cur) out.push(cur);
+  return out;
+}
+// Lista de cosas a dibujar (en mm), la misma para la vista previa y el PDF.
+function plSqOps(it) {
+  const b = PL_BR[it.brand], c = plCfg || plDef || {}, sku = it.sku || 'SKU', ops = [];
+  ops.push({ k: 'box', x: 1, y: 1, w: 48, h: 48, r: 2.5, stroke: b.border });
+  const lh = 11.5; ops.push({ k: 'img', x: 4, y: 3.2, w: lh * b.iw / b.ih, h: lh });
+  ops.push({ k: 't', x: 46, y: 7.2, pt: 6, txt: `ORIGEN: ${(it.origin || c.origin || 'CHINA').toUpperCase()}`, bold: 1, end: 1 });
+  ops.push({ k: 'bar', x: 4, y: 16.2, w: 42, h: 7, r: 1, fill: b.bar });
+  ops.push({ k: 't', x: 5.4, y: 20.6, pt: 6, txt: 'SKU', fill: [255, 255, 255] });
+  const left = 5.4 + plW('SKU', 6, false) + 2.5, max = 44.6 - left; let pt = 12; while (pt > 6 && plW(sku, pt, true) > max) pt -= 0.5;
+  ops.push({ k: 't', x: 44.6, y: 19.7 + pt * PT * 0.729 / 2, pt, txt: sku, bold: 1, end: 1, fill: [255, 255, 255] });
+  let y = 27.6; const W = 42;
+  const line = (txt, pt, bold) => { for (const l of plWrap(txt, pt, bold, W)) { y += pt * PT * 1.34; ops.push({ k: 't', x: 4, y, pt, txt: l, bold }); } };
+  line(c.title, 5, 1); line(c.name, 5.6, 1); y += 0.8;
+  line(c.bio_address || c.address, 5.6, 0); line(c.cuit, 5.2, 0); line(c.bio_phone || c.phone, 5.6, 0);
+  return ops;
+}
+function plSqSvg(it) {
+  const T = (o) => `<text x="${o.x}" y="${o.y.toFixed(2)}" font-size="${(o.pt * PT).toFixed(3)}" ${o.bold ? 'font-weight="bold"' : ''} ${o.end ? 'text-anchor="end"' : ''} fill="${o.fill ? plRgb(o.fill) : '#000'}">${esc(o.txt)}</text>`;
+  const b = PL_BR[it.brand];
+  return `<svg viewBox="0 0 50 50" xmlns="http://www.w3.org/2000/svg" font-family="PLDejaVu, 'DejaVu Sans', Verdana, sans-serif"><rect x="0" y="0" width="50" height="50" fill="#fff"/>${plSqOps(it).map(o =>
+    o.k === 'box' ? `<rect x="${o.x}" y="${o.y}" width="${o.w}" height="${o.h}" rx="${o.r}" fill="#fff" stroke="${plRgb(o.stroke)}" stroke-width=".4"/>`
+    : o.k === 'img' ? `<image href="${b.img}" x="${o.x}" y="${o.y}" width="${o.w.toFixed(2)}" height="${o.h}"/>`
+    : o.k === 'bar' ? `<rect x="${o.x}" y="${o.y}" width="${o.w}" height="${o.h}" rx="${o.r}" fill="${plRgb(o.fill)}"/>` : T(o)).join('')}</svg>`;
+}
+async function plSqDraw(doc, it, ox, oy) {
+  const b = PL_BR[it.brand], img = plImgs[it.brand] || (plImgs[it.brand] = await imgData(b.img));
+  for (const o of plSqOps(it)) {
+    if (o.k === 'box') { doc.setDrawColor(...o.stroke); doc.setLineWidth(0.4); doc.setFillColor(255, 255, 255); doc.roundedRect(ox + o.x, oy + o.y, o.w, o.h, o.r, o.r, 'FD'); }
+    else if (o.k === 'img') { if (img) doc.addImage(img.data, 'PNG', ox + o.x, oy + o.y, o.w, o.h, 'brand-' + it.brand); }
+    else if (o.k === 'bar') { doc.setFillColor(...o.fill); doc.roundedRect(ox + o.x, oy + o.y, o.w, o.h, o.r, o.r, 'F'); }
+    else { doc.setFont('DejaVu', o.bold ? 'bold' : 'normal'); doc.setFontSize(o.pt); doc.setTextColor(...(o.fill || [0, 0, 0])); doc.text(String(o.txt || ''), ox + o.x, oy + o.y, o.end ? { align: 'right' } : undefined); }
+  }
+}
 function plSvg(it) {
+  if (plIsSq(it.brand)) return plSqSvg(it);
   const b = PL_BR[it.brand], c = plCfg || plDef || {}, sku = it.sku || 'SKU', pt = plSkuPt(sku);
   const w = b.h * b.iw / b.ih;
   const T = (x, y, pt, txt, o = {}) => `<text x="${x}" y="${y}" font-size="${(pt * PT).toFixed(3)}" ${o.bold ? 'font-weight="bold"' : ''} ${o.end ? 'text-anchor="end"' : ''} fill="${o.fill || '#000'}">${esc(txt)}</text>`;
@@ -7177,9 +7223,9 @@ async function plFontB64() {
   const [n, bd] = await Promise.all([b64('/fonts/DejaVuSans.ttf'), b64('/fonts/DejaVuSans-Bold.ttf')]);
   return (plFontData = { n, bd });
 }
-async function plDoc(format) {
+async function plDoc(format, sq) {
   const JsPDF = await jsPDFLib();
-  const doc = format === 'a4' ? new JsPDF({ unit: 'mm', format: 'a4' }) : new JsPDF({ unit: 'mm', format: [50, 100], orientation: 'landscape' });
+  const doc = format === 'a4' ? new JsPDF({ unit: 'mm', format: 'a4' }) : sq ? new JsPDF({ unit: 'mm', format: [50, 50] }) : new JsPDF({ unit: 'mm', format: [50, 100], orientation: 'landscape' });
   const f = await plFontB64();
   doc.addFileToVFS('DejaVuSans.ttf', f.n); doc.addFont('DejaVuSans.ttf', 'DejaVu', 'normal');
   doc.addFileToVFS('DejaVuSans-Bold.ttf', f.bd); doc.addFont('DejaVuSans-Bold.ttf', 'DejaVu', 'bold');
@@ -7201,13 +7247,20 @@ async function plDraw(doc, it, ox, oy) {
 }
 async function plBuild(items, format = 'roll') {
   await plFonts();
-  const doc = await plDoc(format);
   const all = []; for (const it of items) for (let k = 0; k < Math.max(1, it.qty || 1); k++) all.push(it);
-  for (let i = 0; i < all.length; i++) {
-    if (format === 'a4') {
-      const pos = i % 10; if (i && !pos) doc.addPage();
-      await plDraw(doc, all[i], 5 + (pos % 2) * 100, 23.5 + Math.floor(pos / 2) * 50);
-    } else { if (i) doc.addPage([50, 100], 'landscape'); await plDraw(doc, all[i], 0, 0); }
+  const doc = await plDoc(format, all.length && plIsSq(all[0].brand));
+  if (format === 'a4') {
+    // Primero las cuadradas (20 por hoja: 4 × 5) y después las de 10 × 5 (10 por hoja), cada grupo en sus hojas.
+    const sq = all.filter(it => plIsSq(it.brand)), rect = all.filter(it => !plIsSq(it.brand));
+    let page = 0;
+    for (let i = 0; i < sq.length; i++) { const pos = i % 20; if (pos === 0 && page++) doc.addPage(); await plSqDraw(doc, sq[i], 5 + (pos % 4) * 50, 23.5 + Math.floor(pos / 4) * 50); }
+    for (let i = 0; i < rect.length; i++) { const pos = i % 10; if (pos === 0 && page++) doc.addPage(); await plDraw(doc, rect[i], 5 + (pos % 2) * 100, 23.5 + Math.floor(pos / 2) * 50); }
+  } else {
+    for (let i = 0; i < all.length; i++) {
+      const isSq = plIsSq(all[i].brand);
+      if (i) isSq ? doc.addPage([50, 50], 'portrait') : doc.addPage([50, 100], 'landscape');
+      await (isSq ? plSqDraw : plDraw)(doc, all[i], 0, 0);
+    }
   }
   return doc;
 }
@@ -7218,6 +7271,8 @@ function plCur() { return { brand: plBrand, sku: $('plSku').value.trim().toUpper
 function plPreview() {
   const it = plCur();
   $('plPrev').innerHTML = plSvg({ ...it, sku: it.sku || 'XXX-0000' });
+  $('plPrev').classList.toggle('pl-sq', plIsSq(it.brand));
+  $('plSizeTxt').textContent = plIsSq(it.brand) ? 'Tamaño real: 50 × 50 mm. En el PDF sale igual.' : 'Tamaño real: 100 × 50 mm. En el PDF sale igual.';
   $('plPrev').classList.toggle('pl-empty', !it.sku);
   const m = plSkus.find(p => p.sku === it.sku);
   $('plSkuHint').innerHTML = !it.sku ? 'Escribí un SKU nuevo o elegí uno de la lista de precios.' : m ? `✓ ${esc(m.name || 'En la lista de precios')}` : 'SKU nuevo (no está en la lista de precios): se imprime igual.';
@@ -7244,7 +7299,7 @@ async function loadPLabel() {
   if (!plLoaded) {
     const d = await (await fetch('/api/plabel')).json().catch(() => ({}));
     plCfg = d.cfg; plDef = d.def; plHistory = d.history || []; plLoaded = true;
-    const map = { plcTitle: 'title', plcName: 'name', plcAddress: 'address', plcCuit: 'cuit', plcPhone: 'phone', plcOrigin: 'origin' };
+    const map = { plcTitle: 'title', plcName: 'name', plcAddress: 'address', plcCuit: 'cuit', plcPhone: 'phone', plcOrigin: 'origin', plcBioAddress: 'bio_address', plcBioPhone: 'bio_phone' };
     for (const [id, k] of Object.entries(map)) $(id).value = plCfg[k] || '';
     $('plOrigin').placeholder = plCfg.origin || 'CHINA';
     fetch('/api/costs/items').then(r => r.json()).then(x => { plSkus = (x.items || []).filter(i => i.sku); $('plSkuList').innerHTML = plSkus.map(i => `<option value="${esc(i.sku)}">${esc(i.name || '')}</option>`).join(''); plPreview(); }).catch(() => {});
@@ -7286,12 +7341,12 @@ $('plRecent').onclick = (e) => { const b = e.target.closest('[data-h]'); if (!b)
 async function plcSave(body) {
   const d = await (await fetch('/api/plabel', { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) })).json().catch(() => null);
   if (!d || !d.ok) { $('plcMsg').textContent = 'No se pudo guardar.'; return; }
-  plCfg = d.cfg; const map = { plcTitle: 'title', plcName: 'name', plcAddress: 'address', plcCuit: 'cuit', plcPhone: 'phone', plcOrigin: 'origin' };
+  plCfg = d.cfg; const map = { plcTitle: 'title', plcName: 'name', plcAddress: 'address', plcCuit: 'cuit', plcPhone: 'phone', plcOrigin: 'origin', plcBioAddress: 'bio_address', plcBioPhone: 'bio_phone' };
   for (const [id, k] of Object.entries(map)) $(id).value = plCfg[k] || '';
   $('plOrigin').placeholder = plCfg.origin || 'CHINA';
   $('plcMsg').textContent = '✓ Guardado'; setTimeout(() => { $('plcMsg').textContent = ''; }, 2500); plPreview(); plListUi();
 }
-$('plcSave').onclick = () => plcSave({ title: $('plcTitle').value, name: $('plcName').value, address: $('plcAddress').value, cuit: $('plcCuit').value, phone: $('plcPhone').value, origin: $('plcOrigin').value.toUpperCase() });
+$('plcSave').onclick = () => plcSave({ title: $('plcTitle').value, name: $('plcName').value, address: $('plcAddress').value, cuit: $('plcCuit').value, phone: $('plcPhone').value, origin: $('plcOrigin').value.toUpperCase(), bio_address: $('plcBioAddress').value, bio_phone: $('plcBioPhone').value });
 $('plcReset').onclick = () => { if (confirm('¿Volver a los datos originales del importador?')) plcSave(plDef); };
 
 fxUi(); loadMe().then(() => { showView(); pollSales(); });

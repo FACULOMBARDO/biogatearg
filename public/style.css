@@ -433,6 +433,7 @@ button.un-chip { font: inherit; font-size: 13.5px; color: var(--text); }
 .pl-prev { background: #eef0f3; border-radius: 10px; padding: 14px; }
 .pl-prev svg { display: block; width: 100%; height: auto; box-shadow: 0 2px 10px rgba(0, 0, 0, .12); border-radius: 4px; background: #fff; }
 .pl-prev.pl-empty svg { opacity: .55; }
+.pl-prev.pl-sq svg { max-width: 62%; margin: 0 auto; }
 .pl-recent { display: flex; flex-wrap: wrap; gap: 6px; }
 .pl-chip { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--line); background: var(--card); border-radius: 999px; padding: 4px 10px; font-size: 12.5px; cursor: pointer; color: inherit; }
 .pl-chip i, .pl-dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 6px; vertical-align: middle; }

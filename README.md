@@ -415,6 +415,8 @@ Al imprimir el PDF, elegí **Tamaño real / 100 %** (no "Ajustar a la página").
 
 ---
 
+- **BIOGATE** sale en **5 × 5 cm** (en hoja A4 entran 20) y lleva su propia dirección y teléfono (Gervasio Artigas 5767 · 7558-6818). Se cambian en "Datos del importador" → "Dirección/Teléfono en las de BIOGATE". Las otras marcas siguen en 10 × 5 cm.
+
 ## Problemas comunes
 
 - **La ventana del servidor dice "Falta la variable de entorno…":** corré `configurar.bat` de nuevo.
