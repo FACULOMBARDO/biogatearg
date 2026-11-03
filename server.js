@@ -300,8 +300,8 @@ app.post('/api/webcat/assign', wcWrap(req => webcat.assign((req.body || {}).item
 app.post('/api/webcat/undo', wcWrap(() => webcat.undo()));
 app.post('/api/webcat/category', wcWrap(async req => ({ category: await webcat.createCat((req.body || {}).name, (req.body || {}).parent) })));
 app.put('/api/webcat/category/:id', wcWrap(async req => ({ category: await webcat.renameCat(req.params.id, (req.body || {}).name) })));
-app.post('/api/webcat/import/plan', wcWrap(async req => { if ((req.body || {}).refresh) await webcat.sync(); return { plan: webcat.importPlan((req.body || {}).rows) }; }));
-app.post('/api/webcat/import/apply', wcWrap(req => webcat.importApply((req.body || {}).rows, (req.body || {}).skip)));
+app.post('/api/webcat/import/plan', wcWrap(async req => { if ((req.body || {}).refresh) await webcat.sync(); return { plan: webcat.importPlan((req.body || {}).rows, (req.body || {}).keep) }; }));
+app.post('/api/webcat/import/apply', wcWrap(req => webcat.importApply((req.body || {}).rows, (req.body || {}).skip, (req.body || {}).keep)));
 app.post('/api/webcat/suggest', wcWrap(async req => ({ suggestions: await webcat.suggest((req.body || {}).ids) })));
 app.get('/api/activity', (req, res) => res.json({ ok: true, ...activity.report(req.query.days, req.query.who) }));
 
