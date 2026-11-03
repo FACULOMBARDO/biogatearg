@@ -951,7 +951,7 @@
 <section id="viewPLabel" hidden>
   <div class="row" style="justify-content:space-between;margin-bottom:12px">
     <h1 class="page-title">Etiquetas de producto</h1>
-    <span class="muted" style="font-size:13px">Elegí la marca, escribí el SKU y descargá la etiqueta (10 × 5 cm; BIOGATE 5 × 5 cm)</span>
+    <span class="muted" style="font-size:13px">Elegí la marca, escribí el SKU y descargá la etiqueta de 5 × 5 cm</span>
   </div>
   <div class="pl-grid">
     <div class="card" style="margin:0">
@@ -982,7 +982,7 @@
     <div class="row" style="justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:10px">
       <div class="k-title">Lista para imprimir <span class="muted" id="plListInfo" style="font-weight:400"></span></div>
       <div class="row" style="gap:8px;flex-wrap:wrap">
-        <label class="fld inline"><select id="plFormat"><option value="roll">Rollo / impresora de etiquetas (1 por página: 10×5, BIOGATE 5×5)</option><option value="a4">Hoja A4 (10 por hoja; BIOGATE 20 por hoja)</option></select></label>
+        <label class="fld inline"><select id="plFormat"><option value="roll">Rollo / impresora de etiquetas (1 por página, 5×5)</option><option value="a4">Hoja A4 (20 por hoja)</option></select></label>
         <button class="btn primary" id="plListPdf">⬇️ Descargar todas</button>
         <button class="btn" id="plListClear">Vaciar</button>
       </div>
@@ -7152,8 +7152,8 @@ function plSkuPt(sku) {
 async function plFonts() { try { await Promise.all([document.fonts.load('100px PLDejaVu'), document.fonts.load('bold 100px PLDejaVu')]); } catch { /* sigue */ } }
 
 // ---- BIOGATE: etiqueta cuadrada de 5 × 5 cm, con su dirección y teléfono ----
-const PL_SQ = { BIOGATE: true };
-const plIsSq = (brand) => !!PL_SQ[brand];
+// Todas las marcas salen en 5 × 5 cm. Las direcciones y teléfono propios de BIOGATE se usan solo en BIOGATE.
+const plIsSq = () => true;
 // Corta un texto en renglones que entren en el ancho (mm) con esa letra.
 function plWrap(txt, pt, bold, max) {
   const words = String(txt || '').split(/\s+/).filter(Boolean), out = []; let cur = '';
@@ -7165,8 +7165,12 @@ function plWrap(txt, pt, bold, max) {
 function plSqOps(it) {
   const b = PL_BR[it.brand], c = plCfg || plDef || {}, sku = it.sku || 'SKU', ops = [];
   ops.push({ k: 'box', x: 1, y: 1, w: 48, h: 48, r: 2.5, stroke: b.border });
-  const lh = 11.5; ops.push({ k: 'img', x: 4, y: 3.2, w: lh * b.iw / b.ih, h: lh });
-  ops.push({ k: 't', x: 46, y: 7.2, pt: 6, txt: `ORIGEN: ${(it.origin || c.origin || 'CHINA').toUpperCase()}`, bold: 1, end: 1 });
+  // Logo: los cuadrados (BIOGATE) van arriba a la izquierda con el origen al lado; los anchos ocupan todo el ancho y el origen va abajo.
+  const ar = b.iw / b.ih, origin = `ORIGEN: ${(it.origin || c.origin || 'CHINA').toUpperCase()}`;
+  let lh = Math.min(11.5, 24 / ar), lw = lh * ar, oy = 7.2;
+  if (ar > 2.9) { lw = Math.min(42, 8 * ar); lh = lw / ar; oy = 3.4 + lh + 2.7; }
+  ops.push({ k: 'img', x: 4, y: ar > 2.9 ? 3.4 : 3.2 + (11.5 - lh) / 2, w: lw, h: lh });
+  ops.push({ k: 't', x: 46, y: oy, pt: 6, txt: origin, bold: 1, end: 1 });
   ops.push({ k: 'bar', x: 4, y: 16.2, w: 42, h: 7, r: 1, fill: b.bar });
   ops.push({ k: 't', x: 5.4, y: 20.6, pt: 6, txt: 'SKU', fill: [255, 255, 255] });
   const left = 5.4 + plW('SKU', 6, false) + 2.5, max = 44.6 - left; let pt = 12; while (pt > 6 && plW(sku, pt, true) > max) pt -= 0.5;
@@ -7177,7 +7181,8 @@ function plSqOps(it) {
   // El nombre va siempre en un solo renglón: se achica lo justo para que entre.
   let npt = 5.6; while (npt > 4 && plW(c.name, npt, true) > W) npt -= 0.1;
   y += npt * PT * 1.34; ops.push({ k: 't', x: 4, y, pt: npt, txt: c.name, bold: 1 }); y += 0.8;
-  line(c.cuit, 5.2, 0); line(c.bio_address || c.address, 5.6, 0); line(c.bio_phone || c.phone, 5.6, 0);
+  const bio = it.brand === 'BIOGATE';
+  line(c.cuit, 5.2, 0); line(bio ? (c.bio_address || c.address) : c.address, 5.6, 0); line(bio ? (c.bio_phone || c.phone) : c.phone, 5.6, 0);
   return ops;
 }
 function plSqSvg(it) {
