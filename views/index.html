@@ -6366,13 +6366,13 @@ function wsKeyUi(msg) {
   $('wsKey').value = ''; $('wsSecret').value = '';
   $('wsKey').placeholder = d.has_ck ? `Guardada (${d.key_hint}) · pegá otra para cambiarla` : 'ck_…';
   $('wsSecret').placeholder = d.has_cs ? 'Guardada · pegá otra para cambiarla' : 'cs_…';
-  $('wsKeyState').innerHTML = msg || (d.has_key ? `<span style="color:var(--ok)">✓ Clave de WooCommerce guardada (${esc(d.key_hint)}).</span> Tocá "Probar clave" para verificar que puede leer los pedidos.` : d.has_ck || d.has_cs ? '<span class="err-t">Falta una de las dos claves (ck_ y cs_).</span>' : '<span class="muted">Sin clave cargada.</span>');
+  $('wsKeyState').innerHTML = msg || (d.has_key ? `<span style="color:var(--ok)">✓ Clave de WooCommerce guardada (${esc(d.key_hint)}).</span> Tocá "Probar clave" para verificar que puede leer pedidos y si tiene permiso de escritura.` : d.has_ck || d.has_cs ? '<span class="err-t">Falta una de las dos claves (ck_ y cs_).</span>' : '<span class="muted">Sin clave cargada.</span>');
   $('wsTestKey').hidden = !d.has_key; $('wsClearKey').hidden = !(d.has_ck || d.has_cs);
 }
 async function wsTestKey() {
   $('wsKeyState').textContent = 'Probando la clave con tu web…';
   const d = await (await fetch('/api/web/test-key')).json().catch(() => ({ ok: false, error: 'Sin conexión con el panel.' }));
-  $('wsKeyState').innerHTML = d.ok ? `<span style="color:var(--ok)">✓ La clave funciona: la web tiene ${d.orders.toLocaleString('es-AR')} pedidos para leer.</span>` : `<span class="err-t">${esc(d.error)}</span>`;
+  $('wsKeyState').innerHTML = !d.ok ? `<span class="err-t">${esc(d.error)}</span>` : `<span style="color:var(--ok)">✓ Lectura: funciona (la web tiene ${d.orders.toLocaleString('es-AR')} pedidos).</span><br>` + (d.write === true ? '<span style="color:var(--ok)">✓ Escritura: funciona. La clave es de <b>Lectura/Escritura</b>: el panel puede modificar productos y categorías de la web.</span>' : d.write === false ? `<span class="err-t">✗ Escritura: no tiene permiso. La clave es de <b>solo lectura</b>${d.write_msg ? ` (${esc(d.write_msg)})` : ''}. En WordPress → WooCommerce → Ajustes → Avanzado → API REST, editá la clave y poné "Lectura/Escritura".</span>` : `<span style="color:#d97706">No pude comprobar la escritura (${esc(d.write_msg || 'sin respuesta')}).</span>`);
 }
 $('wsTestKey').onclick = wsTestKey;
 $('wsClearKey').onclick = async () => {
