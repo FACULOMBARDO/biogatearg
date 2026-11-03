@@ -628,3 +628,6 @@ input[type=time], input[type=url] { font: inherit; padding: 9px 11px; border: 1p
 .hl-hist i { flex: 1; height: 6px; border-radius: 2px; display: block; }
 
 .spell-fixed { outline: 2px solid var(--ok); outline-offset: 1px; transition: outline-color .3s; }
+
+.ls-tag.wc-add { color: var(--ok); border-color: var(--ok); font-weight: 700; }
+.ls-tag.wc-rem { text-decoration: line-through; color: var(--err); border-color: var(--err); opacity: .8; }

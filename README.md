@@ -386,6 +386,14 @@ Para repartir tareas al equipo (menú lateral → **Tareas**).
 3. Los encargados entran al panel con la contraseña de siempre, eligen su nombre arriba en **Soy** (queda guardado en ese celular o compu) y en cada tarea tocan **Sin revisar / En proceso / Terminada**. También pueden dejar comentarios con fotos. Todo queda en el **Historial** de la tarea con quién lo hizo.
 4. Se ve **Por estado** (3 columnas) o **Por empleado** (una columna por encargado). Arriba: filtro por encargado, buscador y **Ocultar terminadas**. Las vencidas se marcan en rojo y los contadores muestran cuántas hay.
 
+### 🌐 Productos de la web (categorías de biogate.com.ar)
+Para ordenar en masa las categorías de los productos de la web. Necesita la clave de WooCommerce de **Lectura/Escritura** (Estados de WhatsApp → Configurar web → "Probar clave" tiene que decir que puede escribir).
+- Elegí productos (filtrá por categoría, publicados/borradores o buscá por nombre/SKU), elegí **Agregar a**, **Mover a (solo esa)** o **Quitar de**, y la categoría.
+- **Previsualizar** muestra en verde lo que se agrega y tachado lo que se quita. Recién con **Aplicar en la web** se cambia en la web.
+- **✨ Sugerir categorías con IA** propone la categoría que mejor le queda a cada producto (podés reemplazar o solo agregar).
+- **Nueva categoría** la crea en la web (puede ir dentro de otra). **Deshacer último cambio** vuelve los productos a como estaban.
+- Cada cambio queda en Actividad del equipo.
+
 ### Subir gastos desde Excel
 En **🏪 Gastos del local** → **📥 Subir Excel**. El panel reconoce solo las columnas (Fecha, Gasto/Concepto, Monto/Importe, Forma de pago, Detalle), aunque el título no esté en la primera fila. Antes de importar muestra una vista previa; si alguna columna no se reconoció, la elegís en la lista. Si la planilla tiene varias hojas (por ejemplo una por mes), podés importar **Todas las hojas**. Las filas de TOTAL se ignoran y los gastos que ya estaban cargados (misma fecha, gasto y monto) se saltean.
 

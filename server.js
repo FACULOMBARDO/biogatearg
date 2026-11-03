@@ -290,6 +290,17 @@ app.use((req, res, next) => {
 const activity = require('./lib/activity');
 app.use(activity.middleware);
 app.post('/api/ai/spell', async (req, res) => { try { res.json({ ok: true, ...(await require('./lib/ai').spell((req.body || {}).text)) }); } catch (e) { res.status(400).json({ ok: false, error: e.message }); } });
+// Productos de la web: categorías en masa
+const webcat = require('./lib/webcat');
+const wcWrap = (fn) => async (req, res) => { try { res.json({ ok: true, ...(await fn(req)) }); } catch (e) { res.status(400).json({ ok: false, error: e.message }); } };
+app.get('/api/webcat', async (req, res) => { try { const l = webcat.list(); res.json({ ok: true, ...(l.at && !req.query.refresh ? l : await webcat.sync()) }); } catch (e) { res.status(400).json({ ok: false, error: e.message, ...webcat.list() }); } });
+app.post('/api/webcat/plan', (req, res) => { try { res.json({ ok: true, changes: webcat.plan((req.body || {}).mode, (req.body || {}).ids, (req.body || {}).cat) }); } catch (e) { res.status(400).json({ ok: false, error: e.message }); } });
+app.post('/api/webcat/apply', wcWrap(req => webcat.apply((req.body || {}).mode, (req.body || {}).ids, (req.body || {}).cat)));
+app.post('/api/webcat/assign', wcWrap(req => webcat.assign((req.body || {}).items, (req.body || {}).what)));
+app.post('/api/webcat/undo', wcWrap(() => webcat.undo()));
+app.post('/api/webcat/category', wcWrap(async req => ({ category: await webcat.createCat((req.body || {}).name, (req.body || {}).parent) })));
+app.put('/api/webcat/category/:id', wcWrap(async req => ({ category: await webcat.renameCat(req.params.id, (req.body || {}).name) })));
+app.post('/api/webcat/suggest', wcWrap(async req => ({ suggestions: await webcat.suggest((req.body || {}).ids) })));
 app.get('/api/activity', (req, res) => res.json({ ok: true, ...activity.report(req.query.days, req.query.who) }));
 
 // ---------- Usuarios del equipo (solo dueño) y sueldos ----------

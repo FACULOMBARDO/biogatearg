@@ -53,6 +53,7 @@
   <a href="#reclamos" class="nav" data-view="reclamos"><span class="ic">⚠️</span><span>Reclamos</span><span class="nav-badge" id="clBadge" hidden></span></a>
   <a href="#impresion" class="nav" data-view="impresion"><span class="ic">🖨️</span><span>Impresión de etiquetas</span></a>
   <a href="#publicaciones" class="nav" data-view="publicaciones"><span class="ic">🗂️</span><span>Mis publicaciones</span></a>
+  <a href="#webcat" class="nav" data-view="webcat"><span class="ic">🌐</span><span>Productos de la web</span></a>
   <a href="#publicar" class="nav" data-view="publicar"><span class="ic">📝</span><span>Publicar</span></a>
   <a href="#competencia" class="nav" data-view="competencia"><span class="ic">🔎</span><span>Competencia</span></a>
   <a href="#embudo" class="nav" data-view="embudo"><span class="ic">📈</span><span>Embudo de ventas</span></a>
@@ -717,6 +718,43 @@
     <b style="font-size:14px">Seguir otro producto</b>
     <div class="row" style="gap:6px;margin-top:6px;flex-wrap:wrap"><select id="cpAdd" style="flex:1;min-width:240px"></select><button class="btn small" id="cpAddBtn">Seguir</button></div>
     <div class="muted" style="font-size:12px;margin-top:4px">Se siguen hasta 40 productos: primero los que fijás y después los que más vendés.</div>
+  </div>
+</section>
+<section id="viewWebcat" hidden>
+  <div class="row" style="justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px">
+    <h1 class="page-title">Productos de la web <span class="muted" style="font-size:15px;font-weight:500">· categorías de biogate.com.ar</span></h1>
+    <div class="row" style="gap:6px;flex-wrap:wrap"><button class="btn" id="wcUndo" hidden>↩️ Deshacer último cambio</button><button class="btn" id="wcNewCat">＋ Nueva categoría</button><button class="btn" id="wcSync">↻ Actualizar desde la web</button></div>
+  </div>
+  <div class="card" style="padding:12px 14px">
+    <div class="row" style="flex-wrap:wrap;gap:8px">
+      <select id="wcCat" style="min-width:220px"></select>
+      <div class="seg" id="wcStatus"><button data-s="publish" class="on">Publicados</button><button data-s="draft">Borradores</button><button data-s="">Todos</button></div>
+      <input type="search" id="wcQ" placeholder="Buscar nombre o SKU…" style="max-width:260px;flex:1">
+      <span class="muted" id="wcInfo" style="margin-left:auto;font-size:12.5px"></span>
+    </div>
+    <div id="wcMsg" style="font-size:13px;margin-top:6px"></div>
+    <details style="margin-top:6px"><summary class="lnk" style="cursor:pointer;font-size:13px">Ver todas las categorías</summary><div id="wcCatList" style="font-size:13px;margin-top:6px;columns:3 220px"></div></details>
+  </div>
+  <div class="card" id="wcBulk" style="padding:12px 14px" hidden>
+    <div class="row" style="flex-wrap:wrap;gap:8px;align-items:center">
+      <b id="wcSelN"></b><button class="btn small" id="wcSelNone">Quitar selección</button>
+      <span style="width:10px"></span>
+      <select id="wcMode" style="width:auto"><option value="add">Agregar a</option><option value="move">Mover a (solo esa)</option><option value="remove">Quitar de</option></select>
+      <select id="wcTarget" style="min-width:220px"></select>
+      <button class="btn small primary" id="wcPrev">Previsualizar</button>
+      <span class="muted">o</span>
+      <button class="btn small" id="wcAi">✨ Sugerir categorías con IA</button>
+    </div>
+  </div>
+  <div class="card" style="padding:0"><div class="table-wrap"><table class="sales-table">
+    <thead><tr><th style="width:30px"><input type="checkbox" id="wcAll" title="Seleccionar todos los del filtro"></th><th>Producto</th><th style="text-align:right">Precio</th><th>Categorías</th></tr></thead>
+    <tbody id="wcRows"><tr><td colspan="4" class="muted" style="padding:16px">Cargando…</td></tr></tbody></table></div>
+    <div class="row" id="wcMore" style="justify-content:center;padding:10px" hidden><button class="btn small" id="wcMoreBtn">Ver más</button></div></div>
+  <div class="ls-save" id="wcBar" hidden style="border-color:var(--ok)">
+    <span id="wcBarTxt"></span>
+    <select id="wcAiMode" hidden style="width:auto"><option value="move">Reemplazar por la sugerida</option><option value="add">Agregar la sugerida (sin quitar las actuales)</option></select>
+    <button class="btn" id="wcCancel">Cancelar</button>
+    <button class="btn primary" id="wcGo">Aplicar en la web</button>
   </div>
 </section>
 <section id="viewPublish" hidden>
@@ -3088,13 +3126,146 @@ async function spellGate(ta, msgEl, btn) {
 const spellOn = () => document.querySelectorAll('#qsList textarea').forEach(el => { if (!el.dataset.sp) { el.dataset.sp = '1'; el.spellcheck = true; el.lang = 'es-AR'; } });
 spellOn(); new MutationObserver(spellOn).observe(document.body, { childList: true, subtree: true });
 
+// ---------- Productos de la web (categorías) ----------
+let wcData = null, wcSel = new Set(), wcStatus = 'publish', wcLimit = 200, wcPrevState = null;
+const wcCatById = () => new Map((wcData ? wcData.cats : []).map(c => [c.id, c]));
+function wcTree() { // categorías ordenadas como árbol, con sangría
+  const cats = wcData ? wcData.cats : [], kids = {};
+  for (const c of cats) (kids[c.parent] = kids[c.parent] || []).push(c);
+  const out = [], walk = (pid, d) => (kids[pid] || []).sort((a, b) => a.name.localeCompare(b.name, 'es')).forEach(c => { out.push({ ...c, depth: d }); walk(c.id, d + 1); });
+  walk(0, 0);
+  for (const c of cats) if (!out.some(o => o.id === c.id)) out.push({ ...c, depth: 0 });
+  return out;
+}
+const wcUncat = (id) => { const c = wcCatById().get(id); return c && /^(uncategorized|sin categorizar|sin categoría)$/i.test(c.name); };
+async function loadWebcat(refresh) {
+  $('wcInfo').textContent = refresh ? 'Trayendo productos y categorías de la web…' : '';
+  if (refresh) $('wcSync').disabled = true;
+  const d = await (await fetch('/api/webcat' + (refresh ? '?refresh=1' : ''))).json().catch(() => ({ ok: false, error: 'Sin conexión.' }));
+  $('wcSync').disabled = false;
+  if (!d.ok && !(d.products || []).length) { $('wcRows').innerHTML = `<tr><td colspan="4" class="err-t" style="padding:16px">${esc(d.error)}</td></tr>`; return; }
+  wcData = d; if (!d.ok) $('wcMsg').innerHTML = `<span class="err-t">⚠️ ${esc(d.error)}</span>`;
+  const tree = wcTree(), opt = (c) => `<option value="${c.id}">${'— '.repeat(c.depth)}${esc(c.name)} (${c.count})</option>`;
+  const cur = $('wcCat').value;
+  $('wcCat').innerHTML = '<option value="">Todas las categorías</option><option value="none">Sin categoría</option>' + tree.map(opt).join('');
+  $('wcCat').value = cur || ''; if ($('wcCat').value !== (cur || '')) $('wcCat').value = '';
+  const t0 = $('wcTarget').value;
+  $('wcTarget').innerHTML = '<option value="">Elegí la categoría…</option>' + tree.map(opt).join('');
+  $('wcTarget').value = t0;
+  $('wcCatList').innerHTML = tree.map(c => `<div style="padding-left:${c.depth * 14}px">${esc(c.name)} <span class="muted">(${c.count})</span> <a href="#" class="lnk" data-wcren="${c.id}" style="font-size:11.5px">renombrar</a></div>`).join('');
+  $('wcUndo').hidden = !d.can_undo; if (d.last) $('wcUndo').title = `${d.last.what} · ${new Date(d.last.at).toLocaleString('es-AR')}`;
+  renderWebcat();
+}
+function wcVisible() {
+  if (!wcData) return [];
+  const cat = $('wcCat').value, q = $('wcQ').value.trim().toLowerCase();
+  return wcData.products.filter(p => (!wcStatus || p.status === wcStatus) && (!cat || (cat === 'none' ? (!p.cats.length || p.cats.every(wcUncat)) : p.cats.includes(Number(cat)))) && (!q || (p.name + ' ' + p.sku).toLowerCase().includes(q)));
+}
+function renderWebcat() {
+  if (!wcData) return;
+  const list = wcVisible(), shown = list.slice(0, wcLimit), byId = wcCatById();
+  const chip = (id, cls) => { const c = byId.get(id); return `<span class="ls-tag ${cls || ''}">${esc(c ? c.name : '#' + id)}</span>`; };
+  $('wcInfo').textContent = `${list.length} de ${wcData.products.length} productos${wcData.at ? ' · actualizado ' + new Date(wcData.at).toLocaleString('es-AR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : ''}${wcSel.size ? '' : ' · Tildá productos para cambiarles la categoría.'}`;
+  $('wcRows').innerHTML = shown.map(p => {
+    let cats;
+    const pv = wcPrevState && wcPrevState.after[p.id];
+    if (pv) {
+      const add = pv.filter(c => !p.cats.includes(c)), rem = p.cats.filter(c => !pv.includes(c)), keep = p.cats.filter(c => pv.includes(c));
+      cats = keep.map(c => chip(c)).join(' ') + ' ' + add.map(c => chip(c, 'wc-add')).join(' ') + ' ' + rem.map(c => chip(c, 'wc-rem')).join(' ') + (wcPrevState.kind === 'ai' ? ` <label style="font-size:12px;white-space:nowrap"><input type="checkbox" data-wcacc="${p.id}" ${wcPrevState.accept.has(p.id) ? 'checked' : ''} style="width:auto"> aplicar</label>` : '');
+    } else cats = p.cats.length ? p.cats.map(c => chip(c)).join(' ') : '<span class="muted">sin categoría</span>';
+    return `<tr class="ls-row${pv ? ' changed' : ''}"><td><input type="checkbox" data-wcsel="${p.id}" ${wcSel.has(p.id) ? 'checked' : ''}></td>
+      <td><div class="ls-pub">${p.thumb ? `<img src="${esc(p.thumb)}" alt="" loading="lazy">` : '<div class="ls-noimg">📦</div>'}<div style="min-width:0"><a class="lnk t" href="${esc(p.link)}" target="_blank" rel="noopener">${esc(p.name)}</a><div class="ls-meta">${p.sku ? `<span>SKU ${esc(p.sku)}</span>` : ''}${p.status !== 'publish' ? `<span class="ls-tag">${p.status === 'draft' ? 'borrador' : esc(p.status)}</span>` : ''}</div></div></div></td>
+      <td style="text-align:right">${p.price ? money(p.price) : '—'}</td><td style="font-size:12.5px;max-width:420px">${cats}</td></tr>`;
+  }).join('') || '<tr><td colspan="4" class="muted" style="padding:16px">No hay productos con ese filtro.</td></tr>';
+  $('wcMore').hidden = list.length <= wcLimit;
+  $('wcAll').checked = !!list.length && list.every(p => wcSel.has(p.id));
+  $('wcBulk').hidden = !wcSel.size; $('wcSelN').textContent = `${wcSel.size} ${wcSel.size === 1 ? 'producto seleccionado' : 'productos seleccionados'}`;
+}
+function wcShowBar() {
+  if (!wcPrevState) { $('wcBar').hidden = true; return; }
+  const n = wcPrevState.kind === 'ai' ? wcPrevState.accept.size : Object.keys(wcPrevState.after).length;
+  $('wcBar').hidden = false; $('wcAiMode').hidden = wcPrevState.kind !== 'ai';
+  $('wcBarTxt').innerHTML = wcPrevState.kind === 'ai' ? `✨ Sugerencias para <b>${Object.keys(wcPrevState.sug).length}</b> productos (en verde). Destildá las que no te gusten · se aplican <b>${n}</b>.` : `<b>${n}</b> ${n === 1 ? 'producto cambia' : 'productos cambian'} de categoría (en verde lo que se agrega, tachado lo que se quita).`;
+  $('wcGo').disabled = !n;
+}
+$('wcRows').addEventListener('change', (e) => {
+  const s = e.target.dataset.wcsel; if (s) { e.target.checked ? wcSel.add(Number(s)) : wcSel.delete(Number(s)); renderWebcat(); return; }
+  const a = e.target.dataset.wcacc; if (a && wcPrevState) { e.target.checked ? wcPrevState.accept.add(Number(a)) : wcPrevState.accept.delete(Number(a)); wcShowBar(); }
+});
+$('wcAll').onchange = () => { for (const p of wcVisible()) $('wcAll').checked ? wcSel.add(p.id) : wcSel.delete(p.id); renderWebcat(); };
+$('wcSelNone').onclick = () => { wcSel.clear(); renderWebcat(); };
+$('wcCat').onchange = () => { wcLimit = 200; renderWebcat(); }; $('wcQ').oninput = () => { wcLimit = 200; renderWebcat(); };
+$('wcStatus').onclick = (e) => { const b = e.target.closest('[data-s]'); if (!b) return; wcStatus = b.dataset.s; $('wcStatus').querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b)); renderWebcat(); };
+$('wcMoreBtn').onclick = () => { wcLimit += 200; renderWebcat(); };
+$('wcSync').onclick = () => loadWebcat(true);
+$('wcPrev').onclick = async () => {
+  const cat = $('wcTarget').value; if (!cat) { $('wcMsg').innerHTML = '<span class="err-t">Elegí la categoría.</span>'; return; }
+  const d = await lsPost('/api/webcat/plan', { mode: $('wcMode').value, ids: [...wcSel], cat });
+  if (!d.ok) { $('wcMsg').innerHTML = `<span class="err-t">${esc(d.error)}</span>`; return; }
+  if (!d.changes.length) { $('wcMsg').innerHTML = '<span class="muted">No cambia nada: esos productos ya están así.</span>'; return; }
+  wcPrevState = { kind: 'plan', mode: $('wcMode').value, cat, after: Object.fromEntries(d.changes.map(c => [c.id, c.after])) };
+  $('wcMsg').textContent = ''; renderWebcat(); wcShowBar();
+};
+$('wcAi').onclick = async () => {
+  const ids = [...wcSel]; if (!ids.length) return;
+  if (ids.length > 200) { $('wcMsg').innerHTML = '<span class="err-t">Elegí hasta 200 productos por vez para la IA.</span>'; return; }
+  $('wcAi').disabled = true; $('wcAi').textContent = `✨ Pensando (${ids.length} productos)…`;
+  const d = await lsPost('/api/webcat/suggest', { ids });
+  $('wcAi').disabled = false; $('wcAi').textContent = '✨ Sugerir categorías con IA';
+  if (!d.ok) { $('wcMsg').innerHTML = `<span class="err-t">${esc(d.error)}</span>`; return; }
+  const sug = {}; for (const [id, cats] of Object.entries(d.suggestions || {})) if (cats.length) sug[id] = cats;
+  if (!Object.keys(sug).length) { $('wcMsg').innerHTML = '<span class="muted">La IA no encontró categorías que les queden. Probá crear categorías nuevas.</span>'; return; }
+  wcPrevState = { kind: 'ai', sug, accept: new Set(Object.keys(sug).map(Number)), after: {} };
+  wcAiRecalc(); $('wcMsg').textContent = ''; renderWebcat(); wcShowBar();
+};
+function wcAiRecalc() {
+  if (!wcPrevState || wcPrevState.kind !== 'ai') return;
+  const mode = $('wcAiMode').value, prods = new Map(wcData.products.map(p => [p.id, p]));
+  wcPrevState.after = {};
+  for (const [id, cats] of Object.entries(wcPrevState.sug)) { const p = prods.get(Number(id)); if (!p) continue; wcPrevState.after[id] = mode === 'add' ? [...new Set([...p.cats.filter(c => !wcUncat(c)), ...cats])] : cats; }
+}
+$('wcAiMode').onchange = () => { wcAiRecalc(); renderWebcat(); };
+$('wcCancel').onclick = () => { wcPrevState = null; renderWebcat(); wcShowBar(); };
+$('wcGo').onclick = async () => {
+  if (!wcPrevState) return;
+  const b = $('wcGo'); b.disabled = true; b.textContent = 'Aplicando en la web…';
+  const st = wcPrevState;
+  const d = st.kind === 'plan' ? await lsPost('/api/webcat/apply', { mode: st.mode, ids: [...wcSel], cat: st.cat })
+    : await lsPost('/api/webcat/assign', { items: [...st.accept].map(id => ({ id, cats: st.after[id] })), what: `Recategorizó con IA ${st.accept.size} productos` });
+  b.disabled = false; b.textContent = 'Aplicar en la web';
+  if (!d.ok && d.error) { $('wcMsg').innerHTML = `<span class="err-t">${esc(d.error)}</span>`; return; }
+  wcPrevState = null; wcShowBar();
+  $('wcMsg').innerHTML = `<span style="color:var(--ok)">✓ ${d.ok || 0} ${d.ok === 1 ? 'producto actualizado' : 'productos actualizados'} en la web.</span>${(d.failed || []).length ? `<div class="err-t">No se pudo en ${d.failed.length}: ${d.failed.slice(0, 6).map(f => `#${f.id} (${esc(f.error)})`).join(' · ')}</div>` : ''}`;
+  await loadWebcat(false);
+};
+$('wcUndo').onclick = async () => {
+  $('wcUndo').disabled = true; const d = await lsPost('/api/webcat/undo'); $('wcUndo').disabled = false;
+  $('wcMsg').innerHTML = d.error ? `<span class="err-t">${esc(d.error)}</span>` : `<span style="color:var(--ok)">✓ Deshecho: ${d.ok} productos volvieron a sus categorías anteriores.</span>`;
+  loadWebcat(false);
+};
+$('wcNewCat').onclick = async () => {
+  const name = prompt('Nombre de la categoría nueva:'); if (!name) return;
+  const tree = wcTree(), parentName = prompt('¿Va dentro de otra categoría? Escribí el nombre de la categoría madre, o dejalo vacío:\n\n' + tree.filter(c => c.depth === 0).map(c => c.name).join(', '));
+  const parent = parentName ? (tree.find(c => c.name.toLowerCase() === parentName.trim().toLowerCase()) || {}).id : 0;
+  if (parentName && !parent) { $('wcMsg').innerHTML = `<span class="err-t">No encontré la categoría "${esc(parentName)}".</span>`; return; }
+  const d = await lsPost('/api/webcat/category', { name, parent });
+  $('wcMsg').innerHTML = d.ok ? `<span style="color:var(--ok)">✓ Categoría "${esc(d.category.name)}" creada en la web.</span>` : `<span class="err-t">${esc(d.error)}</span>`;
+  loadWebcat(false);
+};
+$('wcCatList').addEventListener('click', async (e) => {
+  const a = e.target.closest('[data-wcren]'); if (!a) return; e.preventDefault();
+  const c = wcCatById().get(Number(a.dataset.wcren)); const name = prompt('Nuevo nombre:', c ? c.name : ''); if (!name) return;
+  const d = await lsPost(`/api/webcat/category/${a.dataset.wcren}`, { name }, 'PUT');
+  $('wcMsg').innerHTML = d.ok ? '<span style="color:var(--ok)">✓ Renombrada.</span>' : `<span class="err-t">${esc(d.error)}</span>`; loadWebcat(false);
+});
+
 function showView() {
-  let v = ({ '#ventas': 'ventas', '#ranking': 'ranking', '#precios': 'precios', '#presupuestos': 'presupuestos', '#estados': 'estados', '#gastos': 'gastos', '#full': 'full', '#flex': 'flex', '#resultado': 'resultado', '#tareas': 'tareas', '#recompras': 'recompras', '#preguntas': 'preguntas', '#stock': 'stock', '#sugerencias': 'sugerencias', '#web': 'web', '#horarios': 'horarios', '#manuales': 'manuales', '#calculadora': 'calculadora', '#etiquetas': 'etiquetas', '#impresion': 'impresion', '#reclamos': 'reclamos', '#publicaciones': 'publicaciones', '#publicar': 'publicar', '#competencia': 'competencia', '#embudo': 'embudo', '#salud': 'salud', '#sueldos': 'sueldos', '#usuarios': 'usuarios', '#actividad': 'actividad', '#tuyo': 'tuyo' })[location.hash] || 'ventas';
+  let v = ({ '#ventas': 'ventas', '#ranking': 'ranking', '#precios': 'precios', '#presupuestos': 'presupuestos', '#estados': 'estados', '#gastos': 'gastos', '#full': 'full', '#flex': 'flex', '#resultado': 'resultado', '#tareas': 'tareas', '#recompras': 'recompras', '#preguntas': 'preguntas', '#stock': 'stock', '#sugerencias': 'sugerencias', '#web': 'web', '#horarios': 'horarios', '#manuales': 'manuales', '#calculadora': 'calculadora', '#etiquetas': 'etiquetas', '#impresion': 'impresion', '#reclamos': 'reclamos', '#publicaciones': 'publicaciones', '#publicar': 'publicar', '#webcat': 'webcat', '#competencia': 'competencia', '#embudo': 'embudo', '#salud': 'salud', '#sueldos': 'sueldos', '#usuarios': 'usuarios', '#actividad': 'actividad', '#tuyo': 'tuyo' })[location.hash] || 'ventas';
   if (ME && !ME.perms.includes(v)) { const first = ME.perms.find(k => document.querySelector(`.side .nav[data-view="${k}"]`)); if (first && v !== first) { location.hash = '#' + (document.querySelector(`.side .nav[data-view="${first}"]`).getAttribute('href') || '').replace('#', ''); return; } }
   $('viewQuotes').hidden = v !== 'presupuestos';
   $('viewStatus').hidden = v !== 'estados';
   $('viewExpenses').hidden = v !== 'gastos'; $('viewFull').hidden = v !== 'full';
-  $('viewResults').hidden = v !== 'resultado'; $('viewStock').hidden = v !== 'stock'; $('viewSuggest').hidden = v !== 'sugerencias'; $('viewWeb').hidden = v !== 'web'; $('viewHours').hidden = v !== 'horarios'; $('viewManuals').hidden = v !== 'manuales'; $('viewCalc').hidden = v !== 'calculadora'; $('viewPLabel').hidden = v !== 'etiquetas'; $('viewShipLabels').hidden = v !== 'impresion'; $('viewClaims').hidden = v !== 'reclamos'; $('viewListings').hidden = v !== 'publicaciones'; $('viewPublish').hidden = v !== 'publicar'; $('viewComp').hidden = v !== 'competencia'; $('viewFunnel').hidden = v !== 'embudo'; $('viewHealth').hidden = v !== 'salud'; $('viewPayroll').hidden = v !== 'sueldos'; $('viewUsers').hidden = v !== 'usuarios'; $('viewActivity').hidden = v !== 'actividad'; $('viewTuyo').hidden = v !== 'tuyo';
+  $('viewResults').hidden = v !== 'resultado'; $('viewStock').hidden = v !== 'stock'; $('viewSuggest').hidden = v !== 'sugerencias'; $('viewWeb').hidden = v !== 'web'; $('viewHours').hidden = v !== 'horarios'; $('viewManuals').hidden = v !== 'manuales'; $('viewCalc').hidden = v !== 'calculadora'; $('viewPLabel').hidden = v !== 'etiquetas'; $('viewShipLabels').hidden = v !== 'impresion'; $('viewClaims').hidden = v !== 'reclamos'; $('viewListings').hidden = v !== 'publicaciones'; $('viewPublish').hidden = v !== 'publicar'; $('viewWebcat').hidden = v !== 'webcat'; $('viewComp').hidden = v !== 'competencia'; $('viewFunnel').hidden = v !== 'embudo'; $('viewHealth').hidden = v !== 'salud'; $('viewPayroll').hidden = v !== 'sueldos'; $('viewUsers').hidden = v !== 'usuarios'; $('viewActivity').hidden = v !== 'actividad'; $('viewTuyo').hidden = v !== 'tuyo';
   $('viewFlex').hidden = v !== 'flex'; $('viewSales').hidden = v !== 'ventas'; $('viewTasks').hidden = v !== 'tareas'; $('viewRefill').hidden = v !== 'recompras'; $('viewQuestions').hidden = v !== 'preguntas';
   $('viewRanking').hidden = v !== 'ranking'; $('viewPrices').hidden = v !== 'precios';
   document.querySelectorAll('.side .nav').forEach(a => a.classList.toggle('active', a.dataset.view === v));
@@ -3117,6 +3288,7 @@ function showView() {
   if (v === 'reclamos') loadClaims(false);
   if (v === 'publicaciones') loadListings();
   if (v === 'publicar') loadPublish();
+  if (v === 'webcat') loadWebcat(false);
   if (v === 'competencia') loadComp();
   if (v === 'embudo') loadFunnel();
   if (v === 'sueldos') loadPayroll();
