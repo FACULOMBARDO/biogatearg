@@ -723,7 +723,7 @@
 <section id="viewWebcat" hidden>
   <div class="row" style="justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px">
     <h1 class="page-title">Productos de la web <span class="muted" style="font-size:15px;font-weight:500">· categorías de biogate.com.ar</span></h1>
-    <div class="row" style="gap:6px;flex-wrap:wrap"><button class="btn" id="wcUndo" hidden>↩️ Deshacer último cambio</button><button class="btn" id="wcNewCat">＋ Nueva categoría</button><button class="btn" id="wcSync">↻ Actualizar desde la web</button></div>
+    <div class="row" style="gap:6px;flex-wrap:wrap"><button class="btn" id="wcUndo" hidden>↩️ Deshacer último cambio</button><button class="btn" id="wcXlsBtn" title="Subí un Excel con SKU, categoría y subcategoría y el panel acomoda la web igual">📥 Acomodar desde Excel</button><input type="file" id="wcXlsFile" accept=".xlsx,.xls,.csv,.ods" hidden><button class="btn" id="wcNewCat">＋ Nueva categoría</button><button class="btn" id="wcSync">↻ Actualizar desde la web</button></div>
   </div>
   <div class="card" style="padding:12px 14px">
     <div class="row" style="flex-wrap:wrap;gap:8px">
@@ -734,6 +734,10 @@
     </div>
     <div id="wcMsg" style="font-size:13px;margin-top:6px"></div>
     <details style="margin-top:6px"><summary class="lnk" style="cursor:pointer;font-size:13px">Ver todas las categorías</summary><div id="wcCatList" style="font-size:13px;margin-top:6px;columns:3 220px"></div></details>
+  </div>
+  <div class="card" id="wcXls" hidden style="padding:14px 16px;border:1px solid var(--accent)">
+    <div class="row" style="justify-content:space-between;flex-wrap:wrap;gap:8px"><b>📥 Acomodar categorías desde Excel <span class="muted" id="wcXlsName" style="font-weight:400"></span></b><button class="btn small" id="wcXlsClose">Cerrar</button></div>
+    <div id="wcXlsBody" style="font-size:13.5px;margin-top:8px"></div>
   </div>
   <div class="card" id="wcBulk" style="padding:12px 14px" hidden>
     <div class="row" style="flex-wrap:wrap;gap:8px;align-items:center">
@@ -3238,6 +3242,71 @@ $('wcGo').onclick = async () => {
   $('wcMsg').innerHTML = `<span style="color:var(--ok)">✓ ${d.ok || 0} ${d.ok === 1 ? 'producto actualizado' : 'productos actualizados'} en la web.</span>${(d.failed || []).length ? `<div class="err-t">No se pudo en ${d.failed.length}: ${d.failed.slice(0, 6).map(f => `#${f.id} (${esc(f.error)})`).join(' · ')}</div>` : ''}`;
   await loadWebcat(false);
 };
+// ---------- Acomodar categorías desde un Excel ----------
+let wcX = null;
+function wcXlsRows(wb) {
+  const N = (v) => String(v ?? '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').trim();
+  const out = [], fallback = [];
+  for (const sh of wb.SheetNames) {
+    const rows = XLSX.utils.sheet_to_json(wb.Sheets[sh], { header: 1, raw: false, defval: '' });
+    const hi = rows.findIndex(r => r.some(c => N(c) === 'sku') && r.some(c => /nombre|producto/.test(N(c))));
+    if (hi < 0) continue;
+    const H = rows[hi].map(N), col = (re) => H.findIndex(h => re.test(h));
+    const cSku = H.indexOf('sku'), cName = col(/nombre|producto/), cSub = col(/^subcategor/), cCat = col(/^categoria$/), cMain = col(/^categoria principal/), cOther = col(/^otras categorias/);
+    for (const r of rows.slice(hi + 1)) {
+      const name = String(r[cName] || '').trim(), sku = String(r[cSku] || '').trim(); if (!name && !sku) continue;
+      if (cCat >= 0) { if (r[cCat]) out.push({ cat: r[cCat], sub: cSub >= 0 ? r[cSub] : '', name, sku }); }
+      else if (cSub >= 0) out.push({ cat: sh, sub: r[cSub], name, sku });
+      else if (cMain >= 0) for (const c of [r[cMain], ...String(cOther >= 0 ? r[cOther] : '').split(',')].map(x => String(x || '').trim()).filter(Boolean)) fallback.push({ cat: c, sub: '', name, sku });
+    }
+  }
+  return out.length ? out : fallback;
+}
+async function wcXlsPlan(refresh) {
+  $('wcXlsBody').innerHTML = '<span class="muted">Comparando el Excel con los productos de la web…</span>';
+  const d = await lsPost('/api/webcat/import/plan', { rows: wcX.rows, refresh });
+  if (!d.ok) { $('wcXlsBody').innerHTML = `<span class="err-t">${esc(d.error)}</span>`; return; }
+  wcX.plan = d.plan; wcX.skip = new Set(d.plan.products.filter(p => p.how === 'parecido').map(p => p.id)); wcXlsRender();
+  if (refresh) loadWebcat(false);
+}
+function wcXlsRender() {
+  const P = wcX.plan, ch = P.products.filter(p => !p.same), same = P.products.length - ch.length, fuzzy = ch.filter(p => p.how === 'parecido');
+  const go = ch.filter(p => !wcX.skip.has(p.id)).length;
+  const tag = (t, cls) => `<span class="ls-tag ${cls || ''}">${esc(t)}</span>`;
+  const row = (p) => `<tr><td style="width:26px"><input type="checkbox" data-wcxk="${p.id}"${wcX.skip.has(p.id) ? '' : ' checked'}></td><td><b>${esc(p.name)}</b><div class="muted" style="font-size:12px">SKU ${esc(p.sku || '—')}${p.how === 'parecido' ? ` · <span class="err-t">encontrado por nombre parecido</span> (Excel: ${esc(p.excel[0])})` : p.how === 'nombre' ? ' · encontrado por nombre' : ''}</div></td><td>${p.after.map(a => tag(a, p.before.includes(a) ? '' : 'wc-add')).join(' ')} ${p.before.filter(b => !p.after.includes(b)).map(b => tag(b, 'wc-rem')).join(' ')}</td></tr>`;
+  $('wcXlsBody').innerHTML = `
+    <div style="margin-bottom:8px">Leí <b>${P.rows}</b> filas del Excel. Productos de la web que cambian: <b>${ch.length}</b>${same ? ` · ya estaban bien: ${same}` : ''}${P.unmatched.length ? ` · <span class="err-t">no los encontré en la web: ${P.unmatched.length}</span>` : ''} · no están en el Excel (no se tocan): ${P.untouched.length}.</div>
+    ${P.create.length ? `<div style="margin-bottom:8px"><b>Categorías nuevas que se crean (${P.create.length}):</b> ${P.create.map(c => tag(c.parent ? `${c.parent} > ${c.name}` : c.name, 'wc-add')).join(' ')}</div>` : '<div class="muted" style="margin-bottom:8px">Todas las categorías del Excel ya existen en la web.</div>'}
+    ${fuzzy.length ? `<div class="err-t" style="margin-bottom:8px">⚠️ ${fuzzy.length} productos los encontré solo por nombre parecido: quedan sin marcar. Revisalos y marcá los que estén bien.</div>` : ''}
+    <div class="muted" style="font-size:12.5px;margin-bottom:6px">Cada producto queda solo con las categorías del Excel: en verde lo que se agrega, tachado lo que se quita.</div>
+    <div class="table-wrap" style="max-height:420px;overflow:auto;border:1px solid var(--line);border-radius:10px"><table class="sales-table"><tbody>${[...fuzzy, ...ch.filter(p => p.how !== 'parecido')].map(row).join('') || '<tr><td class="muted" style="padding:12px">No hay nada para cambiar.</td></tr>'}</tbody></table></div>
+    ${P.unmatched.length ? `<details style="margin-top:8px"><summary class="lnk" style="cursor:pointer">Ver los ${P.unmatched.length} del Excel que no encontré en la web</summary><div style="font-size:12.5px;margin-top:6px;columns:2 300px">${P.unmatched.map(u => `<div>${esc(u.name)} <span class="muted">· SKU ${esc(u.sku || '—')} · ${esc(u.cat)}</span></div>`).join('')}</div></details>` : ''}
+    ${P.untouched.length ? `<details style="margin-top:6px"><summary class="lnk" style="cursor:pointer">Ver los ${P.untouched.length} de la web que no están en el Excel (quedan como están)</summary><div style="font-size:12.5px;margin-top:6px;columns:2 300px">${P.untouched.map(u => `<div>${esc(u.name)} <span class="muted">· SKU ${esc(u.sku || '—')}${u.status !== 'publish' ? ' · borrador' : ''}</span></div>`).join('')}</div></details>` : ''}
+    <div class="row" style="margin-top:12px;gap:8px;flex-wrap:wrap"><button class="btn primary" id="wcXlsGo"${go || P.create.length ? '' : ' disabled'}>Aplicar en la web (${go} productos${P.create.length ? ` y ${P.create.length} categorías nuevas` : ''})</button><button class="btn" id="wcXlsRe">↻ Volver a comparar con la web</button><span id="wcXlsMsg"></span></div>`;
+}
+$('wcXlsBtn').onclick = () => $('wcXlsFile').click();
+$('wcXlsClose').onclick = () => { $('wcXls').hidden = true; wcX = null; };
+$('wcXlsFile').onchange = async () => {
+  const f = $('wcXlsFile').files[0]; if (!f) return; $('wcXlsFile').value = '';
+  $('wcXls').hidden = false; $('wcXlsName').textContent = '· ' + f.name;
+  try {
+    if (!window.XLSX) throw new Error('No se pudo cargar el lector de Excel. Recargá la página.');
+    const rows = wcXlsRows(XLSX.read(await f.arrayBuffer(), { type: 'array' }));
+    if (!rows.length) throw new Error('No encontré columnas de SKU, nombre y categoría (o subcategoría) en el Excel.');
+    wcX = { rows }; await wcXlsPlan(true);
+  } catch (e) { $('wcXlsBody').innerHTML = `<span class="err-t">${esc(e.message)}</span>`; }
+};
+$('wcXlsBody').addEventListener('change', (e) => { const k = e.target.dataset.wcxk; if (!k || !wcX) return; e.target.checked ? wcX.skip.delete(Number(k)) : wcX.skip.add(Number(k)); const b = $('wcXlsGo'), go = wcX.plan.products.filter(p => !p.same && !wcX.skip.has(p.id)).length; b.textContent = `Aplicar en la web (${go} productos${wcX.plan.create.length ? ` y ${wcX.plan.create.length} categorías nuevas` : ''})`; });
+$('wcXlsBody').addEventListener('click', async (e) => {
+  if (e.target.id === 'wcXlsRe') return wcXlsPlan(true);
+  if (e.target.id !== 'wcXlsGo') return;
+  const b = e.target; b.disabled = true; $('wcXlsMsg').innerHTML = '<span class="muted">Aplicando en la web… puede tardar un par de minutos, no cierres la página.</span>';
+  const d = await lsPost('/api/webcat/import/apply', { rows: wcX.rows, skip: [...wcX.skip] });
+  if (!d.ok) { b.disabled = false; $('wcXlsMsg').innerHTML = `<span class="err-t">${esc(d.error)}</span>`; return; }
+  await loadWebcat(false);
+  const msg = `✓ ${d.ok} productos acomodados${d.created ? ` y ${d.created} categorías creadas` : ''}.${(d.failed || []).length ? ` <span class="err-t">No se pudo en ${d.failed.length}: ${d.failed.slice(0, 5).map(f => `#${f.id} (${esc(f.error)})`).join(' · ')}</span>` : ''}${d.pending ? ` <b>Faltan ${d.pending}: tocá "Aplicar" de nuevo y sigue.</b>` : ''}`;
+  await wcXlsPlan(false); $('wcXlsMsg').innerHTML = `<span style="color:var(--ok)">${msg}</span>`;
+});
 $('wcUndo').onclick = async () => {
   $('wcUndo').disabled = true; const d = await lsPost('/api/webcat/undo'); $('wcUndo').disabled = false;
   $('wcMsg').innerHTML = d.error ? `<span class="err-t">${esc(d.error)}</span>` : `<span style="color:var(--ok)">✓ Deshecho: ${d.ok} productos volvieron a sus categorías anteriores.</span>`;
