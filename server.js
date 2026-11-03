@@ -1341,7 +1341,7 @@ app.get('/api/web/img', async (req, res) => {
 // ---------- Presupuestos ----------
 // De dónde viene cada recibo y cómo se entrega.
 const Q_CHANNELS = { lara: 'Pacientes de Lara', whatsapp: 'WhatsApp', local: 'Local', mail: 'Mail', instagram: 'Instagram' };
-const Q_DELIVERY = { retiro: 'Retiro en el local', lara: 'Entrega Lara', envio: 'Envío' };
+const Q_DELIVERY = { retiro: 'Retiro en el local', lara: 'Entrega Lara', envio: 'Envío', correo: 'Correo Argentino' };
 app.put('/api/quotes/:id/meta', (req, res) => {
   const q = store.getQuote(req.params.id);
   if (!q) return res.status(404).json({ ok: false, error: 'No encontré ese presupuesto.' });
@@ -1352,6 +1352,9 @@ app.put('/api/quotes/:id/meta', (req, res) => {
     upd.delivery = Q_DELIVERY[req.body.delivery] ? req.body.delivery : '';
     if (upd.delivery !== 'envio' && q.ship && q.ship.on) upd.ship = { ...q.ship, on: false };   // deja de sumar en Envíos Flex
   }
+  // Correo Argentino: número de seguimiento y cuánto salió el envío (se resta en Resultado del mes)
+  if (req.body.tracking !== undefined) upd.tracking = String(req.body.tracking || '').toUpperCase().replace(/\s+/g, '').slice(0, 40);
+  if (req.body.ship_cost !== undefined) { const c = Math.round(Number(String(req.body.ship_cost).replace(/[^\d.,]/g, '').replace(/\./g, '').replace(',', '.')) || 0); if (c < 0 || c > 10000000) return res.status(400).json({ ok: false, error: 'Revisá el costo del envío.' }); upd.ship_cost = c; }
   res.json({ ok: true, quote: store.saveQuote(upd) });
 });
 const pad = (n) => String(n).padStart(7, '0');

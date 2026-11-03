@@ -395,6 +395,9 @@ Para ordenar en masa las categorías de los productos de la web. Necesita la cla
 - **📥 Acomodar desde Excel**: subí una planilla con SKU, nombre y categoría (una hoja por categoría con columna "Subcategoría", o columnas "Categoría" y "Subcategoría"). Crea las categorías que faltan, busca cada producto por SKU (o por nombre) y lo deja con las categorías del Excel. Antes de aplicar muestra qué cambia, cuáles no encontró y cuáles encontró por nombre parecido (esos quedan sin marcar para que los revises). Las categorías de marca que ya tiene la web (Horbaach, Sports Research, "Marcas"…) se detectan solas y se mantienen, para que en la web se siga pudiendo entrar por marca; podés elegir cuáles mantener. Los productos que no están en el Excel no se tocan. Si se corta por tiempo, tocá Aplicar de nuevo y sigue.
 - Cada cambio queda en Actividad del equipo.
 
+### 📦 Correo Argentino (Presupuestos)
+En la columna de entrega de cada recibo podés elegir **📦 Correo Argentino**. Ahí cargás el **número de seguimiento** y **cuánto salió el envío**. Con el número cargado podés copiarlo o mandárselo al cliente por WhatsApp. Lo que salió el envío se resta en **Resultado del mes** (dentro de Presupuestos, como "Envíos por Correo Argentino"), solo en los recibos confirmados.
+
 ### Subir gastos desde Excel
 En **🏪 Gastos del local** → **📥 Subir Excel**. El panel reconoce solo las columnas (Fecha, Gasto/Concepto, Monto/Importe, Forma de pago, Detalle), aunque el título no esté en la primera fila. Antes de importar muestra una vista previa; si alguna columna no se reconoció, la elegís en la lista. Si la planilla tiene varias hojas (por ejemplo una por mes), podés importar **Todas las hojas**. Las filas de TOTAL se ignoran y los gastos que ya estaban cargados (misma fecha, gasto y monto) se saltean.
 

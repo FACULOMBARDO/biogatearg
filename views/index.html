@@ -240,7 +240,7 @@
   </div>
   <div class="card">
     <div class="row"><input type="search" id="qQ" placeholder="Buscar por cliente o número…" style="max-width:380px;flex:1">
-      <select id="qFDel"><option value="">Todas las entregas</option><option value="retiro">Retiro en el local</option><option value="lara">Entrega Lara</option><option value="envio">Envío</option><option value="none">Sin elegir</option></select></div>
+      <select id="qFDel"><option value="">Todas las entregas</option><option value="retiro">Retiro en el local</option><option value="lara">Entrega Lara</option><option value="envio">Envío</option><option value="correo">Correo Argentino</option><option value="none">Sin elegir</option></select></div>
     <div id="qFCh" class="un-acc"></div>
   </div>
   <div class="card" style="padding:0">
@@ -1495,7 +1495,7 @@
     </div>
     <div class="grid2" style="grid-template-columns:1fr 1fr;margin-top:10px">
       <label>¿De dónde viene?<select id="qChannel"><option value="">Elegir…</option><option value="lara">Pacientes de Lara</option><option value="whatsapp">WhatsApp</option><option value="local">Local</option><option value="mail">Mail</option><option value="instagram">Instagram</option></select></label>
-      <label>Entrega<select id="qDelivery"><option value="">Elegir…</option><option value="retiro">Retiro en el local</option><option value="lara">Entrega Lara</option><option value="envio">🛵 Envío (mensajería)</option></select></label>
+      <label>Entrega<select id="qDelivery"><option value="">Elegir…</option><option value="retiro">Retiro en el local</option><option value="lara">Entrega Lara</option><option value="envio">🛵 Envío (mensajería)</option><option value="correo">📦 Correo Argentino</option></select></label>
     </div>
     <div class="muted" style="font-size:13px;margin:14px 0 6px">Productos: escribí el SKU (o parte del nombre) y elegilo de la lista. El precio sale de "WEB = CLÁSICA" y lo podés cambiar.</div>
     <datalist id="skuList"></datalist>
@@ -3980,7 +3980,7 @@ async function loadQuotes() {
   }
 }
 let qChannels = {}, qDeliveries = {}, qFCh = '';
-const qOpts = (map, v) => `<option value="">Elegir…</option>` + Object.entries(map).map(([k, l]) => `<option value="${k}"${k === v ? ' selected' : ''}>${k === 'envio' ? '🛵 ' : ''}${esc(l)}</option>`).join('');
+const qOpts = (map, v) => `<option value="">Elegir…</option>` + Object.entries(map).map(([k, l]) => `<option value="${k}"${k === v ? ' selected' : ''}>${k === 'envio' ? '🛵 ' : k === 'correo' ? '📦 ' : ''}${esc(l)}</option>`).join('');
 function qRender() {
   const t = $('qQ').value.trim().toLowerCase(), fd = $('qFDel').value;
   const base = quotes.filter(q => (!t || (q.client + ' ' + q.number).toLowerCase().includes(t)) && (!fd || (fd === 'none' ? !q.delivery : q.delivery === fd)));
@@ -3997,7 +3997,7 @@ function qRender() {
     <td><button class="btn small q-conf ${q.confirmed === false ? 'off' : 'on'}" data-qconf="${q.id}" title="${q.confirmed === false ? 'Tocá cuando se venda: pasa a sumar en Resultado del mes' : 'Suma en Resultado del mes. Tocá para desmarcar'}">${q.confirmed === false ? '⏳ Sin confirmar' : '✅ Confirmado'}</button></td>
     <td><select class="q-ch${q.channel ? '' : ' q-empty'}" data-qch="${q.id}">${qOpts(qChannels, q.channel)}</select></td>
     <td style="white-space:nowrap"><select class="q-del${q.delivery ? '' : ' q-empty'}" data-qdl="${q.id}">${qOpts(qDeliveries, q.delivery)}</select>
-      ${q.ship && q.ship.on ? `<div style="margin-top:4px">${shipBadge(q.ship_zone)} <a href="#" data-qship="${q.id}" style="font-size:12px">${esc(q.ship.city || 'editar')} · editar</a> <button class="btn small" data-label="P-${q.id}" title="Etiqueta 10x15 para el paquete">🏷️ Etiqueta</button></div>` : q.delivery === 'envio' ? `<div style="margin-top:4px"><button class="btn small" data-qship="${q.id}">🛵 Cargar dirección</button></div>` : ''}</td>
+      ${q.ship && q.ship.on ? `<div style="margin-top:4px">${shipBadge(q.ship_zone)} <a href="#" data-qship="${q.id}" style="font-size:12px">${esc(q.ship.city || 'editar')} · editar</a> <button class="btn small" data-label="P-${q.id}" title="Etiqueta 10x15 para el paquete">🏷️ Etiqueta</button></div>` : q.delivery === 'envio' ? `<div style="margin-top:4px"><button class="btn small" data-qship="${q.id}">🛵 Cargar dirección</button></div>` : q.delivery === 'correo' ? qCorreoHtml(q) : ''}</td>
     <td style="white-space:nowrap"><button class="btn small" data-qedit="${q.id}">Abrir</button> <button class="btn small" data-qpdf="${q.id}">PDF</button> <button class="btn small primary" data-qwa="${q.id}">WhatsApp</button> <button class="btn small" data-qdel="${q.id}" title="Borrar">✕</button></td>
   </tr>`).join('') : `<tr><td colspan="10" class="muted" style="padding:28px;text-align:center">${quotes.length ? 'No hay recibos con estos filtros.' : 'Todavía no hiciste presupuestos. Tocá "+ Nuevo presupuesto".'}</td></tr>`;
 }
@@ -4078,8 +4078,48 @@ $('qRows').addEventListener('change', async (e) => {
   if (!d.ok) { alert(d.error || 'No se pudo guardar.'); loadQuotes(); return; }
   const i = quotes.findIndex(x => String(x.id) === String(id)); if (i >= 0) quotes[i] = { ...quotes[i], ...d.quote };
   if (dl && dl.value === 'envio' && !(d.quote.ship && d.quote.ship.on)) qShipOpen(quotes[i]);
+  else if (dl && dl.value === 'correo') { qCaEdit = quotes[i].id; await loadQuotes(); }
   else await loadQuotes();
 });
+// ---------- Correo Argentino: seguimiento y costo del envío ----------
+let qCaEdit = null;
+const CA_TRACK = 'https://www.correoargentino.com.ar/';
+function qCorreoHtml(q) {
+  if (qCaEdit === q.id) return `<div class="q-ca" style="margin-top:6px;display:grid;gap:4px;max-width:230px">
+      <input type="text" data-catrack="${q.id}" value="${esc(q.tracking || '')}" placeholder="Nº de seguimiento" style="padding:5px 8px;font-family:ui-monospace,Menlo,Consolas,monospace;text-transform:uppercase">
+      <input type="text" inputmode="numeric" data-cacost="${q.id}" value="${q.ship_cost ? q.ship_cost : ''}" placeholder="Cuánto salió el envío ($)" style="padding:5px 8px">
+      <div class="row" style="gap:4px"><button class="btn small primary" data-casave="${q.id}">Guardar</button><button class="btn small" data-cacancel="1">Cancelar</button></div></div>`;
+  if (!q.tracking && !q.ship_cost) return `<div style="margin-top:4px"><button class="btn small" data-caedit="${q.id}">📦 Cargar seguimiento y costo</button></div>`;
+  return `<div style="margin-top:4px;font-size:12.5px;line-height:1.5">
+      ${q.tracking ? `<div>Seguimiento: <b style="font-family:ui-monospace,Menlo,Consolas,monospace">${esc(q.tracking)}</b> <a href="#" data-cacopy="${esc(q.tracking)}" title="Copiar">copiar</a></div>` : '<div class="err-t">Falta el Nº de seguimiento</div>'}
+      ${q.ship_cost ? `<div>Envío: <b>${qMoney(q.ship_cost)}</b></div>` : '<div class="err-t">Falta cuánto salió el envío</div>'}
+      <div><a href="#" data-caedit="${q.id}">editar</a>${q.tracking ? ` · <a href="${CA_TRACK}" target="_blank" rel="noopener">ver en Correo</a> · <a href="#" data-cawa="${q.id}">avisar por WhatsApp</a>` : ''}</div></div>`;
+}
+$('qRows').addEventListener('click', async (e) => {
+  const t = e.target;
+  if (t.dataset.caedit) { e.preventDefault(); qCaEdit = Number(t.dataset.caedit) || t.dataset.caedit; qRender(); const i = document.querySelector(`[data-catrack="${t.dataset.caedit}"]`); if (i) i.focus(); return; }
+  if (t.dataset.cacancel) { qCaEdit = null; qRender(); return; }
+  if (t.dataset.cacopy) { e.preventDefault(); try { await navigator.clipboard.writeText(t.dataset.cacopy); t.textContent = '¡copiado!'; setTimeout(() => { t.textContent = 'copiar'; }, 1500); } catch { /* sin portapapeles */ } return; }
+  if (t.dataset.cawa) {
+    e.preventDefault();
+    const q = quotes.find(x => String(x.id) === t.dataset.cawa); if (!q) return;
+    const first = (q.client.split(/\s+/)[0] || '').replace(/^./, c => c.toUpperCase());
+    const msg = `Hola ${first}! Tu pedido de Biogate ya fue despachado por Correo Argentino. El número de seguimiento es ${q.tracking}. Lo podés seguir en la web de Correo Argentino: www.correoargentino.com.ar (sección Seguimiento de envíos). Cualquier consulta estamos a disposición.`;
+    window.open((q.whatsapp ? waLink(q.whatsapp) : 'https://wa.me/') + '?text=' + encodeURIComponent(msg), 'whatsapp');
+    return;
+  }
+  if (t.dataset.casave) {
+    const id = t.dataset.casave;
+    const tracking = (document.querySelector(`[data-catrack="${id}"]`) || {}).value || '', ship_cost = (document.querySelector(`[data-cacost="${id}"]`) || {}).value || '';
+    t.disabled = true;
+    const d = await (await fetch(`/api/quotes/${id}/meta`, { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ tracking, ship_cost }) })).json().catch(() => ({ ok: false, error: 'Sin conexión.' }));
+    t.disabled = false;
+    if (!d.ok) { alert(d.error || 'No se pudo guardar.'); return; }
+    const i = quotes.findIndex(x => String(x.id) === String(id)); if (i >= 0) quotes[i] = { ...quotes[i], ...d.quote };
+    qCaEdit = null; qRender();
+  }
+});
+$('qRows').addEventListener('keydown', (e) => { if (e.key === 'Enter' && (e.target.dataset.catrack || e.target.dataset.cacost)) { const b = document.querySelector(`[data-casave="${e.target.dataset.catrack || e.target.dataset.cacost}"]`); if (b) b.click(); } });
 $('qFDel').onchange = qRender;
 $('qSave').onclick = qSave;
 $('qPdf').onclick = async () => { const q = await qSave(); if (q) (await qBuildPdf(q)).save(q.file_name); };
@@ -5607,6 +5647,7 @@ function renderResults() {
     ...qt.by.map(g => `<div class="rs-line ch"><span>↳ ${esc(g.label)}<small>${g.n} presupuesto${g.n === 1 ? '' : 's'} · neto ${sgn(g.profit)}</small></span><b>${money(g.gross)}</b></div>`),
     line('Impuestos', qt.tax, 'minus'),
     line('Costo de mercadería', qt.cost, 'minus', qt.no_cost_n ? `${qt.no_cost_n} sin costo` : ''),
+    ...(qt.ship ? [line('Envíos por Correo Argentino', qt.ship, 'minus')] : []),
     line('Neto presupuestos', qt.profit, 'sub')] : []),
     head('Total del mes'),
     line('Facturación total (bruto)', ml.gross + (tu.gross || 0) + wb.gross + qt.gross, 'plus', 'sin canceladas ni devueltas'),
