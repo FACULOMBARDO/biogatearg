@@ -7168,8 +7168,8 @@ function plSqOps(it) {
   // Logo: los cuadrados (BIOGATE) van arriba a la izquierda con el origen al lado; los anchos ocupan todo el ancho y el origen va abajo.
   const ar = b.iw / b.ih, origin = `ORIGEN: ${(it.origin || c.origin || 'CHINA').toUpperCase()}`;
   let lh = Math.min(11.5, 24 / ar), lw = lh * ar, oy = 7.2;
-  if (ar > 2.9) { lw = Math.min(42, 8 * ar); lh = lw / ar; oy = 3.4 + lh + 2.7; }
-  ops.push({ k: 'img', x: 4, y: ar > 2.9 ? 3.4 : 3.2 + (11.5 - lh) / 2, w: lw, h: lh });
+  if (ar > 2.5) { lw = Math.min(42, 8 * ar); lh = lw / ar; oy = 3.4 + lh + 2.7; }
+  ops.push({ k: 'img', x: 4, y: ar > 2.5 ? 3.4 : 3.2 + (11.5 - lh) / 2, w: lw, h: lh });
   ops.push({ k: 't', x: 46, y: oy, pt: 6, txt: origin, bold: 1, end: 1 });
   ops.push({ k: 'bar', x: 4, y: 16.2, w: 42, h: 7, r: 1, fill: b.bar });
   ops.push({ k: 't', x: 5.4, y: 20.6, pt: 6, txt: 'SKU', fill: [255, 255, 255] });
