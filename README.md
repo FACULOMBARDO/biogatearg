@@ -415,7 +415,7 @@ Al imprimir el PDF, elegí **Tamaño real / 100 %** (no "Ajustar a la página").
 
 ---
 
-- Todas las etiquetas salen en **5 × 5 cm** (en hoja A4 entran 20). **BIOGATE** lleva su propia dirección y teléfono (Gervasio Artigas 5767 · 7558-6818), que se cambian en "Datos del importador" → "Dirección/Teléfono en las de BIOGATE"; las otras marcas usan los datos generales.
+- Marcas: BIOGATE, PESTGATE, PETGO, PLAYFUSION y WILO. Todas las etiquetas salen en **5 × 5 cm** (en hoja A4 entran 20). **BIOGATE** lleva su propia dirección y teléfono (Gervasio Artigas 5767 · 7558-6818), que se cambian en "Datos del importador" → "Dirección/Teléfono en las de BIOGATE"; las otras marcas usan los datos generales.
 
 ## Problemas comunes
 

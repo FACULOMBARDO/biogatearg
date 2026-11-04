@@ -360,9 +360,9 @@ app.get('/api/zone/guess', (req, res) => res.json(zones.zoneFor({ city: String(r
 // Etiquetas de envío: teléfono del local que va al pie.
 app.get('/api/label/settings', (req, res) => res.json({ phone: store.getSettings().label_phone ?? '11 5326-9953' }));
 app.put('/api/label/settings', (req, res) => { store.saveSettings({ label_phone: String(req.body.phone ?? '').trim().slice(0, 40) }); res.json({ ok: true }); });
-// Etiquetas de producto (PETGO / PESTGATE / BIOGATE / PLAYFUSION): datos del importador + últimas generadas
+// Etiquetas de producto (PETGO / PESTGATE / BIOGATE / PLAYFUSION / WILO): datos del importador + últimas generadas
 const PL_DEF = { origin: 'CHINA', title: 'IMPORTADOR', name: 'MAXIMILIANO STELLA / WOODHAVEN S.R.L.', address: 'Av. Albarellos 2889, C.A.B.A.', cuit: 'C.U.I.T.: 20-26198566-8 / 33-71825001-9', phone: 'Tel.: 4571-8888', bio_address: 'Gervasio Artigas 5767, C.A.B.A.', bio_phone: 'Tel.: 7558-6818' };
-const PL_BRANDS = ['BIOGATE', 'PESTGATE', 'PETGO', 'PLAYFUSION'];
+const PL_BRANDS = ['BIOGATE', 'PESTGATE', 'PETGO', 'PLAYFUSION', 'WILO'];
 app.get('/api/plabel', (req, res) => { const st = store.getSettings(); res.json({ cfg: { ...PL_DEF, ...(st.plabel || {}) }, def: PL_DEF, history: st.plabel_history || [] }); });
 app.put('/api/plabel', (req, res) => {
   const cfg = {}; for (const k of Object.keys(PL_DEF)) cfg[k] = String(req.body[k] ?? PL_DEF[k]).trim().slice(0, 90);
