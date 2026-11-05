@@ -1184,7 +1184,7 @@ app.put('/api/tuyo/config', (req, res) => { try { const c = tuyo.saveConfig(req.
 app.put('/api/tuyo/item/:id', (req, res) => { try { res.json({ ok: true, ...tuyo.saveItem(req.params.id, req.body || {}) }); } catch (e) { res.status(400).json({ ok: false, error: e.message }); } });
 
 // ---------- Gastos del local ----------
-const EXP_METHODS = ['Efectivo', 'Transferencia', 'Débito', 'Crédito', 'Mercado Pago', 'Cheque', 'Otro'];
+const EXP_METHODS = ['Efectivo', 'Transferencia', 'Débito', 'Crédito', 'Mercado Pago', 'Cheque', 'Silvi', 'Otro'];
 const validMonth = (m) => /^\d{4}-\d{2}$/.test(String(m || ''));
 const prevMonth = (m) => { const [y, mo] = m.split('-').map(Number); const d = new Date(y, mo - 2, 1); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`; };
 app.get('/api/expenses', (req, res) => {
