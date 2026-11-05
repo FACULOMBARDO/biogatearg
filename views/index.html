@@ -209,13 +209,14 @@
   </div>
   <div class="card">
     <div class="row" id="rkPeriods">
-      <div class="seg"><button data-rp="today">Hoy</button><button data-rp="7">7 días</button><button data-rp="15">15 días</button><button data-rp="30" class="on">1 mes</button></div>
+      <div class="seg"><button data-rp="today">Hoy</button><button data-rp="7">7 días</button><button data-rp="15">15 días</button><button data-rp="30" class="on">1 mes</button><button data-rp="90">3 meses</button><button data-rp="180">6 meses</button><button data-rp="year">Este año</button></div>
       <div class="seg month-nav"><button id="rkPrev" title="Mes anterior">‹</button><button data-rp="month" id="rkLabel">Mes</button><button id="rkNext" title="Mes siguiente">›</button></div>
-      <a href="#" id="rkRangeToggle" class="muted" style="font-size:13px">rango de fechas…</a>
+      <button class="btn small" id="rkRangeToggle">📅 Elegir fechas</button>
       <span id="rkRange" hidden class="row" style="gap:6px"><input type="date" id="rkFrom" style="width:auto"> a <input type="date" id="rkTo" style="width:auto"></span>
     </div>
     <div class="row" style="margin-top:10px">
       <select id="rkAccount"><option value="">Todas las cuentas</option></select>
+      <div class="seg" id="rkView" title="Cómo ver las cuentas"><button data-rv="all" class="on">Todas juntas</button><button data-rv="split">Separado por cuenta</button></div>
       <span class="muted" style="font-size:13px">Ordenar por</span>
       <div class="seg" id="rkSort"><button data-rs="units" class="on">Unidades</button><button data-rs="gross">Facturación</button><button data-rs="profit">Ganancia</button></div>
       <input type="search" id="rkQ" placeholder="Buscar SKU o producto…" style="flex:1;min-width:180px;max-width:300px">
@@ -223,7 +224,8 @@
     <div id="rkStatus" class="muted" style="margin-top:10px;font-size:14px"></div>
   </div>
   <div class="stats" id="rkStats" style="grid-template-columns:repeat(4,minmax(0,1fr))"></div>
-  <div class="card" style="padding:0">
+  <div id="rkSplit"></div>
+  <div class="card" style="padding:0" id="rkMain">
     <div class="table-wrap">
       <table class="sales-table">
         <thead><tr><th style="width:50px">#</th><th>SKU</th><th style="text-align:right">Unidades</th><th style="text-align:right">Ventas</th><th style="text-align:right">Facturación</th><th style="text-align:right">% del total</th><th style="text-align:right" class="col-net">Neto después de costos</th><th style="text-align:right" class="col-net">Margen</th></tr></thead>
@@ -3701,17 +3703,21 @@ fetch('/api/accounts').then(r => r.json()).then(a => { sAcc.setAccounts(a); rsAc
 
 fetch('/api/settings').then(r => r.json()).then(st => { taxPctSetting = st.tax_pct; }).catch(() => {});
 // ---------- Ranking de ventas por SKU ----------
+let rkView = 'all', rkAcc = {}, rkOpen = {};
 let rkMode = '30', rkMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1), rkSort = 'units', rkData = [], rkRows = [];
 function rkRange() {
   const now = new Date(), today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   if (rkMode === 'today') return [ymd(today), ymd(today)];
-  if (['7', '15', '30'].includes(rkMode)) return [ymd(new Date(today - (Number(rkMode) - 1) * 86400000)), ymd(today)];
+  if (['7', '15', '30', '90', '180'].includes(rkMode)) return [ymd(new Date(today - (Number(rkMode) - 1) * 86400000)), ymd(today)];
+  if (rkMode === 'year') return [ymd(new Date(today.getFullYear(), 0, 1)), ymd(today)];
   if (rkMode === 'month') return [ymd(rkMonth), ymd(new Date(rkMonth.getFullYear(), rkMonth.getMonth() + 1, 0))];
   return [$('rkFrom').value || ymd(new Date(today - 29 * 86400000)), $('rkTo').value || ymd(today)];
 }
 function rkPaint() {
   document.querySelectorAll('#rkPeriods [data-rp]').forEach(b => b.classList.toggle('on', b.dataset.rp === rkMode));
   document.querySelectorAll('#rkSort [data-rs]').forEach(b => b.classList.toggle('on', b.dataset.rs === rkSort));
+  document.querySelectorAll('#rkView [data-rv]').forEach(b => b.classList.toggle('on', b.dataset.rv === rkView));
+  $('rkView').hidden = !!$('rkAccount').value;
   $('rkLabel').textContent = MESES[rkMonth.getMonth()] + ' ' + rkMonth.getFullYear();
   const n = new Date(); $('rkNext').disabled = rkMonth.getFullYear() === n.getFullYear() && rkMonth.getMonth() === n.getMonth();
   $('rkRange').hidden = rkMode !== 'range';
@@ -3722,7 +3728,7 @@ async function loadRanking() {
   const q = new URLSearchParams({ from, to, account: $('rkAccount').value });
   rkData = await (await fetch('/api/sales?' + q)).json();
   // Agrupa por SKU (las ventas de varios productos se reparten en proporción a lo que facturó cada uno).
-  const by = {};
+  const by = {}; rkAcc = {};
   for (const s of rkData) {
     if (s.cancelled || ['unpaid', 'ml_cancelled'].includes(s.order_state)) continue;
     const itemsGross = (s.items || []).reduce((t, i) => t + (i.unit_price || 0) * (i.qty || 1), 0) || s.gross || 1;
@@ -3732,6 +3738,13 @@ async function loadRanking() {
       const r = by[k] = by[k] || { sku: i.sku || '', title: i.title, units: 0, orders: 0, gross: 0, profit: 0, profitKnown: true };
       r.units += i.qty || 1; r.orders += 1; r.gross += g;
       if (s.net_after_cost === null) r.profitKnown = false; else r.profit += s.net_after_cost * (g / itemsGross);
+      // Lo mismo, separado por cuenta
+      const an = s.account_nickname || String(s.account_id || 'Sin cuenta');
+      r.accs = r.accs || {}; r.accs[an] = (r.accs[an] || 0) + (i.qty || 1);
+      const A = rkAcc[an] = rkAcc[an] || {};
+      const ra = A[k] = A[k] || { sku: i.sku || '', title: i.title, units: 0, orders: 0, gross: 0, profit: 0, profitKnown: true };
+      ra.units += i.qty || 1; ra.orders += 1; ra.gross += g;
+      if (s.net_after_cost === null) ra.profitKnown = false; else ra.profit += s.net_after_cost * (g / itemsGross);
     }
   }
   rkRows = Object.values(by);
@@ -3758,20 +3771,41 @@ function rkRender() {
     `<div class="stat"><div class="k">Unidades</div><div class="v">${totU}</div><div class="sub">en el período</div></div>`,
     `<div class="stat"><div class="k">Facturación</div><div class="v">${money(totG)}</div><div class="sub">sin canceladas ni devoluciones</div></div>`,
   ].join('');
+  const split = rkView === 'split' && !$('rkAccount').value;
+  $('rkMain').hidden = split; $('rkSplit').innerHTML = split ? rkSplitHtml(term, key) : '';
+  if (split) return;
   const list = rows.map((r, i) => ({ ...r, pos: i + 1 })).filter(r => !term || (r.sku + ' ' + r.title).toLowerCase().includes(term));
   if (!list.length) { $('rkRows').innerHTML = `<tr><td colspan="8" class="muted" style="padding:28px;text-align:center">Sin ventas para mostrar.</td></tr>`; return; }
+  $('rkRows').innerHTML = list.map(r => rkRowHtml(r, totG, !$('rkAccount').value)).join('');
+}
+function rkRowHtml(r, totG, showAccs) {
   const medal = ['🥇', '🥈', '🥉'];
-  $('rkRows').innerHTML = list.map(r => `<tr${r.pos <= 3 ? ' style="background:color-mix(in srgb, var(--brand) 6%, transparent)"' : ''}>
+  const accs = showAccs && r.accs && Object.keys(r.accs).length > 1 ? `<div class="muted" style="font-size:11.5px;margin-top:2px">${Object.entries(r.accs).sort((a, b) => b[1] - a[1]).map(([a, n]) => `${esc(a)} <b>${n}</b>`).join(' · ')}</div>` : '';
+  return `<tr${r.pos <= 3 ? ' style="background:color-mix(in srgb, var(--brand) 6%, transparent)"' : ''}>
     <td style="font-size:${r.pos <= 3 ? '20px' : '14px'};font-weight:700">${medal[r.pos - 1] || r.pos}</td>
-    <td>${r.sku ? `<b style="font-family:ui-monospace,Menlo,Consolas,monospace">${esc(r.sku)}</b>` : '<span class="pill" style="color:var(--err)">sin SKU</span>'}<div class="muted" style="font-size:12px">${esc(r.title)}</div></td>
+    <td>${r.sku ? `<b style="font-family:ui-monospace,Menlo,Consolas,monospace">${esc(r.sku)}</b>` : '<span class="pill" style="color:var(--err)">sin SKU</span>'}<div class="muted" style="font-size:12px">${esc(r.title)}</div>${accs}</td>
     <td class="price" style="text-align:right;font-size:16px">${r.units}</td>
     <td class="price" style="text-align:right;font-weight:500">${r.orders}</td>
     <td class="price" style="text-align:right">${money(r.gross)}</td>
     <td style="text-align:right"><div style="display:flex;align-items:center;gap:6px;justify-content:flex-end"><span class="muted" style="font-size:12.5px">${pct(r.gross, totG)}</span><span style="display:inline-block;height:6px;width:${Math.max(2, Math.round(r.gross / (totG || 1) * 80))}px;background:var(--brand);border-radius:3px"></span></div></td>
     <td class="price col-net" style="text-align:right">${r.profitKnown ? `<span style="color:${r.profit < 0 ? 'var(--err)' : 'var(--ok)'}">${money(r.profit)}</span>` : '<span class="muted" style="font-size:12px">sin costo</span>'}</td>
     <td class="price col-net" style="text-align:right;font-weight:500">${r.profitKnown && r.gross ? Math.round(r.profit / r.gross * 1000) / 10 + '%' : '—'}</td>
-  </tr>`).join('');
+  </tr>`;
 }
+// Separado por cuenta: un ranking por cada cuenta (los 10 primeros, con "ver todos").
+function rkSplitHtml(term, key) {
+  const accs = Object.entries(rkAcc).map(([name, A]) => { const rows = Object.values(A).sort((a, b) => b[key] - a[key] || b.units - a.units).map((r, i) => ({ ...r, pos: i + 1 })); return { name, rows, units: rows.reduce((t, r) => t + r.units, 0), gross: rows.reduce((t, r) => t + r.gross, 0) }; }).sort((a, b) => b.gross - a.gross);
+  if (!accs.length) return '<div class="card muted" style="text-align:center;padding:28px">Sin ventas para mostrar.</div>';
+  const head = '<thead><tr><th style="width:50px">#</th><th>SKU</th><th style="text-align:right">Unidades</th><th style="text-align:right">Ventas</th><th style="text-align:right">Facturación</th><th style="text-align:right">% de la cuenta</th><th style="text-align:right" class="col-net">Neto después de costos</th><th style="text-align:right" class="col-net">Margen</th></tr></thead>';
+  return accs.map(a => {
+    const list = a.rows.filter(r => !term || (r.sku + ' ' + r.title).toLowerCase().includes(term)), open = rkOpen[a.name] || term, show = open ? list : list.slice(0, 10);
+    return `<div class="card" style="padding:0;margin-bottom:12px"><div class="row" style="justify-content:space-between;padding:12px 16px;flex-wrap:wrap;gap:6px"><b style="font-size:16px">${esc(a.name)}</b><span class="muted" style="font-size:13px">${a.rows.length} SKU · ${a.units} unidades · ${money(a.gross)}${a.rows[0] ? ` · más vendido: <b>${esc(a.rows[0].sku || 'sin SKU')}</b>` : ''}</span></div>
+      <div class="table-wrap"><table class="sales-table">${head}<tbody>${show.map(r => rkRowHtml(r, a.gross, false)).join('') || '<tr><td colspan="8" class="muted" style="padding:16px;text-align:center">Nada con esa búsqueda.</td></tr>'}</tbody></table></div>
+      ${!term && list.length > 10 ? `<div style="text-align:center;padding:8px"><button class="btn small" data-rkopen="${esc(a.name)}">${open ? 'Ver solo los 10 primeros' : `Ver los ${list.length}`}</button></div>` : ''}</div>`;
+  }).join('');
+}
+$('rkSplit').onclick = (e) => { const b = e.target.closest('[data-rkopen]'); if (!b) return; rkOpen[b.dataset.rkopen] = !rkOpen[b.dataset.rkopen]; rkRender(); };
+document.querySelectorAll('#rkView [data-rv]').forEach(b => b.onclick = () => { rkView = b.dataset.rv; rkPaint(); rkRender(); });
 document.querySelectorAll('#rkPeriods [data-rp]').forEach(b => b.onclick = () => { rkMode = b.dataset.rp; loadRanking(); });
 $('rkPrev').onclick = () => { rkMonth = new Date(rkMonth.getFullYear(), rkMonth.getMonth() - 1, 1); rkMode = 'month'; loadRanking(); };
 $('rkNext').onclick = () => { rkMonth = new Date(rkMonth.getFullYear(), rkMonth.getMonth() + 1, 1); rkMode = 'month'; loadRanking(); };
@@ -3784,7 +3818,10 @@ $('rkCsv').onclick = () => {
   const rows = rkRows.slice().sort((a, b) => b[key] - a[key]);
   const e = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`, n = (v) => String(Math.round(v * 100) / 100).replace('.', ',');
   const [from, to] = rkRange();
-  const csv = ['Puesto;SKU;Producto;Unidades;Ventas;Facturación;Neto después de costos;Margen %'].concat(rows.map((r, i) => [i + 1, r.sku || 'sin SKU', r.title, r.units, r.orders, n(r.gross), r.profitKnown ? n(r.profit) : 'sin costo', r.profitKnown && r.gross ? n(r.profit / r.gross * 100) : ''].map(e).join(';'))).join('\r\n');
+  const split = rkView === 'split' && !$('rkAccount').value;
+  const line = (r, i, acc) => [...(split ? [acc] : []), i + 1, r.sku || 'sin SKU', r.title, r.units, r.orders, n(r.gross), r.profitKnown ? n(r.profit) : 'sin costo', r.profitKnown && r.gross ? n(r.profit / r.gross * 100) : ''].map(e).join(';');
+  const body = split ? Object.entries(rkAcc).flatMap(([acc, A]) => Object.values(A).sort((a, b) => b[key] - a[key]).map((r, i) => line(r, i, acc))) : rows.map((r, i) => line(r, i));
+  const csv = [(split ? 'Cuenta;' : '') + 'Puesto;SKU;Producto;Unidades;Ventas;Facturación;Neto después de costos;Margen %'].concat(body).join('\r\n');
   const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob(['﻿' + csv], { type: 'text/csv' })); a.download = `ranking-${from}-a-${to}.csv`; a.click();
 };
 
