@@ -2282,6 +2282,9 @@ $('lsDPrev').onclick = () => {
   const mode = $('lsDMode').value, value = Number($('lsDPct').value), from = $('lsDFrom').value, to = $('lsDTo').value;
   if (!(value > 0)) { $('lsMsg').innerHTML = `<span class="err-t">Poné ${mode === 'pct' ? 'el % de descuento' : 'el precio final'}.</span>`; return; }
   if (!from || !to || to < from) { $('lsMsg').innerHTML = '<span class="err-t">Elegí desde y hasta cuándo.</span>'; return; }
+  const today = new Date().toLocaleDateString('sv-SE'), days = Math.round((new Date(to + 'T12:00:00') - new Date(from + 'T12:00:00')) / 86400e3) + 1;
+  if (from < today) { $('lsMsg').innerHTML = '<span class="err-t">El descuento tiene que empezar hoy o más adelante.</span>'; return; }
+  if (days > 31) { const mx = new Date(new Date(from + 'T12:00:00').getTime() + 30 * 86400e3); $('lsMsg').innerHTML = `<span class="err-t">Mercado Libre permite descuentos de hasta <b>31 días</b> y elegiste ${days}. Poné "hasta" como máximo el <b>${mx.toLocaleDateString('es-AR')}</b>. Cuando termine, lo podés volver a poner.</span>`; return; }
   const sel = [...lsSel].map(lsItem).filter(Boolean);
   if (!sel.length) return;
   lsDisc = { mode, value, from, to, items: {} };
@@ -2306,7 +2309,7 @@ $('lsDiscGo').onclick = async () => {
   }
   b.disabled = false; b.textContent = '🏷️ Aplicar descuento en Mercado Libre';
   lsDisc = null; lsDiscBar();
-  $('lsMsg').innerHTML = `<span style="color:var(--ok)">✓ Descuento aplicado en ${d.ok} ${d.ok === 1 ? 'publicación' : 'publicaciones'}.</span>${d.failed.length ? `<div class="err-t" style="margin-top:4px">No se pudo en ${d.failed.length}: ${d.failed.slice(0, 8).map(f => `${esc(f.item_id)} (${esc(f.error)})`).join(' · ')}${d.failed.length > 8 ? '…' : ''}</div>` : ''}`;
+  $('lsMsg').innerHTML = `<span style="color:var(--ok)">✓ Descuento aplicado en ${d.ok} ${d.ok === 1 ? 'publicación' : 'publicaciones'}.</span>${d.failed.length ? `<div class="err-t" style="margin-top:4px">No se pudo en ${d.failed.length}:${Object.entries(d.failed.reduce((m, f) => { (m[f.error] = m[f.error] || []).push(f.item_id); return m; }, {})).sort((a, b) => b[1].length - a[1].length).slice(0, 5).map(([err, ids]) => `<div>• <b>${esc(err)}</b> <span class="muted">(${ids.length} ${ids.length === 1 ? 'publicación' : 'publicaciones'}${ids.length <= 3 ? ': ' + ids.map(esc).join(', ') : ''})</span></div>`).join('')}</div>` : ''}`;
   $('lsMsg').scrollIntoView({ behavior: 'smooth', block: 'center' });
   loadListings();
 };
@@ -2315,6 +2318,9 @@ $('lsAcc').onchange = renderListings; $('lsFilter').onchange = renderListings; $
 $('lsState').onclick = (e) => { const b = e.target.closest('[data-s]'); if (!b) return; lsState = b.dataset.s; $('lsState').querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b)); renderListings(); };
 $('lsMoreBtn').onclick = () => { lsLimit += 200; renderListings(); };
 (() => { const t = new Date(), f = (d) => d.toLocaleDateString('sv-SE'); $('lsDFrom').value = f(t); $('lsDTo').value = f(new Date(Date.now() + 7 * 86400e3)); })();
+// "Hasta" no puede pasar de 31 días desde "desde" (límite de Mercado Libre); "desde" no puede ser antes de hoy.
+const lsDLimits = () => { const f = $('lsDFrom').value; $('lsDFrom').min = new Date().toLocaleDateString('sv-SE'); if (!f) return; $('lsDTo').min = f; $('lsDTo').max = new Date(new Date(f + 'T12:00:00').getTime() + 30 * 86400e3).toLocaleDateString('sv-SE'); if ($('lsDTo').value > $('lsDTo').max) $('lsDTo').value = $('lsDTo').max; if ($('lsDTo').value < f) $('lsDTo').value = f; };
+$('lsDFrom').addEventListener('change', lsDLimits); lsDLimits();
 
 // --- Detalle de una publicación ---
 let ld = null;
