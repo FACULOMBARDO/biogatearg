@@ -393,6 +393,7 @@ Para ordenar en masa las categorías de los productos de la web. Necesita la cla
 - **✨ Sugerir categorías con IA** propone la categoría que mejor le queda a cada producto (podés reemplazar o solo agregar).
 - **Nueva categoría** la crea en la web (puede ir dentro de otra). **Deshacer último cambio** vuelve los productos a como estaban.
 - **📥 Acomodar desde Excel**: subí una planilla con SKU, nombre y categoría (una hoja por categoría con columna "Subcategoría", o columnas "Categoría" y "Subcategoría"). Crea las categorías que faltan, busca cada producto por SKU (o por nombre) y lo deja con las categorías del Excel. Antes de aplicar muestra qué cambia, cuáles no encontró y cuáles encontró por nombre parecido (esos quedan sin marcar para que los revises). Las categorías de marca que ya tiene la web (Horbaach, Sports Research, "Marcas"…) se detectan solas y se mantienen, para que en la web se siga pudiendo entrar por marca; podés elegir cuáles mantener. Los productos que no están en el Excel no se tocan. Si se corta por tiempo, tocá Aplicar de nuevo y sigue.
+- **💲 Precio**: con productos tildados, subí o bajá un % (con redondeo opcional). "Previsualizar precios" muestra el precio actual y el nuevo; "Aplicar en la web" lo cambia (también el precio de oferta y cada variante). Si se corta, al tocar de nuevo sigue con los que faltan sin volver a subir los hechos. **Deshacer cambio de precios** vuelve todo a como estaba.
 - Cada cambio queda en Actividad del equipo.
 
 ### 📦 Correo Argentino (Presupuestos)

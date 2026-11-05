@@ -302,6 +302,10 @@ app.post('/api/webcat/category', wcWrap(async req => ({ category: await webcat.c
 app.put('/api/webcat/category/:id', wcWrap(async req => ({ category: await webcat.renameCat(req.params.id, (req.body || {}).name) })));
 app.post('/api/webcat/import/plan', wcWrap(async req => { if ((req.body || {}).refresh) await webcat.sync(); return { plan: webcat.importPlan((req.body || {}).rows, (req.body || {}).keep) }; }));
 app.post('/api/webcat/import/apply', wcWrap(req => webcat.importApply((req.body || {}).rows, (req.body || {}).skip, (req.body || {}).keep)));
+app.post('/api/webcat/price/plan', async (req, res) => { try { const b = req.body || {}; if (b.refresh || webcat.list().products.some(p => p.regular === undefined)) await webcat.sync(); const plan = webcat.pricePlan(b.ids, b.pct, b.step); res.json({ ok: true, plan, token: webcat.priceDraft(b.ids, b.pct, b.step), job: webcat.priceStatus(), ...(b.refresh ? webcat.list() : {}) }); } catch (e) { res.status(400).json({ ok: false, error: e.message }); } });
+app.post('/api/webcat/price/apply', wcWrap(req => webcat.priceStart((req.body || {}).token)));
+app.get('/api/webcat/price/status', (req, res) => res.json({ ok: true, job: webcat.priceStatus() }));
+app.post('/api/webcat/price/undo', wcWrap(() => webcat.priceUndo()));
 app.post('/api/webcat/suggest', wcWrap(async req => ({ suggestions: await webcat.suggest((req.body || {}).ids) })));
 app.get('/api/activity', (req, res) => res.json({ ok: true, ...activity.report(req.query.days, req.query.who) }));
 

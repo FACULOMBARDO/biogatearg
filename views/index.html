@@ -725,7 +725,7 @@
 <section id="viewWebcat" hidden>
   <div class="row" style="justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px">
     <h1 class="page-title">Productos de la web <span class="muted" style="font-size:15px;font-weight:500">· categorías de biogate.com.ar</span></h1>
-    <div class="row" style="gap:6px;flex-wrap:wrap"><button class="btn" id="wcUndo" hidden>↩️ Deshacer último cambio</button><button class="btn" id="wcXlsBtn" title="Subí un Excel con SKU, categoría y subcategoría y el panel acomoda la web igual">📥 Acomodar desde Excel</button><input type="file" id="wcXlsFile" accept=".xlsx,.xls,.csv,.ods" hidden><button class="btn" id="wcNewCat">＋ Nueva categoría</button><button class="btn" id="wcSync">↻ Actualizar desde la web</button></div>
+    <div class="row" style="gap:6px;flex-wrap:wrap"><button class="btn" id="wcUndo" hidden>↩️ Deshacer último cambio</button><button class="btn" id="wcPUndo" hidden>↩️ Deshacer cambio de precios</button><button class="btn" id="wcXlsBtn" title="Subí un Excel con SKU, categoría y subcategoría y el panel acomoda la web igual">📥 Acomodar desde Excel</button><input type="file" id="wcXlsFile" accept=".xlsx,.xls,.csv,.ods" hidden><button class="btn" id="wcNewCat">＋ Nueva categoría</button><button class="btn" id="wcSync">↻ Actualizar desde la web</button></div>
   </div>
   <div class="card" style="padding:12px 14px">
     <div class="row" style="flex-wrap:wrap;gap:8px">
@@ -751,6 +751,17 @@
       <span class="muted">o</span>
       <button class="btn small" id="wcAi">✨ Sugerir categorías con IA</button>
     </div>
+    <div class="row" style="flex-wrap:wrap;gap:8px;align-items:center;margin-top:8px">
+      <b style="min-width:70px">💲 Precio</b>
+      <select id="wcPDir" style="width:auto"><option value="up">Subir</option><option value="down">Bajar</option></select>
+      <input type="number" id="wcPPct" value="2" min="0.1" step="0.1" style="width:80px"> %
+      <select id="wcPRound" style="width:auto"><option value="0">Sin redondear</option><option value="10">Redondear a $10</option><option value="50">Redondear a $50</option><option value="100">Redondear a $100</option><option value="1000">Redondear a $1.000</option></select>
+      <button class="btn small primary" id="wcPPrev">Previsualizar precios</button>
+    </div>
+  </div>
+  <div class="card" id="wcPrice" hidden style="padding:14px 16px;border:1px solid var(--accent)">
+    <div class="row" style="justify-content:space-between;flex-wrap:wrap;gap:8px"><b id="wcPTitle">💲 Cambio de precios</b><button class="btn small" id="wcPClose">Cerrar</button></div>
+    <div id="wcPBody" style="font-size:13.5px;margin-top:8px"></div>
   </div>
   <div class="card" style="padding:0"><div class="table-wrap"><table class="sales-table">
     <thead><tr><th style="width:30px"><input type="checkbox" id="wcAll" title="Seleccionar todos los del filtro"></th><th>Producto</th><th style="text-align:right">Precio</th><th>Categorías</th></tr></thead>
@@ -3167,6 +3178,7 @@ async function loadWebcat(refresh) {
   $('wcTarget').innerHTML = '<option value="">Elegí la categoría…</option>' + tree.map(opt).join('');
   $('wcTarget').value = t0;
   $('wcCatList').innerHTML = tree.map(c => `<div style="padding-left:${c.depth * 14}px">${esc(c.name)} <span class="muted">(${c.count})</span> <a href="#" class="lnk" data-wcren="${c.id}" style="font-size:11.5px">renombrar</a></div>`).join('');
+  wcPStatus();
   $('wcUndo').hidden = !d.can_undo; if (d.last) $('wcUndo').title = `${d.last.what} · ${new Date(d.last.at).toLocaleString('es-AR')}`;
   renderWebcat();
 }
@@ -3179,7 +3191,7 @@ function renderWebcat() {
   if (!wcData) return;
   const list = wcVisible(), shown = list.slice(0, wcLimit), byId = wcCatById();
   const chip = (id, cls) => { const c = byId.get(id); return `<span class="ls-tag ${cls || ''}">${esc(c ? c.name : '#' + id)}</span>`; };
-  $('wcInfo').textContent = `${list.length} de ${wcData.products.length} productos${wcData.at ? ' · actualizado ' + new Date(wcData.at).toLocaleString('es-AR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : ''}${wcSel.size ? '' : ' · Tildá productos para cambiarles la categoría.'}`;
+  $('wcInfo').textContent = `${list.length} de ${wcData.products.length} productos${wcData.at ? ' · actualizado ' + new Date(wcData.at).toLocaleString('es-AR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : ''}${wcSel.size ? '' : ' · Tildá productos para cambiarles la categoría o el precio.'}`;
   $('wcRows').innerHTML = shown.map(p => {
     let cats;
     const pv = wcPrevState && wcPrevState.after[p.id];
@@ -3320,6 +3332,51 @@ $('wcXlsBody').addEventListener('click', async (e) => {
   const msg = `✓ ${d.ok} productos acomodados${d.created ? ` y ${d.created} categorías creadas` : ''}.${(d.failed || []).length ? ` <span class="err-t">No se pudo en ${d.failed.length}: ${d.failed.slice(0, 5).map(f => `#${f.id} (${esc(f.error)})`).join(' · ')}</span>` : ''}${d.pending ? ` <b>Faltan ${d.pending}: tocá "Aplicar" de nuevo y sigue.</b>` : ''}`;
   await wcXlsPlan(false); $('wcXlsMsg').innerHTML = `<span style="color:var(--ok)">${msg}</span>`;
 });
+// ---------- Precios en masa ----------
+let wcPPlan = null;
+const wcPPct = () => (Number($('wcPPct').value) || 0) * ($('wcPDir').value === 'down' ? -1 : 1);
+async function wcPStatus() { const d = await (await fetch('/api/webcat/price/status')).json().catch(() => ({})); const j = d.job; $('wcPUndo').hidden = !(j && j.can_undo && !j.pending); if (j && j.can_undo) $('wcPUndo').title = `${j.pct > 0 ? 'Subió' : 'Bajó'} ${Math.abs(j.pct)}% ${j.total} productos · ${new Date(j.at).toLocaleString('es-AR')}`; return j; }
+$('wcPPrev').onclick = async () => {
+  const pct = wcPPct(); if (!pct) { $('wcMsg').innerHTML = '<span class="err-t">Poné el porcentaje.</span>'; return; }
+  const ids = [...wcSel]; $('wcPrice').hidden = false; $('wcPBody').innerHTML = '<span class="muted">Leyendo los precios actuales de la web…</span>';
+  $('wcPrice').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  const d = await lsPost('/api/webcat/price/plan', { ids, pct, step: Number($('wcPRound').value), refresh: true });
+  if (!d.ok) { $('wcPBody').innerHTML = `<span class="err-t">${esc(d.error)}</span>`; return; }
+  if (d.products) { wcData = { ...wcData, ...d }; }
+  wcPPlan = { ids, pct, step: Number($('wcPRound').value), plan: d.plan, job: d.job, token: d.token };
+  const ok = d.plan.filter(x => !x.skip), skip = d.plan.filter(x => x.skip), vars = ok.filter(x => x.variable);
+  const pend = d.job && d.job.pending;
+  $('wcPTitle').textContent = `💲 ${pct > 0 ? 'Subir' : 'Bajar'} ${Math.abs(pct)}% el precio${$('wcPRound').value !== '0' ? ` (redondeado a $${Number($('wcPRound').value).toLocaleString('es-AR')})` : ''}`;
+  const row = (x) => `<tr><td>${esc(x.name)}${x.sku ? `<div class="muted" style="font-size:12px">SKU ${esc(x.sku)}</div>` : ''}</td><td style="text-align:right;white-space:nowrap">${money(x.before)}</td><td style="text-align:right;white-space:nowrap"><b>${money(x.after)}</b></td><td class="muted" style="font-size:12.5px">${x.variable ? 'con variantes: se cambia cada variante' : x.sale_before ? `en oferta: ${money(x.sale_before)} → <b>${money(x.sale_after)}</b>` : ''}</td></tr>`;
+  $('wcPBody').innerHTML = `
+    ${pend ? `<div class="err-t" style="margin-bottom:8px">Hay un cambio de precios que quedó a medias (faltan ${pend}). Tocá "Aplicar" y sigue con esos; no se vuelve a subir lo que ya se hizo.</div>` : ''}
+    <div style="margin-bottom:8px"><b>${ok.length}</b> productos cambian de precio${vars.length ? ` (${vars.length} con variantes)` : ''}${skip.length ? ` · <span class="muted">${skip.length} sin precio propio, no se tocan</span>` : ''}. Si están en oferta, también se cambia el precio de oferta.</div>
+    <div class="table-wrap" style="max-height:380px;overflow:auto;border:1px solid var(--line);border-radius:10px"><table class="sales-table"><thead><tr><th>Producto</th><th style="text-align:right">Ahora</th><th style="text-align:right">Nuevo</th><th></th></tr></thead><tbody>${ok.slice(0, 400).map(row).join('')}</tbody></table></div>
+    ${ok.length > 400 ? `<div class="muted" style="font-size:12.5px;margin-top:4px">… y ${ok.length - 400} más.</div>` : ''}
+    <div class="row" style="margin-top:12px;gap:8px;flex-wrap:wrap;align-items:center"><button class="btn primary" id="wcPGo">Aplicar en la web (${pend || ok.length} productos)</button><span id="wcPMsg"></span></div>`;
+};
+$('wcPClose').onclick = () => { $('wcPrice').hidden = true; wcPPlan = null; };
+$('wcPBody').addEventListener('click', async (e) => {
+  if (e.target.id !== 'wcPGo' || !wcPPlan) return;
+  const b = e.target; b.disabled = true;
+  let total = 0, failed = [];
+  for (let i = 0; i < 20; i++) {
+    $('wcPMsg').innerHTML = `<span class="muted">Cambiando precios en la web… ${total ? total + ' listos.' : ''} No cierres la página.</span>`;
+    const d = await lsPost('/api/webcat/price/apply', { token: wcPPlan.token, pct: wcPPlan.pct, ids: wcPPlan.ids });
+    if (!d.ok) { $('wcPMsg').innerHTML = `<span class="err-t">${esc(d.error)}</span>`; b.disabled = false; return; }
+    total += d.ok || 0; failed = failed.concat(d.failed || []);
+    if (!d.pending) break;
+  }
+  wcPPlan = null; b.textContent = 'Aplicado';
+  await loadWebcat(false); await wcPStatus();
+  $('wcPMsg').innerHTML = `<span style="color:var(--ok)">✓ Listo: ${total} productos con el precio nuevo en la web.</span>${failed.length ? ` <span class="err-t">No se pudo en ${failed.length}: ${failed.slice(0, 5).map(f => `#${f.id} (${esc(f.error)})`).join(' · ')}</span>` : ''}`;
+});
+$('wcPUndo').onclick = async () => {
+  if (!confirm('¿Volver todos esos productos al precio que tenían antes del último cambio?')) return;
+  $('wcPUndo').disabled = true; const d = await lsPost('/api/webcat/price/undo'); $('wcPUndo').disabled = false;
+  $('wcMsg').innerHTML = d.ok ? `<span style="color:var(--ok)">✓ Precios vueltos a como estaban (${d.ok} productos).</span>` : `<span class="err-t">${esc(d.error)}</span>`;
+  await loadWebcat(false); await wcPStatus();
+};
 $('wcUndo').onclick = async () => {
   $('wcUndo').disabled = true; const d = await lsPost('/api/webcat/undo'); $('wcUndo').disabled = false;
   $('wcMsg').innerHTML = d.error ? `<span class="err-t">${esc(d.error)}</span>` : `<span style="color:var(--ok)">✓ Deshecho: ${d.ok} productos volvieron a sus categorías anteriores.</span>`;
