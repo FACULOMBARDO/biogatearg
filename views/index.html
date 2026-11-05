@@ -3738,12 +3738,14 @@ async function loadRanking() {
       const r = by[k] = by[k] || { sku: i.sku || '', title: i.title, units: 0, orders: 0, gross: 0, profit: 0, profitKnown: true };
       r.units += i.qty || 1; r.orders += 1; r.gross += g;
       if (s.net_after_cost === null) r.profitKnown = false; else r.profit += s.net_after_cost * (g / itemsGross);
+      if (i.item_id) { r.mlas = r.mlas || {}; r.mlas[i.item_id] = (r.mlas[i.item_id] || 0) + (i.qty || 1); }
       // Lo mismo, separado por cuenta
       const an = s.account_nickname || String(s.account_id || 'Sin cuenta');
       r.accs = r.accs || {}; r.accs[an] = (r.accs[an] || 0) + (i.qty || 1);
       const A = rkAcc[an] = rkAcc[an] || {};
       const ra = A[k] = A[k] || { sku: i.sku || '', title: i.title, units: 0, orders: 0, gross: 0, profit: 0, profitKnown: true };
       ra.units += i.qty || 1; ra.orders += 1; ra.gross += g;
+      if (i.item_id) { ra.mlas = ra.mlas || {}; ra.mlas[i.item_id] = (ra.mlas[i.item_id] || 0) + (i.qty || 1); }
       if (s.net_after_cost === null) ra.profitKnown = false; else ra.profit += s.net_after_cost * (g / itemsGross);
     }
   }
@@ -3778,12 +3780,19 @@ function rkRender() {
   if (!list.length) { $('rkRows').innerHTML = `<tr><td colspan="8" class="muted" style="padding:28px;text-align:center">Sin ventas para mostrar.</td></tr>`; return; }
   $('rkRows').innerHTML = list.map(r => rkRowHtml(r, totG, !$('rkAccount').value)).join('');
 }
+// Números de publicación (MLA) de cada SKU, en chiquito y con link a Mercado Libre. Primero las que más vendieron.
+function rkMlaHtml(r) {
+  const ids = Object.entries(r.mlas || {}).sort((a, b) => b[1] - a[1]).map(x => x[0]);
+  if (!ids.length) return '';
+  const link = (id) => `<a href="https://articulo.mercadolibre.com.ar/${esc(id.replace(/^([A-Z]+)(\d+)$/, '$1-$2'))}" target="_blank" rel="noopener" style="color:inherit">${esc(id)}</a>`;
+  return `<div class="muted" style="font-size:11px;margin-top:1px;font-family:ui-monospace,Menlo,Consolas,monospace">${ids.slice(0, 4).map(link).join(' · ')}${ids.length > 4 ? ` <span title="${esc(ids.slice(4).join(', '))}">+${ids.length - 4} más</span>` : ''}</div>`;
+}
 function rkRowHtml(r, totG, showAccs) {
   const medal = ['🥇', '🥈', '🥉'];
   const accs = showAccs && r.accs && Object.keys(r.accs).length > 1 ? `<div class="muted" style="font-size:11.5px;margin-top:2px">${Object.entries(r.accs).sort((a, b) => b[1] - a[1]).map(([a, n]) => `${esc(a)} <b>${n}</b>`).join(' · ')}</div>` : '';
   return `<tr${r.pos <= 3 ? ' style="background:color-mix(in srgb, var(--brand) 6%, transparent)"' : ''}>
     <td style="font-size:${r.pos <= 3 ? '20px' : '14px'};font-weight:700">${medal[r.pos - 1] || r.pos}</td>
-    <td>${r.sku ? `<b style="font-family:ui-monospace,Menlo,Consolas,monospace">${esc(r.sku)}</b>` : '<span class="pill" style="color:var(--err)">sin SKU</span>'}<div class="muted" style="font-size:12px">${esc(r.title)}</div>${accs}</td>
+    <td>${r.sku ? `<b style="font-family:ui-monospace,Menlo,Consolas,monospace">${esc(r.sku)}</b>` : '<span class="pill" style="color:var(--err)">sin SKU</span>'}<div class="muted" style="font-size:12px">${esc(r.title)}</div>${rkMlaHtml(r)}${accs}</td>
     <td class="price" style="text-align:right;font-size:16px">${r.units}</td>
     <td class="price" style="text-align:right;font-weight:500">${r.orders}</td>
     <td class="price" style="text-align:right">${money(r.gross)}</td>
@@ -3819,9 +3828,9 @@ $('rkCsv').onclick = () => {
   const e = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`, n = (v) => String(Math.round(v * 100) / 100).replace('.', ',');
   const [from, to] = rkRange();
   const split = rkView === 'split' && !$('rkAccount').value;
-  const line = (r, i, acc) => [...(split ? [acc] : []), i + 1, r.sku || 'sin SKU', r.title, r.units, r.orders, n(r.gross), r.profitKnown ? n(r.profit) : 'sin costo', r.profitKnown && r.gross ? n(r.profit / r.gross * 100) : ''].map(e).join(';');
+  const line = (r, i, acc) => [...(split ? [acc] : []), i + 1, r.sku || 'sin SKU', r.title, Object.keys(r.mlas || {}).join(' '), r.units, r.orders, n(r.gross), r.profitKnown ? n(r.profit) : 'sin costo', r.profitKnown && r.gross ? n(r.profit / r.gross * 100) : ''].map(e).join(';');
   const body = split ? Object.entries(rkAcc).flatMap(([acc, A]) => Object.values(A).sort((a, b) => b[key] - a[key]).map((r, i) => line(r, i, acc))) : rows.map((r, i) => line(r, i));
-  const csv = [(split ? 'Cuenta;' : '') + 'Puesto;SKU;Producto;Unidades;Ventas;Facturación;Neto después de costos;Margen %'].concat(body).join('\r\n');
+  const csv = [(split ? 'Cuenta;' : '') + 'Puesto;SKU;Producto;Publicaciones;Unidades;Ventas;Facturación;Neto después de costos;Margen %'].concat(body).join('\r\n');
   const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob(['﻿' + csv], { type: 'text/csv' })); a.download = `ranking-${from}-a-${to}.csv`; a.click();
 };
 
