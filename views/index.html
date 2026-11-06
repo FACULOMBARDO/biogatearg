@@ -449,6 +449,7 @@
       <details class="acc-pick" id="rsAccBox"></details>
       <div class="seg"><button id="rsPrev" title="Mes anterior">‹</button><button id="rsMonth" class="on" style="min-width:150px"></button><button id="rsNext" title="Mes siguiente">›</button></div>
       <button class="btn" id="rsPdf" title="Informe del mes para imprimir o mandar">📄 Informe PDF</button>
+      <button class="btn" id="rsBoss" title="El informe mensual con el formato de siempre: ventas brutas y netas por cuenta, plataformas y resultado del mes">📊 Informe mensual (jefe)</button>
       <button class="btn" id="rsCsv">Descargar Excel</button>
       <button class="btn primary" id="rsHistory" title="Baja las ventas de los últimos 12 meses de todas las cuentas (una sola vez)">Traer historial de 12 meses</button>
     </div>
@@ -5858,6 +5859,87 @@ $('rsCsv').onclick = () => {
 };
 
 // Informe del mes en PDF (TUYO solo si está tildada en el selector): lo vendido, comparación con el mes anterior y los más vendidos.
+// ---------- Informe mensual para el jefe (mismo formato que el que se hacía a mano) ----------
+// Ventas brutas por cuenta = facturación sin canceladas ni devoluciones.
+// Ventas netas por cuenta = neto que paga Mercado Libre (antes de la mercadería) + comisiones ML.
+// Plataformas = presupuestos confirmados (redes y local) + ventas web, en bruto (sin descontar nada).
+async function bossReport(month) {
+  const R = await fetch('/api/report?month=' + month).then(r => r.json());
+  const N = R.now, P = R.prev;
+  const plat = (M) => {
+    const by = (M.quotes && M.quotes.by) || [];
+    const local = by.filter(g => g.key === 'local').reduce((t, g) => t + g.gross, 0);
+    const redes = by.filter(g => g.key !== 'local').reduce((t, g) => t + g.gross, 0);
+    const web = (M.web && !M.web.off) ? M.web.gross : 0;
+    return { redes, local, web, total: redes + local + web };
+  };
+  const accs = (N.ml.by_account || []).filter(a => a.gross || a.net_fee).map(a => ({ name: String(a.nickname || a.account_id).toUpperCase(), gross: a.gross, net: a.net_fee ?? ((a.net || 0) + (a.fee || 0)) }));
+  const tot = (M) => { const p = plat(M); const g = (M.ml.by_account || []).reduce((t, a) => t + (a.gross || 0), 0), n = (M.ml.by_account || []).reduce((t, a) => t + (a.net_fee ?? ((a.net || 0) + (a.fee || 0))), 0); return { gross: g, net: n, plat: p, rg: g + p.total, rn: n + p.total, units: M.ml.units || 0 }; };
+  return { month: R.month, prev_month: R.prev_month, partial: N.partial, accs, now: tot(N), prev: tot(P), has_prev: !!(P.ml.sales || P.web.orders || (P.quotes && P.quotes.n)) };
+}
+$('rsBoss').onclick = async () => {
+  const btn = $('rsBoss'), old = btn.textContent;
+  btn.disabled = true; btn.textContent = '⏳ Armando informe…';
+  try {
+    const [B, jsPDF, word, sun] = await Promise.all([bossReport(rsMonth), jsPDFLib(), imgData('/logo-text.png'), imgData('/logo-icon.png')]);
+    const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+    const W = 210, H = 297, X0 = 8, X1 = 192, LBL = 21, AMT = 165;
+    const LILA = [205, 179, 255], BLUE = [0, 119, 182], GREY = [243, 243, 243], BLACK = [17, 17, 17];
+    const $m = (n) => '$ ' + Math.round(n || 0).toLocaleString('es-AR');
+    const [yy, mm] = B.month.split('-').map(Number);
+    const mes = MESES[mm - 1].toUpperCase(), mesPrev = MESES[Number(B.prev_month.slice(5)) - 1].toUpperCase();
+    doc.setFillColor(...LILA); doc.rect(0, 0, W, H, 'F');
+    // Logo arriba a la derecha (cuadro blanco con borde) y el sol
+    doc.setFillColor(244, 244, 244); doc.setDrawColor(...BLACK); doc.setLineWidth(0.6); doc.rect(129, -1, 82, 17.5, 'FD');
+    if (word) { const w = 66, h = w * word.h / word.w; doc.addImage(word.data, 'PNG', 137, 7.7 - h / 2, w, h); }
+    if (sun) doc.addImage(sun.data, 'PNG', 168, 21, 32, 32);
+    doc.setTextColor(...BLACK); doc.setFont('helvetica', 'bold');
+    doc.setFontSize(30); doc.text('BIOGATE ' + yy, X0, 22);
+    doc.setFontSize(24); doc.text(mes + (B.partial ? ' (en curso)' : ''), X0, 46);
+    let y = 58;
+    const head = (t) => { doc.setFillColor(...BLUE); doc.rect(X0, y, X1 - X0, 8.6, 'F'); doc.setTextColor(255, 255, 255); doc.setFont('helvetica', 'bold'); doc.setFontSize(11); doc.text(t, X0 + 3, y + 5.8); y += 14.5; };
+    const row = (l, v) => { doc.setTextColor(...BLACK); doc.setFont('helvetica', 'normal'); doc.setFontSize(10); doc.text(l, LBL, y); doc.text($m(v), AMT, y, { align: 'right' }); y += 6.2; };
+    const total = (l, v) => { y += 4; doc.setFillColor(...GREY); doc.rect(X0, y, X1 - X0, 8.2, 'F'); doc.setTextColor(...BLACK); doc.setFont('helvetica', 'bold'); doc.setFontSize(10.5); doc.text(l, X0 + 3, y + 5.6); doc.setFontSize(11.5); doc.text($m(v), AMT + 8, y + 5.6, { align: 'right' }); y += 10.5; };
+    head('VENTAS BRUTAS MERCADO LIBRE');
+    B.accs.forEach(a => row(a.name, a.gross));
+    total('TOTAL BRUTO', B.now.gross);
+    head('VENTAS NETAS MERCADO LIBRE');
+    B.accs.forEach(a => row(a.name, a.net));
+    total('TOTAL NETO', B.now.net);
+    head('VENTAS PLATAFORMAS WEBS');
+    row('CLIENTES REDES', B.now.plat.redes); row('CLIENTES LOCAL', B.now.plat.local); row('PAGINA WEB', B.now.plat.web);
+    total('TOTAL', B.now.plat.total);
+    // Resultado con flechas (verde si subió frente al mes anterior, roja si bajó)
+    const arrow = (x, yy, up) => {
+      if (up === null) return;
+      doc.setFillColor(...(up ? [34, 197, 94] : [220, 38, 38]));
+      if (up) { doc.triangle(x, yy - 4.2, x - 2.6, yy - 1.2, x + 2.6, yy - 1.2, 'F'); doc.rect(x - 1.1, yy - 1.3, 2.2, 3, 'F'); }
+      else { doc.rect(x - 1.1, yy - 5, 2.2, 3, 'F'); doc.triangle(x, yy + 1, x - 2.6, yy - 2.1, x + 2.6, yy - 2.1, 'F'); }
+    };
+    const cmpUp = (a, b) => (B.has_prev && b ? a >= b : null);
+    const line = (label, value, up, extra, extraColor) => {
+      arrow(X0 + 2.5, y, up);
+      doc.setTextColor(...BLACK); doc.setFont('helvetica', 'bold'); doc.setFontSize(10.5);
+      doc.text(label, X0 + 7, y); let x = X0 + 7 + doc.getTextWidth(label) + 3;
+      doc.text(value, x, y); x += doc.getTextWidth(value) + 1.5;
+      if (extra) { doc.setTextColor(...(extraColor || BLACK)); doc.text(extra, x, y); }
+      y += 6.6;
+    };
+    y += 6;
+    line(`RESULTADO BRUTO ${mes}:`, $m(B.now.rg), cmpUp(B.now.rg, B.prev.rg));
+    line(`RESULTADO NETO ${mes}:`, $m(B.now.rn), cmpUp(B.now.rn, B.prev.rn));
+    line('UNIDADES VENDIDAS:', `${B.now.units.toLocaleString('es-AR')} UNIDADES`, cmpUp(B.now.units, B.prev.units));
+    if (B.has_prev && B.prev.rg) {
+      const v = (B.now.rg - B.prev.rg) / Math.abs(B.prev.rg) * 100, up = v >= 0;
+      line('CAMBIO % MES ANTERIOR:', Math.abs(v).toFixed(2).replace('.', ','), up, `% ${up ? 'MÁS' : 'MENOS'} QUE ${mesPrev}`, up ? [22, 140, 70] : [220, 38, 38]);
+    }
+    if (B.partial) { doc.setFont('helvetica', 'normal'); doc.setFontSize(8.5); doc.setTextColor(80, 60, 110); doc.text('El mes todavía está en curso: los números son hasta hoy.', X0 + 7, y); }
+    // Pie
+    doc.setFillColor(...GREY); doc.rect(0, 280, W, 9, 'F'); doc.setFillColor(...BLUE); doc.rect(0, 289, W, 8, 'F');
+    doc.save(`FACTURACION_${mes}_${yy}.pdf`);
+  } catch (e) { alert('No se pudo armar el informe: ' + e.message); }
+  finally { btn.disabled = false; btn.textContent = old; }
+};
 $('rsPdf').onclick = async () => {
   const btn = $('rsPdf'), old = btn.textContent;
   btn.disabled = true; btn.textContent = '⏳ Armando informe…';
