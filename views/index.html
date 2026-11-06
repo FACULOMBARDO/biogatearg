@@ -5860,7 +5860,7 @@ $('rsCsv').onclick = () => {
 
 // Informe del mes en PDF (TUYO solo si está tildada en el selector): lo vendido, comparación con el mes anterior y los más vendidos.
 // ---------- Informe mensual para el jefe (mismo formato que el que se hacía a mano) ----------
-// Ventas brutas por cuenta = facturación sin canceladas ni devoluciones.
+// Ventas brutas por cuenta = "Ventas brutas ML" de la pantalla Ventas (incluye canceladas y devueltas).
 // Ventas netas por cuenta = neto que paga Mercado Libre (antes de la mercadería) + comisiones ML.
 // Plataformas = presupuestos confirmados (redes y local) + ventas web, en bruto (sin descontar nada).
 async function bossReport(month) {
@@ -5873,8 +5873,8 @@ async function bossReport(month) {
     const web = (M.web && !M.web.off) ? M.web.gross : 0;
     return { redes, local, web, total: redes + local + web };
   };
-  const accs = (N.ml.by_account || []).filter(a => a.gross || a.net_fee).map(a => ({ name: String(a.nickname || a.account_id).toUpperCase(), gross: a.gross, net: a.net_fee ?? ((a.net || 0) + (a.fee || 0)) }));
-  const tot = (M) => { const p = plat(M); const g = (M.ml.by_account || []).reduce((t, a) => t + (a.gross || 0), 0), n = (M.ml.by_account || []).reduce((t, a) => t + (a.net_fee ?? ((a.net || 0) + (a.fee || 0))), 0); return { gross: g, net: n, plat: p, rg: g + p.total, rn: n + p.total, units: M.ml.units || 0 }; };
+  const accs = (N.ml.by_account || []).filter(a => a.gross_all || a.net_fee).map(a => ({ name: String(a.nickname || a.account_id).toUpperCase(), gross: a.gross_all ?? a.gross, net: a.net_fee ?? ((a.net || 0) + (a.fee || 0)) }));
+  const tot = (M) => { const p = plat(M); const g = (M.ml.by_account || []).reduce((t, a) => t + (a.gross_all ?? a.gross ?? 0), 0), n = (M.ml.by_account || []).reduce((t, a) => t + (a.net_fee ?? ((a.net || 0) + (a.fee || 0))), 0); return { gross: g, net: n, plat: p, rg: g + p.total, rn: n + p.total, units: M.ml.units || 0 }; };
   return { month: R.month, prev_month: R.prev_month, partial: N.partial, accs, now: tot(N), prev: tot(P), has_prev: !!(P.ml.sales || P.web.orders || (P.quotes && P.quotes.n)) };
 }
 $('rsBoss').onclick = async () => {
