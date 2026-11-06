@@ -430,3 +430,5 @@ Al imprimir el PDF, elegí **Tamaño real / 100 %** (no "Ajustar a la página").
 
 ## Privacidad
 Guardás datos personales de compradores: usalos solo para gestionar la entrega y la atención de esa venta, como piden las políticas de Mercado Libre y la Ley 25.326 de protección de datos. El panel está protegido con contraseña; elegí una larga. No compartas el archivo `.env`.
+
+**Avisos de compras en la web (cada 5 minutos):** el panel mira cada 5 minutos las últimas ventas pagas de todas las cuentas de Mercado Libre y los pedidos pagos de la web, y le manda a biogate.com.ar las más nuevas primero ("Alguien de Rosario compró … hace 4 minutos"). Son siempre compras reales; no se inventa ninguna. Funciona con el panel cerrado gracias a la tarea de cron-job.org cada 1 minuto (la misma de los avisos de preguntas).
