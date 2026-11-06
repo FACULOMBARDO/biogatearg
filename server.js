@@ -306,6 +306,8 @@ app.post('/api/webcat/price/plan', async (req, res) => { try { const b = req.bod
 app.post('/api/webcat/price/apply', wcWrap(req => webcat.priceStart((req.body || {}).token)));
 app.get('/api/webcat/price/status', (req, res) => res.json({ ok: true, job: webcat.priceStatus() }));
 app.post('/api/webcat/price/undo', wcWrap(() => webcat.priceUndo()));
+app.get('/api/webcat/social', (req, res) => res.json({ ok: true, items: require('./lib/social').feed() }));
+app.post('/api/webcat/social/push', wcWrap(() => require('./lib/social').push()));
 app.post('/api/webcat/suggest', wcWrap(async req => ({ suggestions: await webcat.suggest((req.body || {}).ids) })));
 app.get('/api/activity', (req, res) => res.json({ ok: true, ...activity.report(req.query.days, req.query.who) }));
 
@@ -1481,7 +1483,7 @@ async function backfillSaleDates(until = Infinity) {
   }
 }
 // En Vercel: cada vez que alguien usa el panel se fija qué toca actualizar (con la última vez guardada en la base).
-const EVERY = { health: 6 * 3600e3, funnel: 20 * 3600e3, competition: 20 * 3600e3, listings: 12 * 3600e3, claims: 20 * 60e3, questions: 10 * 60e3, sales: 15 * 60e3, woo: 15 * 60e3, costs: 6 * 3600e3, web: 6 * 3600e3, manuals: 24 * 3600e3, backfill: 24 * 3600e3 };
+const EVERY = { health: 6 * 3600e3, funnel: 20 * 3600e3, competition: 20 * 3600e3, listings: 12 * 3600e3, claims: 20 * 60e3, questions: 10 * 60e3, sales: 15 * 60e3, woo: 15 * 60e3, costs: 6 * 3600e3, web: 6 * 3600e3, manuals: 24 * 3600e3, backfill: 24 * 3600e3, social: 30 * 60e3 };
 let autoBusy = false;
 function autoTasks(force = false) {
   if (autoBusy || MISSING.length) return [];
@@ -1503,6 +1505,7 @@ function autoTasks(force = false) {
     if (due('costs')) { stamp.last_costs = new Date().toISOString(); runs.push(bg(costs.syncFromSheet().catch(e => console.log('Costos:', e.message)))); }
     if (due('web')) { stamp.last_web = new Date().toISOString(); runs.push(bg(web.sync().catch(e => console.log('Web:', e.message)))); }
     if (due('manuals') || (store.getManuals().partial && now - new Date(j.last_manuals || 0).getTime() > 10 * 60e3)) { stamp.last_manuals = new Date().toISOString(); if (manuals.sync({})) runs.push(manuals.lastRun()); }
+    if (due('social')) { stamp.last_social = new Date().toISOString(); runs.push(bg(require('./lib/social').push().catch(e => console.log('Avisos web:', e.message)))); }
     if (due('backfill')) { stamp.last_backfill = new Date().toISOString(); runs.push(bg(backfillSaleDates(deadline()))); }
     if (Object.keys(stamp).length) store.saveJobs(stamp);
   } finally { autoBusy = false; }
