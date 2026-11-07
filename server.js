@@ -218,6 +218,7 @@ app.get('/api/cron/questions', async (req, res) => {
       store.saveJobs({ last_social: new Date().toISOString() });
       await Promise.race([require('./lib/social').push({ refresh: true }).catch(e => console.log('Avisos web:', e.message)), new Promise(r => setTimeout(r, 40e3))]);
     } else store.saveJobs({});
+    if (!j.last_together || Date.now() - new Date(j.last_together).getTime() > 6 * 3600e3) { store.saveJobs({ last_together: new Date().toISOString() }); await require('./lib/together').push().catch(e => console.log('Se compran juntos:', e.message)); }
     if (!j.last_woo || Date.now() - new Date(j.last_woo).getTime() > 10 * 60e3) { store.saveJobs({ last_woo: new Date().toISOString() }); wooAuto(); }
     await store.flush();
     res.json({ ok: true, notified: n });
@@ -315,6 +316,8 @@ app.post('/api/webcat/price/apply', wcWrap(req => webcat.priceStart((req.body ||
 app.get('/api/webcat/price/status', (req, res) => res.json({ ok: true, job: webcat.priceStatus() }));
 app.post('/api/webcat/price/undo', wcWrap(() => webcat.priceUndo()));
 app.get('/api/webcat/social', (req, res) => res.json({ ok: true, items: require('./lib/social').feed() }));
+app.post('/api/webcat/together/push', wcWrap(() => require('./lib/together').push()));
+app.get('/api/webcat/together', wcWrap(async () => require('./lib/together').build()));
 app.post('/api/webcat/social/push', wcWrap(() => require('./lib/social').push({ refresh: true })));
 app.post('/api/webcat/suggest', wcWrap(async req => ({ suggestions: await webcat.suggest((req.body || {}).ids) })));
 app.get('/api/activity', (req, res) => res.json({ ok: true, ...activity.report(req.query.days, req.query.who) }));
@@ -1491,7 +1494,7 @@ async function backfillSaleDates(until = Infinity) {
   }
 }
 // En Vercel: cada vez que alguien usa el panel se fija qué toca actualizar (con la última vez guardada en la base).
-const EVERY = { health: 6 * 3600e3, funnel: 20 * 3600e3, competition: 20 * 3600e3, listings: 12 * 3600e3, claims: 20 * 60e3, questions: 10 * 60e3, sales: 15 * 60e3, woo: 15 * 60e3, costs: 6 * 3600e3, web: 6 * 3600e3, manuals: 24 * 3600e3, backfill: 24 * 3600e3, social: 5 * 60e3 };
+const EVERY = { health: 6 * 3600e3, funnel: 20 * 3600e3, competition: 20 * 3600e3, listings: 12 * 3600e3, claims: 20 * 60e3, questions: 10 * 60e3, sales: 15 * 60e3, woo: 15 * 60e3, costs: 6 * 3600e3, web: 6 * 3600e3, manuals: 24 * 3600e3, backfill: 24 * 3600e3, social: 5 * 60e3, together: 6 * 3600e3 };
 let autoBusy = false;
 function autoTasks(force = false) {
   if (autoBusy || MISSING.length) return [];
@@ -1514,6 +1517,7 @@ function autoTasks(force = false) {
     if (due('web')) { stamp.last_web = new Date().toISOString(); runs.push(bg(web.sync().catch(e => console.log('Web:', e.message)))); }
     if (due('manuals') || (store.getManuals().partial && now - new Date(j.last_manuals || 0).getTime() > 10 * 60e3)) { stamp.last_manuals = new Date().toISOString(); if (manuals.sync({})) runs.push(manuals.lastRun()); }
     if (due('social')) { stamp.last_social = new Date().toISOString(); runs.push(bg(require('./lib/social').push({ refresh: true }).catch(e => console.log('Avisos web:', e.message)))); }
+    if (due('together')) { stamp.last_together = new Date().toISOString(); runs.push(bg(require('./lib/together').push().catch(e => console.log('Se compran juntos:', e.message)))); }
     if (due('backfill')) { stamp.last_backfill = new Date().toISOString(); runs.push(bg(backfillSaleDates(deadline()))); }
     if (Object.keys(stamp).length) store.saveJobs(stamp);
   } finally { autoBusy = false; }
