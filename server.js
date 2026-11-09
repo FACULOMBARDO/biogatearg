@@ -1003,6 +1003,7 @@ app.post('/api/questions/:id/suggest', async (req, res) => {
   try { res.json({ ok: true, ...(await require('./lib/ai').suggest(req.params.id)) }); }
   catch (e) { res.status(400).json({ ok: false, error: e.message }); }
 });
+app.get('/api/questions/:id/links', async (req, res) => { try { res.json({ ok: true, ...(await questions.links(req.params.id, req.query.q)) }); } catch (e) { res.status(400).json({ ok: false, error: e.message }); } });
 app.get('/api/questions/:id/history', async (req, res) => { try { res.json({ ok: true, ...(await questions.history(req.params.id)) }); } catch (e) { res.status(400).json({ ok: false, error: e.message }); } });
 app.put('/api/questions/quick', (req, res) => res.json({ ok: true, quick: questions.saveQuick((req.body || {}).quick) }));
 app.get('/api/questions/webhook-url', (req, res) => res.json({ url: process.env.BASE_URL.replace(/\/$/, '') + '/api/ml/notify', app_id: process.env.ML_CLIENT_ID || '' }));

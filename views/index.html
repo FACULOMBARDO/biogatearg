@@ -4643,6 +4643,28 @@ pushInit();
 
 // ---------- Preguntas de compradores ----------
 let qsData = null, qsTab = 'un', qsMax = 2000, qsSyncAt = 0, qsHist = {}, qsDrafts = {}, qsQuickDraft = [];
+// Firmas para el final de cada respuesta. Viene elegida sola según quién usa el panel y la cuenta (TUYO o BIOGATE).
+const QS_SIGS = ['Saludos, Facundo de BIOGATE', 'Saludos, Facundo de Tuyo', 'Saludos, Nahuel de BIOGATE', 'Saludos, Nahuel de Tuyo', 'Saludos, Uriel de BIOGATE', 'Saludos, Uriel de Tuyo'];
+let qsSigs = {}, qsLinkT = null;
+function qsSigDefault(x) {
+  const brand = x.tuyo ? 'Tuyo' : 'BIOGATE';
+  try { const saved = localStorage.getItem('qs_sig_' + brand); if (saved !== null && (saved === '' || QS_SIGS.includes(saved))) return saved; } catch { /* nada */ }
+  const me = String(rfBy() || '').toLowerCase();
+  const who = ['Facundo', 'Nahuel', 'Uriel'].find(n => me.startsWith(n.toLowerCase().slice(0, 4))) || ((ME && ME.owner) || me === 'dueño' ? 'Facundo' : '');
+  return who ? `Saludos, ${who} de ${brand}` : '';
+}
+const qsSigOf = (x) => (qsSigs[x.id] !== undefined ? qsSigs[x.id] : qsSigDefault(x));
+// Texto final: lo escrito + la firma (si no la puso ya)
+function qsCompose(x, text) {
+  let t = String(text || '').trim(); const sig = qsSigOf(x);
+  if (!t || !sig || t.toLowerCase().includes(sig.toLowerCase())) return t;
+  // si termina en un link, no se le pega un punto (rompería el link)
+  return t + (/[.!?…)]$/.test(t) || /https?:\/\/\S+$/.test(t) ? ' ' : '. ') + sig;
+}
+function qsCount(id) {
+  const x = (qsData.items || []).find(i => i.id === id), ta = $('qsa-' + id), c = $('qsc-' + id); if (!x || !ta || !c) return;
+  const n = qsCompose(x, ta.value).length; c.textContent = `${n} / ${qsMax}${qsSigOf(x) ? ' (con la firma)' : ''}`; c.className = n > qsMax ? 'err-t' : 'muted';
+}
 const qsLS = (k, v) => { try { if (v === undefined) return localStorage.getItem(k); localStorage.setItem(k, v); } catch { return null; } };
 const qsAcc = accPicker({ id: 'qsAccBox', key: 'qs_accounts', onChange: () => renderQuestions() });
 fetch('/api/accounts').then(r => r.json()).then(a => qsAcc.setAccounts(a)).catch(() => {}).finally(() => { qsAcc.loaded = true; });
@@ -4712,10 +4734,11 @@ function renderQuestions() {
   const q = $('qsQ').value.trim().toLowerCase();
   const sel = qsAcc.val(), accOk = (id) => !sel || (sel !== 'ninguna' && sel.split(',').includes(id));
   const base = qsData.items.filter(x => accOk(x.account_id) && (!q || (x.text + ' ' + (x.from_nick || '') + ' ' + ((x.item || {}).title || '') + ' ' + ((x.answer || {}).text || '')).toLowerCase().includes(q)));
-  const un = base.filter(x => x.status === 'UNANSWERED').sort((a, b) => String(a.date).localeCompare(String(b.date))); // las más viejas primero: son las más urgentes
+  const un = base.filter(x => x.status === 'UNANSWERED' && !x.blocked).sort((a, b) => String(a.date).localeCompare(String(b.date))); // las más viejas primero: son las más urgentes
+  const blocked = base.filter(x => x.status === 'UNANSWERED' && x.blocked); // Mercado Libre no deja responderlas: no cuentan como pendientes
   const ans = base.filter(x => x.status !== 'UNANSWERED');
   document.querySelectorAll('#qsTab button').forEach(b => { b.classList.toggle('on', b.dataset.t === qsTab); const n = { un: un.length, ans: ans.length }[b.dataset.t]; b.textContent = b.textContent.replace(/ \(\d+\)$/, '') + (n !== undefined ? ` (${n})` : ''); });
-  const list = qsTab === 'un' ? un : qsTab === 'ans' ? ans : base;
+  const list = qsTab === 'un' ? un.concat(blocked) : qsTab === 'ans' ? ans : base;
   const st = [];
   if (qsData.webhook_at) st.push('⚡ al instante (notificaciones de ML activas)'); else st.push('⏱ se revisa cada 3 min');
   if (qsData.last_sync) st.push('revisado ' + qsAgo(qsData.last_sync));
@@ -4725,9 +4748,9 @@ function renderQuestions() {
   const empty = { un: '¡No hay preguntas sin responder! 🎉', ans: 'Todavía no hay preguntas respondidas guardadas.', all: 'No hay preguntas.' }[qsTab];
   const quick = qsData.quick || [];
   $('qsList').innerHTML = list.map(x => {
-    const it = x.item || {}, open = x.status === 'UNANSWERED';
+    const it = x.item || {}, open = x.status === 'UNANSWERED' && !x.blocked, sig = qsSigOf(x);
     const stockTxt = it.stock == null ? '' : it.stock > 0 ? `<span class="pill" style="color:var(--ok);border-color:var(--ok)">${it.stock} en stock</span>` : '<span class="pill" style="color:var(--err);border-color:var(--err)">sin stock</span>';
-    return `<div class="card qs-card${open ? ' open' : ''}" data-q="${esc(x.id)}">
+    return `<div class="card qs-card${open ? ' open' : ''}${x.blocked ? ' qs-blocked' : ''}" data-q="${esc(x.id)}">
       <div class="qs-head"><span class="pill" style="color:var(--brand);border-color:var(--brand)">${esc(x.account)}</span><b>${esc(x.from_nick || 'Comprador')}</b><span class="muted">· ${qsAgo(x.date)}</span>${x.from_id ? `<a href="#" class="lnk" style="margin-left:auto;font-size:12.5px" data-qhist="${esc(x.id)}">👤 Historial del comprador</a>` : ''}</div>
       <div class="qs-item">${it.thumb ? `<img src="${esc(it.thumb)}" alt="" loading="lazy">` : '<div class="qs-noimg">📦</div>'}<div style="min-width:0"><a class="lnk qs-title" href="${esc(it.link || '#')}" target="_blank" rel="noopener">${esc(it.title || x.item_id)}</a><div class="muted" style="font-size:12.5px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:3px">${it.price ? `<b style="color:var(--text)">${money(it.price)}</b>` : ''}${stockTxt}${it.sku ? `<span>SKU ${esc(it.sku)}</span>` : ''}${it.status && it.status !== 'active' ? `<span class="pill">${it.status === 'paused' ? 'pausada' : esc(it.status)}</span>` : ''}</div></div></div>
       <div class="qs-text">${esc(x.text)}</div>
@@ -4735,16 +4758,48 @@ function renderQuestions() {
       ${open ? `<div class="qs-answer">
         ${quick.length ? `<div class="qs-quick">${quick.map(r => `<button class="btn small" data-qquick="${esc(r.id)}" data-qid="${esc(x.id)}" title="${esc(r.text)}">⚡ ${esc(r.title)}</button>`).join('')}</div>` : ''}
         <textarea id="qsa-${esc(x.id)}" placeholder="Escribí la respuesta…" maxlength="${qsMax}">${esc(qsDrafts[x.id] || '')}</textarea>
-        <div class="row" style="justify-content:space-between;margin-top:6px"><span class="muted" style="font-size:12px" id="qsc-${esc(x.id)}">${(qsDrafts[x.id] || '').length} / ${qsMax}</span><div class="row" style="gap:6px"><span id="qsm-${esc(x.id)}" style="font-size:13px"></span><button class="btn" data-qai="${esc(x.id)}" title="Arma un borrador con los datos de la publicación. Lo revisás antes de responder.">✨ Sugerir respuesta</button><button class="btn primary" data-qsend="${esc(x.id)}">Responder</button></div></div>
-      </div>` : x.answer ? `<div class="qs-ans"><div class="muted" style="font-size:12px">✓ Respondida ${qsAgo(x.answer.date)}${x.answer.by ? ' por ' + esc(x.answer.by) : ''}</div>${esc(x.answer.text)}</div>` : `<div class="muted" style="font-size:12.5px">${esc(x.status)}</div>`}
+        <div class="qs-tools"><button class="btn small" data-qlinks="${esc(x.id)}" title="Pegá el link de otra publicación de ${esc(x.account)} (por ejemplo, otro talle o color)">🔗 Agregar publicación</button>
+          <label class="muted" style="font-size:12.5px;display:flex;gap:6px;align-items:center">Firma <select data-qsig="${esc(x.id)}"><option value=""${sig ? '' : ' selected'}>Sin firma</option>${QS_SIGS.map(o => `<option${o === sig ? ' selected' : ''}>${esc(o)}</option>`).join('')}</select></label></div>
+        <div class="qs-links" id="qsl-${esc(x.id)}" hidden><input type="search" data-qlq="${esc(x.id)}" placeholder="Buscar en las publicaciones de ${esc(x.account)} (nombre, talle, SKU)…"><div id="qslr-${esc(x.id)}" class="qs-lres"></div></div>
+        <div class="row" style="justify-content:space-between;margin-top:6px"><span class="muted" style="font-size:12px" id="qsc-${esc(x.id)}">${qsCompose(x, qsDrafts[x.id] || '').length} / ${qsMax}</span><div class="row" style="gap:6px"><span id="qsm-${esc(x.id)}" style="font-size:13px"></span><button class="btn" data-qai="${esc(x.id)}" title="Arma un borrador con los datos de la publicación. Lo revisás antes de responder.">✨ Sugerir respuesta</button><button class="btn primary" data-qsend="${esc(x.id)}">Responder</button></div></div>
+      </div>` : x.blocked ? `<div class="qs-ans" style="opacity:.85">🚫 <b>Mercado Libre no permite responder</b> · ${esc(x.blocked.reason || '')}. No cuenta como pendiente.</div>` : x.answer ? `<div class="qs-ans"><div class="muted" style="font-size:12px">✓ Respondida ${qsAgo(x.answer.date)}${x.answer.by ? ' por ' + esc(x.answer.by) : ''}</div>${esc(x.answer.text)}</div>` : `<div class="muted" style="font-size:12.5px">${esc(x.status)}</div>`}
     </div>`;
   }).join('') || `<div class="card muted" style="padding:20px">${empty}</div>`;
 }
 $('qsTab').onclick = (e) => { const b = e.target.closest('[data-t]'); if (!b) return; qsTab = b.dataset.t; renderQuestions(); };
 $('qsQ').oninput = renderQuestions;
 $('qsSyncBtn').onclick = () => qsSync();
-$('qsList').addEventListener('input', (e) => { const t = e.target; if (!t.id || !t.id.startsWith('qsa-')) return; const id = t.id.slice(4); qsDrafts[id] = t.value; $('qsc-' + id).textContent = `${t.value.length} / ${qsMax}`; });
+$('qsList').addEventListener('input', (e) => {
+  const t = e.target;
+  if (t.dataset && t.dataset.qlq) { const id = t.dataset.qlq; clearTimeout(qsLinkT); qsLinkT = setTimeout(() => qsLinkSearch(id, t.value), 350); return; }
+  if (!t.id || !t.id.startsWith('qsa-')) return; const id = t.id.slice(4); qsDrafts[id] = t.value; qsCount(id);
+});
+$('qsList').addEventListener('change', (e) => {
+  const s = e.target.closest('[data-qsig]'); if (!s) return;
+  const id = s.dataset.qsig, x = (qsData.items || []).find(i => i.id === id); qsSigs[id] = s.value;
+  try { localStorage.setItem('qs_sig_' + (x && x.tuyo ? 'Tuyo' : 'BIOGATE'), s.value); } catch { /* nada */ }
+  qsCount(id);
+});
+// Buscador de publicaciones de la misma cuenta
+async function qsLinkSearch(id, q) {
+  const box = $('qslr-' + id); if (!box) return;
+  box.innerHTML = '<div class="muted" style="font-size:12.5px;padding:6px">Buscando…</div>';
+  const d = await (await fetch(`/api/questions/${id}/links?q=${encodeURIComponent(q || '')}`)).json().catch(() => ({ ok: false, error: 'Sin conexión.' }));
+  if (!$('qslr-' + id)) return;
+  if (!d.ok) { box.innerHTML = `<div class="err-t" style="font-size:12.5px;padding:6px">${esc(d.error)}</div>`; return; }
+  box.innerHTML = d.items.length ? d.items.map(it => `<div class="qs-lrow">${it.thumb ? `<img src="${esc(it.thumb)}" alt="" loading="lazy">` : '<div class="qs-noimg">📦</div>'}<div style="min-width:0;flex:1"><div class="qs-ltitle">${esc(it.title)}</div><div class="muted" style="font-size:12px">${money(it.price)} · ${it.stock} en stock${it.sku ? ' · SKU ' + esc(it.sku) : ''}</div></div><button class="btn small" data-qlink="${esc(id)}" data-url="${esc(it.link)}">Agregar</button></div>`).join('')
+    : `<div class="muted" style="font-size:12.5px;padding:6px">No encontré publicaciones activas con stock de ${esc(d.account)}${q ? ' con "' + esc(q) + '"' : ''}.</div>`;
+}
 $('qsList').onclick = async (e) => {
+  const lb = e.target.closest('[data-qlinks]');
+  if (lb) { const id = lb.dataset.qlinks, box = $('qsl-' + id); box.hidden = !box.hidden; if (!box.hidden) { const inp = box.querySelector('input'); inp.focus(); if (!$('qslr-' + id).innerHTML) qsLinkSearch(id, ''); } return; }
+  const la = e.target.closest('[data-qlink]');
+  if (la) { // pega el link donde está el cursor
+    const ta = $('qsa-' + la.dataset.qlink), url = la.dataset.url; if (!ta || !url) return;
+    const a = ta.selectionStart ?? ta.value.length, b = ta.selectionEnd ?? ta.value.length, before = ta.value.slice(0, a);
+    ta.value = (before + (before && !/\s$/.test(before) ? ' ' : '') + url + ' ' + ta.value.slice(b)).slice(0, qsMax);
+    ta.dispatchEvent(new Event('input', { bubbles: true })); ta.focus(); la.textContent = '✓ Agregado'; return;
+  }
   const qk = e.target.closest('[data-qquick]');
   if (qk) { // inserta la respuesta rápida donde está el cursor
     const r = (qsData.quick || []).find(x => x.id === qk.dataset.qquick), ta = $('qsa-' + qk.dataset.qid); if (!r || !ta) return;
@@ -4782,12 +4837,13 @@ $('qsList').onclick = async (e) => {
     const id = sb.dataset.qsend;
     if (!$('qsa-' + id).value.trim()) { $('qsm-' + id).innerHTML = '<span class="err-t">Escribí la respuesta.</span>'; return; }
     if (!(await spellGate($('qsa-' + id), $('qsm-' + id), sb))) return;
-    const text = $('qsa-' + id).value.trim();
+    const qx = (qsData.items || []).find(i => i.id === id), text = qsCompose(qx || { id }, $('qsa-' + id).value);
+    if (text.length > qsMax) { $('qsm-' + id).innerHTML = `<span class="err-t">Con la firma queda en ${text.length} caracteres (máximo ${qsMax}).</span>`; return; }
     sb.disabled = true; $('qsm-' + id).textContent = 'Enviando…';
     const d = await (await fetch(`/api/questions/${id}/answer`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ text, by: rfBy() }) })).json().catch(() => ({ ok: false, error: 'Sin conexión.' }));
     sb.disabled = false;
-    if (!d.ok) { $('qsm-' + id).innerHTML = `<span class="err-t">${esc(d.error)}</span>`; return; }
-    delete qsDrafts[id];
+    if (!d.ok) { $('qsm-' + id).innerHTML = `<span class="err-t">${esc(d.error)}</span>`; if (/no permite responder/.test(d.error || '')) setTimeout(() => { loadQuestions(); qsCheck(); }, 2500); return; }
+    delete qsDrafts[id]; delete qsSigs[id];
     const i = qsData.items.findIndex(x => x.id === id); if (i >= 0) qsData.items[i] = d.question;
     renderQuestions(); qsCheck();
   }
