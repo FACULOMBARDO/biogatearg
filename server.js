@@ -320,11 +320,17 @@ app.post('/api/webcat/together/push', wcWrap(() => require('./lib/together').pus
 app.get('/api/webcat/together', wcWrap(async () => require('./lib/together').build()));
 app.post('/api/webcat/social/push', wcWrap(() => require('./lib/social').push({ refresh: true })));
 app.post('/api/webcat/suggest', wcWrap(async req => ({ suggestions: await webcat.suggest((req.body || {}).ids) })));
+// Aprender: cursos del equipo
+app.get('/api/learn', (req, res) => res.json({ ok: true, owner: !!req.user.owner, ...require('./lib/learn').list(req.user) }));
+app.post('/api/learn/lesson', (req, res) => { try { res.json({ ok: true, ...require('./lib/learn').lesson(req.user, (req.body || {}).course, (req.body || {}).lesson) }); } catch (e) { res.status(400).json({ ok: false, error: e.message }); } });
+app.post('/api/learn/quiz', (req, res) => { try { res.json({ ok: true, ...require('./lib/learn').quiz(req.user, (req.body || {}).course, (req.body || {}).answers) }); } catch (e) { res.status(400).json({ ok: false, error: e.message }); } });
+app.get('/api/learn/team', (req, res) => res.json({ ok: true, ...require('./lib/learn').team() }));
+app.post('/api/learn/required', (req, res) => { try { const b = req.body || {}; res.json({ ok: true, required: require('./lib/learn').setRequired(b.user, b.course, !!b.on) }); } catch (e) { res.status(400).json({ ok: false, error: e.message }); } });
 app.get('/api/activity', (req, res) => res.json({ ok: true, ...activity.report(req.query.days, req.query.who) }));
 
 // ---------- Usuarios del equipo (solo dueño) y sueldos ----------
 const payroll = require('./lib/payroll');
-app.get('/api/me', (req, res) => res.json({ ok: true, id: req.user.id, name: req.user.name, owner: req.user.owner, perms: req.user.owner ? Object.keys(users.SECTIONS).concat(['sueldos', 'usuarios', 'actividad']) : req.user.perms, task_person: req.user.task_person || '' }));
+app.get('/api/me', (req, res) => res.json({ ok: true, id: req.user.id, name: req.user.name, owner: req.user.owner, perms: (req.user.owner ? Object.keys(users.SECTIONS).concat(['sueldos', 'usuarios', 'actividad']) : req.user.perms).concat(['aprender']), learn_pending: require('./lib/learn').pending(req.user), task_person: req.user.task_person || '' }));
 app.post('/api/me/password', (req, res) => {
   try {
     const b = req.body || {};

@@ -45,6 +45,7 @@
   <a href="#calculadora" class="nav" data-view="calculadora"><span class="ic">🧮</span><span>Calculadora</span></a>
   <a href="#etiquetas" class="nav" data-view="etiquetas"><span class="ic">🏷️</span><span>Etiquetas de producto</span></a>
   <a href="#manuales" class="nav" data-view="manuales"><span class="ic">📘</span><span>Manuales</span></a>
+  <a href="#aprender" class="nav" data-view="aprender"><span class="ic">🎓</span><span>Aprender</span><span class="nav-badge" id="lnBadge" hidden></span></a>
   <a href="#gastos" class="nav" data-view="gastos"><span class="ic">🏪</span><span>Gastos del local</span></a>
   <a href="#estados" class="nav" data-view="estados"><span class="ic">📱</span><span>Estados de WhatsApp</span></a>
   <a href="#sugerencias" class="nav" data-view="sugerencias"><span class="ic">💡</span><span>Sugerencias</span></a>
@@ -588,6 +589,14 @@
     <thead><tr><th style="width:30px"><input type="checkbox" id="wbAll" title="Seleccionar todos los que se ven"></th><th>Pedido</th><th>Cliente</th><th>Productos</th><th>Pago / envío</th><th style="text-align:right">Total</th><th style="text-align:right">Impuestos</th><th style="text-align:right">Comisión</th><th style="text-align:right">Mercadería</th><th style="text-align:right" class="col-net">Neto después de costos</th></tr></thead>
     <tbody id="wbRows"></tbody>
   </table></div></div>
+</section>
+
+<section id="viewLearn" hidden>
+  <div class="row" style="justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px">
+    <div><h1 class="page-title" style="margin-bottom:2px">Aprender</h1><div class="muted" style="font-size:13.5px">Cursos cortos para trabajar mejor en Biogate y en Mercado Libre</div></div>
+    <div class="seg" id="lnTabs" hidden><button data-t="mine" class="on">Mis cursos</button><button data-t="team">Avance del equipo</button></div>
+  </div>
+  <div id="lnBody"><div class="card muted">Cargando…</div></div>
 </section>
 
 <section id="viewManuals" hidden>
@@ -3019,6 +3028,7 @@ async function loadMe() {
   try { ME = await (await fetch('/api/me')).json(); } catch { ME = null; }
   if (!ME || !ME.ok) { ME = null; return; }
   document.querySelectorAll('.side .nav').forEach(a => { a.hidden = !ME.perms.includes(a.dataset.view); });
+  if ($('lnBadge')) { $('lnBadge').hidden = !ME.learn_pending; $('lnBadge').textContent = ME.learn_pending || ''; }
   $('meBtn').hidden = false; $('meBtn').textContent = ME.owner ? '🔒 Mi contraseña' : '👤 ' + ME.name;
   if (!ME.owner) {
     $('settingsBtn').hidden = true;
@@ -3452,12 +3462,12 @@ $('wcCatList').addEventListener('click', async (e) => {
 });
 
 function showView() {
-  let v = ({ '#ventas': 'ventas', '#ranking': 'ranking', '#precios': 'precios', '#presupuestos': 'presupuestos', '#estados': 'estados', '#gastos': 'gastos', '#full': 'full', '#flex': 'flex', '#resultado': 'resultado', '#tareas': 'tareas', '#recompras': 'recompras', '#preguntas': 'preguntas', '#stock': 'stock', '#sugerencias': 'sugerencias', '#web': 'web', '#horarios': 'horarios', '#manuales': 'manuales', '#calculadora': 'calculadora', '#etiquetas': 'etiquetas', '#impresion': 'impresion', '#reclamos': 'reclamos', '#publicaciones': 'publicaciones', '#publicar': 'publicar', '#webcat': 'webcat', '#competencia': 'competencia', '#embudo': 'embudo', '#salud': 'salud', '#sueldos': 'sueldos', '#usuarios': 'usuarios', '#actividad': 'actividad', '#tuyo': 'tuyo' })[location.hash] || 'ventas';
+  let v = ({ '#ventas': 'ventas', '#ranking': 'ranking', '#precios': 'precios', '#presupuestos': 'presupuestos', '#estados': 'estados', '#gastos': 'gastos', '#full': 'full', '#flex': 'flex', '#resultado': 'resultado', '#tareas': 'tareas', '#recompras': 'recompras', '#preguntas': 'preguntas', '#stock': 'stock', '#sugerencias': 'sugerencias', '#web': 'web', '#horarios': 'horarios', '#manuales': 'manuales', '#calculadora': 'calculadora', '#etiquetas': 'etiquetas', '#impresion': 'impresion', '#reclamos': 'reclamos', '#publicaciones': 'publicaciones', '#publicar': 'publicar', '#webcat': 'webcat', '#competencia': 'competencia', '#embudo': 'embudo', '#salud': 'salud', '#sueldos': 'sueldos', '#usuarios': 'usuarios', '#actividad': 'actividad', '#tuyo': 'tuyo', '#aprender': 'aprender' })[location.hash] || 'ventas';
   if (ME && !ME.perms.includes(v)) { const first = ME.perms.find(k => document.querySelector(`.side .nav[data-view="${k}"]`)); if (first && v !== first) { location.hash = '#' + (document.querySelector(`.side .nav[data-view="${first}"]`).getAttribute('href') || '').replace('#', ''); return; } }
   $('viewQuotes').hidden = v !== 'presupuestos';
   $('viewStatus').hidden = v !== 'estados';
   $('viewExpenses').hidden = v !== 'gastos'; $('viewFull').hidden = v !== 'full';
-  $('viewResults').hidden = v !== 'resultado'; $('viewStock').hidden = v !== 'stock'; $('viewSuggest').hidden = v !== 'sugerencias'; $('viewWeb').hidden = v !== 'web'; $('viewHours').hidden = v !== 'horarios'; $('viewManuals').hidden = v !== 'manuales'; $('viewCalc').hidden = v !== 'calculadora'; $('viewPLabel').hidden = v !== 'etiquetas'; $('viewShipLabels').hidden = v !== 'impresion'; $('viewClaims').hidden = v !== 'reclamos'; $('viewListings').hidden = v !== 'publicaciones'; $('viewPublish').hidden = v !== 'publicar'; $('viewWebcat').hidden = v !== 'webcat'; $('viewComp').hidden = v !== 'competencia'; $('viewFunnel').hidden = v !== 'embudo'; $('viewHealth').hidden = v !== 'salud'; $('viewPayroll').hidden = v !== 'sueldos'; $('viewUsers').hidden = v !== 'usuarios'; $('viewActivity').hidden = v !== 'actividad'; $('viewTuyo').hidden = v !== 'tuyo';
+  $('viewResults').hidden = v !== 'resultado'; $('viewStock').hidden = v !== 'stock'; $('viewSuggest').hidden = v !== 'sugerencias'; $('viewWeb').hidden = v !== 'web'; $('viewHours').hidden = v !== 'horarios'; $('viewManuals').hidden = v !== 'manuales'; $('viewCalc').hidden = v !== 'calculadora'; $('viewPLabel').hidden = v !== 'etiquetas'; $('viewShipLabels').hidden = v !== 'impresion'; $('viewClaims').hidden = v !== 'reclamos'; $('viewListings').hidden = v !== 'publicaciones'; $('viewPublish').hidden = v !== 'publicar'; $('viewWebcat').hidden = v !== 'webcat'; $('viewComp').hidden = v !== 'competencia'; $('viewFunnel').hidden = v !== 'embudo'; $('viewHealth').hidden = v !== 'salud'; $('viewPayroll').hidden = v !== 'sueldos'; $('viewUsers').hidden = v !== 'usuarios'; $('viewActivity').hidden = v !== 'actividad'; $('viewTuyo').hidden = v !== 'tuyo'; $('viewLearn').hidden = v !== 'aprender';
   $('viewFlex').hidden = v !== 'flex'; $('viewSales').hidden = v !== 'ventas'; $('viewTasks').hidden = v !== 'tareas'; $('viewRefill').hidden = v !== 'recompras'; $('viewQuestions').hidden = v !== 'preguntas';
   $('viewRanking').hidden = v !== 'ranking'; $('viewPrices').hidden = v !== 'precios';
   document.querySelectorAll('.side .nav').forEach(a => a.classList.toggle('active', a.dataset.view === v));
@@ -3488,11 +3498,121 @@ function showView() {
   if (v === 'actividad') loadActivity();
   if (v === 'salud') loadHealth(false);
   if (v === 'tuyo') loadTuyo();
+  if (v === 'aprender') loadLearn();
   if (v === 'tareas') loadTasks();
   if (v === 'recompras') loadRefill();
   if (v === 'preguntas') { loadQuestions(true); loadQStats(); loadQCron(); }
   if (v === 'flex' && typeof scans !== 'undefined') load();
 }
+// ---------- Aprender: cursos del equipo ----------
+let lnData = null, lnTeam = null, lnState = { tab: 'mine', course: null, step: 0, answers: [], result: null };
+function lnMd(t) {
+  const inl = (x) => esc(x).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>').replace(/\*(.+?)\*/g, '<i>$1</i>');
+  return String(t || '').split(/\n\s*\n/).map(block => {
+    const lines = block.split('\n').filter(l => l.trim());
+    if (lines.length && lines.every(l => /^\s*- /.test(l))) return `<ul>${lines.map(l => `<li>${inl(l.replace(/^\s*- /, ''))}</li>`).join('')}</ul>`;
+    if (lines.length && lines.every(l => /^\s*\d+\. /.test(l))) return `<ol>${lines.map(l => `<li>${inl(l.replace(/^\s*\d+\. /, ''))}</li>`).join('')}</ol>`;
+    // párrafo seguido de lista
+    const i = lines.findIndex(l => /^\s*(- |\d+\. )/.test(l));
+    if (i > 0 && lines.slice(i).every(l => /^\s*(- |\d+\. )/.test(l))) { const ol = /^\s*\d+\. /.test(lines[i]); const tag = ol ? 'ol' : 'ul'; return `<p>${lines.slice(0, i).map(inl).join('<br>')}</p><${tag}>${lines.slice(i).map(l => `<li>${inl(l.replace(/^\s*(- |\d+\. )/, ''))}</li>`).join('')}</${tag}>`; }
+    return `<p>${lines.map(inl).join('<br>')}</p>`;
+  }).join('');
+}
+async function loadLearn() {
+  const r = await (await fetch('/api/learn')).json().catch(() => ({ ok: false }));
+  if (!r.ok) { $('lnBody').innerHTML = '<div class="card err-t">No se pudieron cargar los cursos.</div>'; return; }
+  lnData = r; $('lnTabs').hidden = !r.owner;
+  const pend = r.courses.filter(c => c.required && c.progress.status !== 'aprobado').length;
+  if ($('lnBadge')) { $('lnBadge').hidden = !pend; $('lnBadge').textContent = pend || ''; }
+  renderLearn();
+}
+function lnStatusTag(p) {
+  if (p.status === 'aprobado') return `<span class="ln-st ok">Aprobado · ${p.best}%</span>`;
+  if (p.status === 'en curso') return `<span class="ln-st mid">En curso</span>`;
+  return `<span class="ln-st">Nuevo</span>`;
+}
+function renderLearn() {
+  if (!lnData) return;
+  $('lnTabs').querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.t === lnState.tab));
+  if (lnState.tab === 'team') return renderLearnTeam();
+  if (lnState.course) return renderLearnCourse();
+  const cs = lnData.courses, done = cs.filter(c => c.progress.status === 'aprobado').length;
+  const req = cs.filter(c => c.required && c.progress.status !== 'aprobado');
+  $('lnBody').innerHTML = `
+    <div class="card ln-hero"><div><b style="font-size:16px">${done} de ${cs.length} cursos aprobados</b><div class="muted" style="font-size:13px">Cada curso tiene lecciones cortas y una prueba al final. Se aprueba con ${lnData.pass}% y la podés repetir las veces que quieras.</div></div><div class="ln-bar big"><i style="width:${Math.round(done / cs.length * 100)}%"></i></div></div>
+    ${req.length ? `<div class="card ln-req"><b>Cursos obligatorios pendientes:</b> ${req.map(c => `<a href="#" class="lnk" data-lnopen="${esc(c.id)}">${esc(c.title)}</a>`).join(' · ')}</div>` : ''}
+    <div class="ln-grid">${cs.map(c => { const p = c.progress, pct = Math.round(p.lessons.length / c.lessons.length * 100); return `
+      <button class="ln-card" data-lnopen="${esc(c.id)}">
+        <div class="ln-ic">${c.icon}</div>
+        <div class="ln-ct"><div class="ln-tt">${esc(c.title)}</div><div class="muted ln-meta">${esc(c.level)} · ${c.minutes} min · ${c.lessons.length} lecciones${c.required ? ' · <b class="ln-ob">Obligatorio</b>' : ''}</div>
+        <div class="ln-sum">${esc(c.summary)}</div>
+        <div class="row" style="gap:8px;margin-top:8px;align-items:center"><div class="ln-bar"><i style="width:${p.status === 'aprobado' ? 100 : pct}%"></i></div>${lnStatusTag(p)}</div></div>
+      </button>`; }).join('')}</div>
+    <h2 class="ln-h2">Cursos gratis de Mercado Libre</h2>
+    <div class="ln-off">${lnData.official.map(o => `<a class="card ln-offc" href="${esc(o.u)}" target="_blank" rel="noopener"><b>${esc(o.t)} ↗</b><div class="muted" style="font-size:13px;margin-top:4px">${esc(o.d)}</div></a>`).join('')}</div>`;
+}
+function renderLearnCourse() {
+  const c = lnData.courses.find(x => x.id === lnState.course); if (!c) { lnState.course = null; return renderLearn(); }
+  const n = c.lessons.length, step = lnState.step, isQuiz = step >= n;
+  const nav = c.lessons.map((l, i) => `<button class="ln-step${i === step ? ' on' : ''}${c.progress.lessons.includes(i) ? ' done' : ''}" data-lnstep="${i}"><span>${c.progress.lessons.includes(i) ? '✓' : i + 1}</span>${esc(l.title)}</button>`).join('')
+    + `<button class="ln-step${isQuiz ? ' on' : ''}${c.progress.status === 'aprobado' ? ' done' : ''}" data-lnstep="${n}"><span>${c.progress.status === 'aprobado' ? '✓' : '?'}</span>Prueba final</button>`;
+  let main;
+  if (!isQuiz) {
+    const l = c.lessons[step];
+    main = `<div class="muted" style="font-size:12.5px">Lección ${step + 1} de ${n}</div><h2 style="margin:4px 0 10px">${esc(l.title)}</h2><div class="ln-text">${lnMd(l.body)}</div>
+      <div class="row" style="justify-content:space-between;margin-top:18px;gap:8px">${step > 0 ? `<button class="btn" data-lnstep="${step - 1}">← Anterior</button>` : '<span></span>'}<button class="btn primary" data-lnnext="${step}">${step + 1 < n ? 'Entendido, siguiente →' : 'Entendido, ir a la prueba →'}</button></div>`;
+  } else {
+    const res = lnState.result;
+    main = `<h2 style="margin:0 0 4px">Prueba final</h2><div class="muted" style="font-size:13px;margin-bottom:12px">${c.quiz.length} preguntas · se aprueba con ${lnData.pass}%${c.progress.tries ? ` · mejor nota: ${c.progress.best}%` : ''}</div>
+      ${res ? `<div class="ln-res ${res.passed ? 'ok' : 'no'}"><b>${res.passed ? '¡Aprobaste!' : 'Todavía no'}</b> Sacaste ${res.score}% (${res.ok} de ${res.total}).${res.passed ? '' : ' Repasá las lecciones y volvé a intentar.'}</div>` : ''}
+      ${c.quiz.map((q, i) => { const d = res && res.detail[i]; return `<div class="ln-q${d ? (d.ok ? ' ok' : ' no') : ''}"><div class="ln-qt">${i + 1}. ${esc(q.q)}</div>${q.o.map((o, k) => `<label class="ln-opt${d && k === d.right ? ' right' : d && k === lnState.answers[i] ? ' wrong' : ''}"><input type="radio" name="lnq${i}" value="${k}" data-lnq="${i}" ${lnState.answers[i] === k ? 'checked' : ''} ${res ? 'disabled' : ''}> ${esc(o)}</label>`).join('')}${d && !d.ok ? `<div class="ln-why">${esc(d.why)}</div>` : ''}</div>`; }).join('')}
+      <div class="row" style="justify-content:flex-end;margin-top:12px;gap:8px">${res ? `<button class="btn" data-lnretry>Volver a intentar</button><button class="btn primary" data-lnback>Ver todos los cursos</button>` : `<button class="btn primary" data-lnsend>Enviar respuestas</button>`}</div>`;
+  }
+  $('lnBody').innerHTML = `<div class="row" style="margin-bottom:10px;gap:8px;align-items:center"><button class="btn small" data-lnback>← Cursos</button><b style="font-size:17px">${c.icon} ${esc(c.title)}</b></div>
+    <div class="ln-course"><div class="ln-side card">${nav}${c.links && c.links.length ? `<div class="ln-more"><div class="muted" style="font-size:12px;margin-bottom:4px">Para profundizar (gratis)</div>${c.links.map(o => `<a href="${esc(o.u)}" target="_blank" rel="noopener">${esc(o.t)} ↗</a>`).join('')}</div>` : ''}</div><div class="card ln-main">${main}</div></div>`;
+}
+async function renderLearnTeam() {
+  $('lnBody').innerHTML = '<div class="card muted">Cargando…</div>';
+  const r = await (await fetch('/api/learn/team')).json().catch(() => ({ ok: false }));
+  if (!r.ok) { $('lnBody').innerHTML = '<div class="card err-t">No se pudo cargar el avance.</div>'; return; }
+  lnTeam = r;
+  const cell = (p, c) => { const x = p.rows[c.id]; const st = x.status === 'aprobado' ? `<span class="ln-st ok">✓ ${x.best}%</span>` : x.status === 'en curso' ? `<span class="ln-st mid">${x.lessons}/${c.lessons}${x.tries ? ` · ${x.best}%` : ''}</span>` : '<span class="muted">—</span>';
+    return `<td style="text-align:center">${st}<div><button class="ln-reqb${x.required ? ' on' : ''}" data-lnreq="${esc(p.id)}|${esc(c.id)}" title="${x.required ? 'Es obligatorio. Tocá para sacarlo.' : 'Marcar como obligatorio'}">${x.required ? 'Obligatorio' : '+ obligatorio'}</button></div></td>`; };
+  $('lnBody').innerHTML = `<div class="card"><div class="muted" style="font-size:13px;margin-bottom:8px">Quién hizo cada curso y con qué nota. Marcá los cursos obligatorios de cada persona: le aparecen arriba y con aviso en el menú.</div>
+    <div style="overflow:auto"><table class="sales-table ln-team"><thead><tr><th style="text-align:left">Persona</th>${r.courses.map(c => `<th title="${esc(c.title)}">${c.icon}<div style="font-size:11px;font-weight:500;max-width:90px;margin:auto">${esc(c.short || c.title)}</div></th>`).join('')}</tr></thead>
+    <tbody>${r.people.map(p => `<tr><td style="white-space:nowrap"><b>${esc(p.name)}</b><div class="muted" style="font-size:12px">${p.passed} de ${p.total} aprobados${p.required_pending ? ` · <span class="err-t">${p.required_pending} obligatorios pendientes</span>` : ''}</div></td>${r.courses.map(c => cell(p, c)).join('')}</tr>`).join('')}</tbody></table></div></div>`;
+}
+$('lnTabs').onclick = (e) => { const b = e.target.closest('[data-t]'); if (!b) return; lnState.tab = b.dataset.t; lnState.course = null; if (b.dataset.t === 'mine') loadLearn(); else renderLearn(); };
+$('lnBody').onclick = async (e) => {
+  const t = e.target;
+  const open = t.closest('[data-lnopen]');
+  if (open) { e.preventDefault(); const c = lnData.courses.find(x => x.id === open.dataset.lnopen); lnState.course = c.id; lnState.step = c.progress.status === 'aprobado' ? 0 : Math.min(c.lessons.findIndex((_, i) => !c.progress.lessons.includes(i)) === -1 ? c.lessons.length : c.lessons.findIndex((_, i) => !c.progress.lessons.includes(i)), c.lessons.length); lnState.answers = []; lnState.result = null; renderLearn(); window.scrollTo(0, 0); return; }
+  if (t.closest('[data-lnback]')) { lnState.course = null; lnState.result = null; renderLearn(); window.scrollTo(0, 0); return; }
+  const st = t.closest('[data-lnstep]');
+  if (st) { lnState.step = Number(st.dataset.lnstep); lnState.result = null; lnState.answers = []; renderLearnCourse(); return; }
+  const nx = t.closest('[data-lnnext]');
+  if (nx) {
+    const i = Number(nx.dataset.lnnext), c = lnData.courses.find(x => x.id === lnState.course);
+    const r = await lsPost('/api/learn/lesson', { course: c.id, lesson: i });
+    if (r.ok) c.progress.lessons = r.lessons;
+    if (c.progress.status === 'nuevo') c.progress.status = 'en curso';
+    lnState.step = i + 1; lnState.answers = []; lnState.result = null; renderLearnCourse(); window.scrollTo(0, 0); return;
+  }
+  if (t.closest('[data-lnretry]')) { lnState.answers = []; lnState.result = null; renderLearnCourse(); return; }
+  if (t.closest('[data-lnsend]')) {
+    const c = lnData.courses.find(x => x.id === lnState.course);
+    if (c.quiz.some((_, i) => lnState.answers[i] === undefined)) { alert('Respondé todas las preguntas.'); return; }
+    const r = await lsPost('/api/learn/quiz', { course: c.id, answers: c.quiz.map((_, i) => lnState.answers[i]) });
+    if (!r.ok) { alert(r.error || 'No se pudo enviar.'); return; }
+    lnState.result = r; c.progress.tries++; c.progress.score = r.score; c.progress.best = Math.max(c.progress.best || 0, r.score);
+    if (r.passed) { c.progress.status = 'aprobado'; c.progress.passed_at = c.progress.passed_at || new Date().toISOString(); } else if (c.progress.status === 'nuevo') c.progress.status = 'en curso';
+    const pend = lnData.courses.filter(x => x.required && x.progress.status !== 'aprobado').length; if ($('lnBadge')) { $('lnBadge').hidden = !pend; $('lnBadge').textContent = pend || ''; }
+    renderLearnCourse(); return;
+  }
+  const rq = t.closest('[data-lnreq]');
+  if (rq) { const [user, course] = rq.dataset.lnreq.split('|'); const on = !rq.classList.contains('on'); const r = await lsPost('/api/learn/required', { user, course, on }); if (r.ok) renderLearnTeam(); else alert(r.error || 'No se pudo guardar.'); }
+};
+$('lnBody').onchange = (e) => { const q = e.target.closest('[data-lnq]'); if (q) lnState.answers[Number(q.dataset.lnq)] = Number(q.value); };
 window.addEventListener('hashchange', showView);
 // Los gráficos se dibujan al ancho real: al cambiar el tamaño de la ventana se vuelven a dibujar.
 let reTimer = null;
