@@ -593,7 +593,7 @@
 
 <section id="viewLearn" hidden>
   <div class="row" style="justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px">
-    <div><h1 class="page-title" style="margin-bottom:2px">Aprender</h1><div class="muted" style="font-size:13.5px">Cursos cortos para trabajar mejor en Biogate y en Mercado Libre</div></div>
+    <div><h1 class="page-title" style="margin-bottom:2px">Aprender</h1><div class="muted" style="font-size:13.5px">Videos oficiales de Mercado Libre para vendedores, ordenados por tema</div></div>
     <div class="seg" id="lnTabs" hidden><button data-t="mine" class="on">Mis cursos</button><button data-t="team">Avance del equipo</button></div>
   </div>
   <div id="lnBody"><div class="card muted">Cargando…</div></div>
@@ -3504,115 +3504,86 @@ function showView() {
   if (v === 'preguntas') { loadQuestions(true); loadQStats(); loadQCron(); }
   if (v === 'flex' && typeof scans !== 'undefined') load();
 }
-// ---------- Aprender: cursos del equipo ----------
-let lnData = null, lnTeam = null, lnState = { tab: 'mine', course: null, step: 0, answers: [], result: null };
-function lnMd(t) {
-  const inl = (x) => esc(x).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>').replace(/\*(.+?)\*/g, '<i>$1</i>');
-  return String(t || '').split(/\n\s*\n/).map(block => {
-    const lines = block.split('\n').filter(l => l.trim());
-    if (lines.length && lines.every(l => /^\s*- /.test(l))) return `<ul>${lines.map(l => `<li>${inl(l.replace(/^\s*- /, ''))}</li>`).join('')}</ul>`;
-    if (lines.length && lines.every(l => /^\s*\d+\. /.test(l))) return `<ol>${lines.map(l => `<li>${inl(l.replace(/^\s*\d+\. /, ''))}</li>`).join('')}</ol>`;
-    // párrafo seguido de lista
-    const i = lines.findIndex(l => /^\s*(- |\d+\. )/.test(l));
-    if (i > 0 && lines.slice(i).every(l => /^\s*(- |\d+\. )/.test(l))) { const ol = /^\s*\d+\. /.test(lines[i]); const tag = ol ? 'ol' : 'ul'; return `<p>${lines.slice(0, i).map(inl).join('<br>')}</p><${tag}>${lines.slice(i).map(l => `<li>${inl(l.replace(/^\s*(- |\d+\. )/, ''))}</li>`).join('')}</${tag}>`; }
-    return `<p>${lines.map(inl).join('<br>')}</p>`;
-  }).join('');
-}
+// ---------- Aprender: videos oficiales de Mercado Libre ----------
+let lnData = null, lnState = { tab: 'mine', course: null, step: 0 };
 async function loadLearn() {
   const r = await (await fetch('/api/learn')).json().catch(() => ({ ok: false }));
   if (!r.ok) { $('lnBody').innerHTML = '<div class="card err-t">No se pudieron cargar los cursos.</div>'; return; }
-  lnData = r; $('lnTabs').hidden = !r.owner;
-  const pend = r.courses.filter(c => c.required && c.progress.status !== 'aprobado').length;
-  if ($('lnBadge')) { $('lnBadge').hidden = !pend; $('lnBadge').textContent = pend || ''; }
-  renderLearn();
+  lnData = r; $('lnTabs').hidden = !r.owner; lnBadge(); renderLearn();
 }
-function lnStatusTag(p) {
-  if (p.status === 'aprobado') return `<span class="ln-st ok">Aprobado · ${p.best}%</span>`;
-  if (p.status === 'en curso') return `<span class="ln-st mid">En curso</span>`;
-  return `<span class="ln-st">Nuevo</span>`;
+function lnBadge() { const pend = lnData.courses.filter(c => c.required && c.progress.status !== 'completo').length; if ($('lnBadge')) { $('lnBadge').hidden = !pend; $('lnBadge').textContent = pend || ''; } }
+function lnStatusTag(c) {
+  const p = c.progress, n = p.lessons.length, t = c.lessons.length;
+  if (p.status === 'completo') return '<span class="ln-st ok">Completo</span>';
+  if (p.status === 'en curso') return `<span class="ln-st mid">${n} de ${t} vistos</span>`;
+  return '<span class="ln-st">Nuevo</span>';
 }
 function renderLearn() {
   if (!lnData) return;
   $('lnTabs').querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.t === lnState.tab));
   if (lnState.tab === 'team') return renderLearnTeam();
   if (lnState.course) return renderLearnCourse();
-  const cs = lnData.courses, done = cs.filter(c => c.progress.status === 'aprobado').length;
-  const req = cs.filter(c => c.required && c.progress.status !== 'aprobado');
+  const cs = lnData.courses, done = cs.filter(c => c.progress.status === 'completo').length;
+  const req = cs.filter(c => c.required && c.progress.status !== 'completo');
+  const total = cs.reduce((a, c) => a + c.lessons.length, 0), seen = cs.reduce((a, c) => a + c.progress.lessons.length, 0);
   $('lnBody').innerHTML = `
-    <div class="card ln-hero"><div><b style="font-size:16px">${done} de ${cs.length} cursos aprobados</b><div class="muted" style="font-size:13px">Cada curso tiene lecciones cortas y una prueba al final. Se aprueba con ${lnData.pass}% y la podés repetir las veces que quieras.</div></div><div class="ln-bar big"><i style="width:${Math.round(done / cs.length * 100)}%"></i></div></div>
-    ${req.length ? `<div class="card ln-req"><b>Cursos obligatorios pendientes:</b> ${req.map(c => `<a href="#" class="lnk" data-lnopen="${esc(c.id)}">${esc(c.title)}</a>`).join(' · ')}</div>` : ''}
+    <div class="card ln-hero"><div><b style="font-size:16px">${done} de ${cs.length} cursos completos · ${seen} de ${total} videos vistos</b><div class="muted" style="font-size:13px">Videos oficiales de Mercado Libre, de su canal <a href="${esc(lnData.channel)}" target="_blank" rel="noopener">Vendedores Mercado Libre ↗</a>. Se miran acá mismo.</div></div><div class="ln-bar big"><i style="width:${Math.round(seen / total * 100)}%"></i></div></div>
+    ${req.length ? `<div class="card ln-req"><b>Cursos obligatorios pendientes:</b> ${req.map(c => `<a href="#" data-lnopen="${esc(c.id)}">${esc(c.title)}</a>`).join(' · ')}</div>` : ''}
     <div class="ln-grid">${cs.map(c => { const p = c.progress, pct = Math.round(p.lessons.length / c.lessons.length * 100); return `
       <button class="ln-card" data-lnopen="${esc(c.id)}">
-        <div class="ln-ic">${c.icon}</div>
-        <div class="ln-ct"><div class="ln-tt">${esc(c.title)}</div><div class="muted ln-meta">${esc(c.level)} · ${c.minutes} min · ${c.lessons.length} lecciones${c.required ? ' · <b class="ln-ob">Obligatorio</b>' : ''}</div>
+        <div class="ln-thumb" style="background-image:url('https://i.ytimg.com/vi/${esc(c.lessons[0].yt)}/mqdefault.jpg')"><span>${c.icon}</span><em>${c.lessons.length} ${c.lessons.length === 1 ? 'video' : 'videos'}</em></div>
+        <div class="ln-ct"><div class="ln-tt">${esc(c.title)}${c.required ? ' <b class="ln-ob">· Obligatorio</b>' : ''}</div>
         <div class="ln-sum">${esc(c.summary)}</div>
-        <div class="row" style="gap:8px;margin-top:8px;align-items:center"><div class="ln-bar"><i style="width:${p.status === 'aprobado' ? 100 : pct}%"></i></div>${lnStatusTag(p)}</div></div>
-      </button>`; }).join('')}</div>
-    <h2 class="ln-h2">Cursos gratis de Mercado Libre</h2>
-    <div class="ln-off">${lnData.official.map(o => `<a class="card ln-offc" href="${esc(o.u)}" target="_blank" rel="noopener"><b>${esc(o.t)} ↗</b><div class="muted" style="font-size:13px;margin-top:4px">${esc(o.d)}</div></a>`).join('')}</div>`;
+        <div class="row" style="gap:8px;margin-top:8px;align-items:center"><div class="ln-bar"><i style="width:${pct}%"></i></div>${lnStatusTag(c)}</div></div>
+      </button>`; }).join('')}</div>`;
 }
 function renderLearnCourse() {
   const c = lnData.courses.find(x => x.id === lnState.course); if (!c) { lnState.course = null; return renderLearn(); }
-  const n = c.lessons.length, step = lnState.step, isQuiz = step >= n;
-  const nav = c.lessons.map((l, i) => `<button class="ln-step${i === step ? ' on' : ''}${c.progress.lessons.includes(i) ? ' done' : ''}" data-lnstep="${i}"><span>${c.progress.lessons.includes(i) ? '✓' : i + 1}</span>${esc(l.title)}</button>`).join('')
-    + `<button class="ln-step${isQuiz ? ' on' : ''}${c.progress.status === 'aprobado' ? ' done' : ''}" data-lnstep="${n}"><span>${c.progress.status === 'aprobado' ? '✓' : '?'}</span>Prueba final</button>`;
-  let main;
-  if (!isQuiz) {
-    const l = c.lessons[step];
-    main = `<div class="muted" style="font-size:12.5px">Lección ${step + 1} de ${n}</div><h2 style="margin:4px 0 10px">${esc(l.title)}</h2><div class="ln-text">${lnMd(l.body)}</div>
-      <div class="row" style="justify-content:space-between;margin-top:18px;gap:8px">${step > 0 ? `<button class="btn" data-lnstep="${step - 1}">← Anterior</button>` : '<span></span>'}<button class="btn primary" data-lnnext="${step}">${step + 1 < n ? 'Entendido, siguiente →' : 'Entendido, ir a la prueba →'}</button></div>`;
-  } else {
-    const res = lnState.result;
-    main = `<h2 style="margin:0 0 4px">Prueba final</h2><div class="muted" style="font-size:13px;margin-bottom:12px">${c.quiz.length} preguntas · se aprueba con ${lnData.pass}%${c.progress.tries ? ` · mejor nota: ${c.progress.best}%` : ''}</div>
-      ${res ? `<div class="ln-res ${res.passed ? 'ok' : 'no'}"><b>${res.passed ? '¡Aprobaste!' : 'Todavía no'}</b> Sacaste ${res.score}% (${res.ok} de ${res.total}).${res.passed ? '' : ' Repasá las lecciones y volvé a intentar.'}</div>` : ''}
-      ${c.quiz.map((q, i) => { const d = res && res.detail[i]; return `<div class="ln-q${d ? (d.ok ? ' ok' : ' no') : ''}"><div class="ln-qt">${i + 1}. ${esc(q.q)}</div>${q.o.map((o, k) => `<label class="ln-opt${d && k === d.right ? ' right' : d && k === lnState.answers[i] ? ' wrong' : ''}"><input type="radio" name="lnq${i}" value="${k}" data-lnq="${i}" ${lnState.answers[i] === k ? 'checked' : ''} ${res ? 'disabled' : ''}> ${esc(o)}</label>`).join('')}${d && !d.ok ? `<div class="ln-why">${esc(d.why)}</div>` : ''}</div>`; }).join('')}
-      <div class="row" style="justify-content:flex-end;margin-top:12px;gap:8px">${res ? `<button class="btn" data-lnretry>Volver a intentar</button><button class="btn primary" data-lnback>Ver todos los cursos</button>` : `<button class="btn primary" data-lnsend>Enviar respuestas</button>`}</div>`;
-  }
-  $('lnBody').innerHTML = `<div class="row" style="margin-bottom:10px;gap:8px;align-items:center"><button class="btn small" data-lnback>← Cursos</button><b style="font-size:17px">${c.icon} ${esc(c.title)}</b></div>
-    <div class="ln-course"><div class="ln-side card">${nav}${c.links && c.links.length ? `<div class="ln-more"><div class="muted" style="font-size:12px;margin-bottom:4px">Para profundizar (gratis)</div>${c.links.map(o => `<a href="${esc(o.u)}" target="_blank" rel="noopener">${esc(o.t)} ↗</a>`).join('')}</div>` : ''}</div><div class="card ln-main">${main}</div></div>`;
+  const i = Math.min(lnState.step, c.lessons.length - 1), v = c.lessons[i], seen = c.progress.lessons.includes(i), last = i + 1 >= c.lessons.length;
+  $('lnBody').innerHTML = `<div class="row" style="margin-bottom:10px;gap:8px;align-items:center"><button class="btn small" data-lnback>← Cursos</button><b style="font-size:17px">${c.icon} ${esc(c.title)}</b><span class="muted" style="font-size:13px">${c.progress.lessons.length} de ${c.lessons.length} vistos</span></div>
+    <div class="ln-course">
+      <div class="card ln-main">
+        <div class="ln-video"><iframe src="https://www.youtube-nocookie.com/embed/${esc(v.yt)}?rel=0&modestbranding=1" title="${esc(v.title)}" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen loading="lazy"></iframe></div>
+        <div class="row" style="justify-content:space-between;align-items:center;gap:10px;margin-top:12px;flex-wrap:wrap">
+          <div><div class="muted" style="font-size:12.5px">Video ${i + 1} de ${c.lessons.length}</div><b style="font-size:16px">${esc(v.title)}</b></div>
+          <div class="row" style="gap:8px">${i > 0 ? `<button class="btn" data-lnstep="${i - 1}">← Anterior</button>` : ''}
+          ${seen ? `<button class="btn" data-lnunsee="${i}">✓ Visto</button>${last ? '' : `<button class="btn primary" data-lnstep="${i + 1}">Siguiente →</button>`}` : `<button class="btn primary" data-lnsee="${i}">${last ? 'Ya lo vi ✓' : 'Ya lo vi, siguiente →'}</button>`}</div>
+        </div>
+        ${c.progress.status === 'completo' ? '<div class="ln-res ok" style="margin-top:12px"><b>¡Curso completo!</b> Viste todos los videos.</div>' : ''}
+      </div>
+      <div class="ln-side card">${c.lessons.map((l, k) => `<button class="ln-step${k === i ? ' on' : ''}${c.progress.lessons.includes(k) ? ' done' : ''}" data-lnstep="${k}"><span>${c.progress.lessons.includes(k) ? '✓' : k + 1}</span><img src="https://i.ytimg.com/vi/${esc(l.yt)}/default.jpg" alt="" loading="lazy"><em>${esc(l.title)}</em></button>`).join('')}</div>
+    </div>`;
 }
 async function renderLearnTeam() {
   $('lnBody').innerHTML = '<div class="card muted">Cargando…</div>';
   const r = await (await fetch('/api/learn/team')).json().catch(() => ({ ok: false }));
   if (!r.ok) { $('lnBody').innerHTML = '<div class="card err-t">No se pudo cargar el avance.</div>'; return; }
-  lnTeam = r;
-  const cell = (p, c) => { const x = p.rows[c.id]; const st = x.status === 'aprobado' ? `<span class="ln-st ok">✓ ${x.best}%</span>` : x.status === 'en curso' ? `<span class="ln-st mid">${x.lessons}/${c.lessons}${x.tries ? ` · ${x.best}%` : ''}</span>` : '<span class="muted">—</span>';
+  const cell = (p, c) => { const x = p.rows[c.id]; const st = x.status === 'completo' ? '<span class="ln-st ok">✓ Completo</span>' : x.status === 'en curso' ? `<span class="ln-st mid">${x.seen}/${c.lessons}</span>` : '<span class="muted">—</span>';
     return `<td style="text-align:center">${st}<div><button class="ln-reqb${x.required ? ' on' : ''}" data-lnreq="${esc(p.id)}|${esc(c.id)}" title="${x.required ? 'Es obligatorio. Tocá para sacarlo.' : 'Marcar como obligatorio'}">${x.required ? 'Obligatorio' : '+ obligatorio'}</button></div></td>`; };
-  $('lnBody').innerHTML = `<div class="card"><div class="muted" style="font-size:13px;margin-bottom:8px">Quién hizo cada curso y con qué nota. Marcá los cursos obligatorios de cada persona: le aparecen arriba y con aviso en el menú.</div>
-    <div style="overflow:auto"><table class="sales-table ln-team"><thead><tr><th style="text-align:left">Persona</th>${r.courses.map(c => `<th title="${esc(c.title)}">${c.icon}<div style="font-size:11px;font-weight:500;max-width:90px;margin:auto">${esc(c.short || c.title)}</div></th>`).join('')}</tr></thead>
-    <tbody>${r.people.map(p => `<tr><td style="white-space:nowrap"><b>${esc(p.name)}</b><div class="muted" style="font-size:12px">${p.passed} de ${p.total} aprobados${p.required_pending ? ` · <span class="err-t">${p.required_pending} obligatorios pendientes</span>` : ''}</div></td>${r.courses.map(c => cell(p, c)).join('')}</tr>`).join('')}</tbody></table></div></div>`;
+  $('lnBody').innerHTML = `<div class="card"><div class="muted" style="font-size:13px;margin-bottom:8px">Qué videos vio cada persona. Marcá los cursos obligatorios de cada uno: le aparecen arriba y con aviso en el menú.</div>
+    <div style="overflow:auto"><table class="sales-table ln-team"><thead><tr><th style="text-align:left">Persona</th>${r.courses.map(c => `<th title="${esc(c.title)}">${c.icon}<div>${esc(c.title.replace(/^Curso: /, '').replace(/ \(.*\)$/, ''))}</div></th>`).join('')}</tr></thead>
+    <tbody>${r.people.map(p => `<tr><td style="white-space:nowrap"><b>${esc(p.name)}</b><div class="muted" style="font-size:12px">${p.done} de ${p.total} completos${p.required_pending ? ` · <span class="err-t">${p.required_pending} obligatorios pendientes</span>` : ''}</div></td>${r.courses.map(c => cell(p, c)).join('')}</tr>`).join('')}</tbody></table></div></div>`;
 }
 $('lnTabs').onclick = (e) => { const b = e.target.closest('[data-t]'); if (!b) return; lnState.tab = b.dataset.t; lnState.course = null; if (b.dataset.t === 'mine') loadLearn(); else renderLearn(); };
 $('lnBody').onclick = async (e) => {
   const t = e.target;
   const open = t.closest('[data-lnopen]');
-  if (open) { e.preventDefault(); const c = lnData.courses.find(x => x.id === open.dataset.lnopen); lnState.course = c.id; lnState.step = c.progress.status === 'aprobado' ? 0 : Math.min(c.lessons.findIndex((_, i) => !c.progress.lessons.includes(i)) === -1 ? c.lessons.length : c.lessons.findIndex((_, i) => !c.progress.lessons.includes(i)), c.lessons.length); lnState.answers = []; lnState.result = null; renderLearn(); window.scrollTo(0, 0); return; }
-  if (t.closest('[data-lnback]')) { lnState.course = null; lnState.result = null; renderLearn(); window.scrollTo(0, 0); return; }
+  if (open) { e.preventDefault(); const c = lnData.courses.find(x => x.id === open.dataset.lnopen); const nx = c.lessons.findIndex((_, i) => !c.progress.lessons.includes(i)); lnState.course = c.id; lnState.step = nx === -1 ? 0 : nx; renderLearn(); window.scrollTo(0, 0); return; }
+  if (t.closest('[data-lnback]')) { lnState.course = null; renderLearn(); window.scrollTo(0, 0); return; }
   const st = t.closest('[data-lnstep]');
-  if (st) { lnState.step = Number(st.dataset.lnstep); lnState.result = null; lnState.answers = []; renderLearnCourse(); return; }
-  const nx = t.closest('[data-lnnext]');
-  if (nx) {
-    const i = Number(nx.dataset.lnnext), c = lnData.courses.find(x => x.id === lnState.course);
-    const r = await lsPost('/api/learn/lesson', { course: c.id, lesson: i });
-    if (r.ok) c.progress.lessons = r.lessons;
-    if (c.progress.status === 'nuevo') c.progress.status = 'en curso';
-    lnState.step = i + 1; lnState.answers = []; lnState.result = null; renderLearnCourse(); window.scrollTo(0, 0); return;
-  }
-  if (t.closest('[data-lnretry]')) { lnState.answers = []; lnState.result = null; renderLearnCourse(); return; }
-  if (t.closest('[data-lnsend]')) {
-    const c = lnData.courses.find(x => x.id === lnState.course);
-    if (c.quiz.some((_, i) => lnState.answers[i] === undefined)) { alert('Respondé todas las preguntas.'); return; }
-    const r = await lsPost('/api/learn/quiz', { course: c.id, answers: c.quiz.map((_, i) => lnState.answers[i]) });
-    if (!r.ok) { alert(r.error || 'No se pudo enviar.'); return; }
-    lnState.result = r; c.progress.tries++; c.progress.score = r.score; c.progress.best = Math.max(c.progress.best || 0, r.score);
-    if (r.passed) { c.progress.status = 'aprobado'; c.progress.passed_at = c.progress.passed_at || new Date().toISOString(); } else if (c.progress.status === 'nuevo') c.progress.status = 'en curso';
-    const pend = lnData.courses.filter(x => x.required && x.progress.status !== 'aprobado').length; if ($('lnBadge')) { $('lnBadge').hidden = !pend; $('lnBadge').textContent = pend || ''; }
+  if (st) { lnState.step = Number(st.dataset.lnstep); renderLearnCourse(); return; }
+  const see = t.closest('[data-lnsee],[data-lnunsee]');
+  if (see) {
+    const off = see.hasAttribute('data-lnunsee'), i = Number(off ? see.dataset.lnunsee : see.dataset.lnsee), c = lnData.courses.find(x => x.id === lnState.course);
+    const r = await lsPost('/api/learn/lesson', { course: c.id, lesson: i, off });
+    if (!r.ok) { alert(r.error || 'No se pudo guardar.'); return; }
+    c.progress.lessons = r.lessons; c.progress.status = r.status; lnBadge();
+    if (!off && i + 1 < c.lessons.length) lnState.step = i + 1;
     renderLearnCourse(); return;
   }
   const rq = t.closest('[data-lnreq]');
-  if (rq) { const [user, course] = rq.dataset.lnreq.split('|'); const on = !rq.classList.contains('on'); const r = await lsPost('/api/learn/required', { user, course, on }); if (r.ok) renderLearnTeam(); else alert(r.error || 'No se pudo guardar.'); }
+  if (rq) { const [user, course] = rq.dataset.lnreq.split('|'); const r = await lsPost('/api/learn/required', { user, course, on: !rq.classList.contains('on') }); if (r.ok) renderLearnTeam(); else alert(r.error || 'No se pudo guardar.'); }
 };
-$('lnBody').onchange = (e) => { const q = e.target.closest('[data-lnq]'); if (q) lnState.answers[Number(q.dataset.lnq)] = Number(q.value); };
 window.addEventListener('hashchange', showView);
 // Los gráficos se dibujan al ancho real: al cambiar el tamaño de la ventana se vuelven a dibujar.
 let reTimer = null;

@@ -322,8 +322,7 @@ app.post('/api/webcat/social/push', wcWrap(() => require('./lib/social').push({ 
 app.post('/api/webcat/suggest', wcWrap(async req => ({ suggestions: await webcat.suggest((req.body || {}).ids) })));
 // Aprender: cursos del equipo
 app.get('/api/learn', (req, res) => res.json({ ok: true, owner: !!req.user.owner, ...require('./lib/learn').list(req.user) }));
-app.post('/api/learn/lesson', (req, res) => { try { res.json({ ok: true, ...require('./lib/learn').lesson(req.user, (req.body || {}).course, (req.body || {}).lesson) }); } catch (e) { res.status(400).json({ ok: false, error: e.message }); } });
-app.post('/api/learn/quiz', (req, res) => { try { res.json({ ok: true, ...require('./lib/learn').quiz(req.user, (req.body || {}).course, (req.body || {}).answers) }); } catch (e) { res.status(400).json({ ok: false, error: e.message }); } });
+app.post('/api/learn/lesson', (req, res) => { try { res.json({ ok: true, ...require('./lib/learn').lesson(req.user, (req.body || {}).course, (req.body || {}).lesson, (req.body || {}).off) }); } catch (e) { res.status(400).json({ ok: false, error: e.message }); } });
 app.get('/api/learn/team', (req, res) => res.json({ ok: true, ...require('./lib/learn').team() }));
 app.post('/api/learn/required', (req, res) => { try { const b = req.body || {}; res.json({ ok: true, required: require('./lib/learn').setRequired(b.user, b.course, !!b.on) }); } catch (e) { res.status(400).json({ ok: false, error: e.message }); } });
 app.get('/api/activity', (req, res) => res.json({ ok: true, ...activity.report(req.query.days, req.query.who) }));
