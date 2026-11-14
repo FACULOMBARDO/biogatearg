@@ -45,7 +45,6 @@
   <a href="#calculadora" class="nav" data-view="calculadora"><span class="ic">🧮</span><span>Calculadora</span></a>
   <a href="#etiquetas" class="nav" data-view="etiquetas"><span class="ic">🏷️</span><span>Etiquetas de producto</span></a>
   <a href="#manuales" class="nav" data-view="manuales"><span class="ic">📘</span><span>Manuales</span></a>
-  <a href="#aprender" class="nav" data-view="aprender"><span class="ic">🎓</span><span>Aprender</span><span class="nav-badge" id="lnBadge" hidden></span></a>
   <a href="#gastos" class="nav" data-view="gastos"><span class="ic">🏪</span><span>Gastos del local</span></a>
   <a href="#estados" class="nav" data-view="estados"><span class="ic">📱</span><span>Estados de WhatsApp</span></a>
   <a href="#sugerencias" class="nav" data-view="sugerencias"><span class="ic">💡</span><span>Sugerencias</span></a>
@@ -589,14 +588,6 @@
     <thead><tr><th style="width:30px"><input type="checkbox" id="wbAll" title="Seleccionar todos los que se ven"></th><th>Pedido</th><th>Cliente</th><th>Productos</th><th>Pago / envío</th><th style="text-align:right">Total</th><th style="text-align:right">Impuestos</th><th style="text-align:right">Comisión</th><th style="text-align:right">Mercadería</th><th style="text-align:right" class="col-net">Neto después de costos</th></tr></thead>
     <tbody id="wbRows"></tbody>
   </table></div></div>
-</section>
-
-<section id="viewLearn" hidden>
-  <div class="row" style="justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px">
-    <div><h1 class="page-title" style="margin-bottom:2px">Aprender</h1><div class="muted" style="font-size:13.5px">Videos oficiales de Mercado Libre para vendedores, ordenados por tema</div></div>
-    <div class="seg" id="lnTabs" hidden><button data-t="mine" class="on">Mis cursos</button><button data-t="team">Avance del equipo</button></div>
-  </div>
-  <div id="lnBody"><div class="card muted">Cargando…</div></div>
 </section>
 
 <section id="viewManuals" hidden>
@@ -3028,7 +3019,6 @@ async function loadMe() {
   try { ME = await (await fetch('/api/me')).json(); } catch { ME = null; }
   if (!ME || !ME.ok) { ME = null; return; }
   document.querySelectorAll('.side .nav').forEach(a => { a.hidden = !ME.perms.includes(a.dataset.view); });
-  if ($('lnBadge')) { $('lnBadge').hidden = !ME.learn_pending; $('lnBadge').textContent = ME.learn_pending || ''; }
   $('meBtn').hidden = false; $('meBtn').textContent = ME.owner ? '🔒 Mi contraseña' : '👤 ' + ME.name;
   if (!ME.owner) {
     $('settingsBtn').hidden = true;
@@ -3462,12 +3452,12 @@ $('wcCatList').addEventListener('click', async (e) => {
 });
 
 function showView() {
-  let v = ({ '#ventas': 'ventas', '#ranking': 'ranking', '#precios': 'precios', '#presupuestos': 'presupuestos', '#estados': 'estados', '#gastos': 'gastos', '#full': 'full', '#flex': 'flex', '#resultado': 'resultado', '#tareas': 'tareas', '#recompras': 'recompras', '#preguntas': 'preguntas', '#stock': 'stock', '#sugerencias': 'sugerencias', '#web': 'web', '#horarios': 'horarios', '#manuales': 'manuales', '#calculadora': 'calculadora', '#etiquetas': 'etiquetas', '#impresion': 'impresion', '#reclamos': 'reclamos', '#publicaciones': 'publicaciones', '#publicar': 'publicar', '#webcat': 'webcat', '#competencia': 'competencia', '#embudo': 'embudo', '#salud': 'salud', '#sueldos': 'sueldos', '#usuarios': 'usuarios', '#actividad': 'actividad', '#tuyo': 'tuyo', '#aprender': 'aprender' })[location.hash] || 'ventas';
+  let v = ({ '#ventas': 'ventas', '#ranking': 'ranking', '#precios': 'precios', '#presupuestos': 'presupuestos', '#estados': 'estados', '#gastos': 'gastos', '#full': 'full', '#flex': 'flex', '#resultado': 'resultado', '#tareas': 'tareas', '#recompras': 'recompras', '#preguntas': 'preguntas', '#stock': 'stock', '#sugerencias': 'sugerencias', '#web': 'web', '#horarios': 'horarios', '#manuales': 'manuales', '#calculadora': 'calculadora', '#etiquetas': 'etiquetas', '#impresion': 'impresion', '#reclamos': 'reclamos', '#publicaciones': 'publicaciones', '#publicar': 'publicar', '#webcat': 'webcat', '#competencia': 'competencia', '#embudo': 'embudo', '#salud': 'salud', '#sueldos': 'sueldos', '#usuarios': 'usuarios', '#actividad': 'actividad', '#tuyo': 'tuyo' })[location.hash] || 'ventas';
   if (ME && !ME.perms.includes(v)) { const first = ME.perms.find(k => document.querySelector(`.side .nav[data-view="${k}"]`)); if (first && v !== first) { location.hash = '#' + (document.querySelector(`.side .nav[data-view="${first}"]`).getAttribute('href') || '').replace('#', ''); return; } }
   $('viewQuotes').hidden = v !== 'presupuestos';
   $('viewStatus').hidden = v !== 'estados';
   $('viewExpenses').hidden = v !== 'gastos'; $('viewFull').hidden = v !== 'full';
-  $('viewResults').hidden = v !== 'resultado'; $('viewStock').hidden = v !== 'stock'; $('viewSuggest').hidden = v !== 'sugerencias'; $('viewWeb').hidden = v !== 'web'; $('viewHours').hidden = v !== 'horarios'; $('viewManuals').hidden = v !== 'manuales'; $('viewCalc').hidden = v !== 'calculadora'; $('viewPLabel').hidden = v !== 'etiquetas'; $('viewShipLabels').hidden = v !== 'impresion'; $('viewClaims').hidden = v !== 'reclamos'; $('viewListings').hidden = v !== 'publicaciones'; $('viewPublish').hidden = v !== 'publicar'; $('viewWebcat').hidden = v !== 'webcat'; $('viewComp').hidden = v !== 'competencia'; $('viewFunnel').hidden = v !== 'embudo'; $('viewHealth').hidden = v !== 'salud'; $('viewPayroll').hidden = v !== 'sueldos'; $('viewUsers').hidden = v !== 'usuarios'; $('viewActivity').hidden = v !== 'actividad'; $('viewTuyo').hidden = v !== 'tuyo'; $('viewLearn').hidden = v !== 'aprender';
+  $('viewResults').hidden = v !== 'resultado'; $('viewStock').hidden = v !== 'stock'; $('viewSuggest').hidden = v !== 'sugerencias'; $('viewWeb').hidden = v !== 'web'; $('viewHours').hidden = v !== 'horarios'; $('viewManuals').hidden = v !== 'manuales'; $('viewCalc').hidden = v !== 'calculadora'; $('viewPLabel').hidden = v !== 'etiquetas'; $('viewShipLabels').hidden = v !== 'impresion'; $('viewClaims').hidden = v !== 'reclamos'; $('viewListings').hidden = v !== 'publicaciones'; $('viewPublish').hidden = v !== 'publicar'; $('viewWebcat').hidden = v !== 'webcat'; $('viewComp').hidden = v !== 'competencia'; $('viewFunnel').hidden = v !== 'embudo'; $('viewHealth').hidden = v !== 'salud'; $('viewPayroll').hidden = v !== 'sueldos'; $('viewUsers').hidden = v !== 'usuarios'; $('viewActivity').hidden = v !== 'actividad'; $('viewTuyo').hidden = v !== 'tuyo';
   $('viewFlex').hidden = v !== 'flex'; $('viewSales').hidden = v !== 'ventas'; $('viewTasks').hidden = v !== 'tareas'; $('viewRefill').hidden = v !== 'recompras'; $('viewQuestions').hidden = v !== 'preguntas';
   $('viewRanking').hidden = v !== 'ranking'; $('viewPrices').hidden = v !== 'precios';
   document.querySelectorAll('.side .nav').forEach(a => a.classList.toggle('active', a.dataset.view === v));
@@ -3498,92 +3488,11 @@ function showView() {
   if (v === 'actividad') loadActivity();
   if (v === 'salud') loadHealth(false);
   if (v === 'tuyo') loadTuyo();
-  if (v === 'aprender') loadLearn();
   if (v === 'tareas') loadTasks();
   if (v === 'recompras') loadRefill();
   if (v === 'preguntas') { loadQuestions(true); loadQStats(); loadQCron(); }
   if (v === 'flex' && typeof scans !== 'undefined') load();
 }
-// ---------- Aprender: videos oficiales de Mercado Libre ----------
-let lnData = null, lnState = { tab: 'mine', course: null, step: 0 };
-async function loadLearn() {
-  const r = await (await fetch('/api/learn')).json().catch(() => ({ ok: false }));
-  if (!r.ok) { $('lnBody').innerHTML = '<div class="card err-t">No se pudieron cargar los cursos.</div>'; return; }
-  lnData = r; $('lnTabs').hidden = !r.owner; lnBadge(); renderLearn();
-}
-function lnBadge() { const pend = lnData.courses.filter(c => c.required && c.progress.status !== 'completo').length; if ($('lnBadge')) { $('lnBadge').hidden = !pend; $('lnBadge').textContent = pend || ''; } }
-function lnStatusTag(c) {
-  const p = c.progress, n = p.lessons.length, t = c.lessons.length;
-  if (p.status === 'completo') return '<span class="ln-st ok">Completo</span>';
-  if (p.status === 'en curso') return `<span class="ln-st mid">${n} de ${t} vistos</span>`;
-  return '<span class="ln-st">Nuevo</span>';
-}
-function renderLearn() {
-  if (!lnData) return;
-  $('lnTabs').querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.t === lnState.tab));
-  if (lnState.tab === 'team') return renderLearnTeam();
-  if (lnState.course) return renderLearnCourse();
-  const cs = lnData.courses, done = cs.filter(c => c.progress.status === 'completo').length;
-  const req = cs.filter(c => c.required && c.progress.status !== 'completo');
-  const total = cs.reduce((a, c) => a + c.lessons.length, 0), seen = cs.reduce((a, c) => a + c.progress.lessons.length, 0);
-  $('lnBody').innerHTML = `
-    <div class="card ln-hero"><div><b style="font-size:16px">${done} de ${cs.length} cursos completos · ${seen} de ${total} videos vistos</b><div class="muted" style="font-size:13px">Videos oficiales de Mercado Libre, de su canal <a href="${esc(lnData.channel)}" target="_blank" rel="noopener">Vendedores Mercado Libre ↗</a>. Se miran acá mismo.</div></div><div class="ln-bar big"><i style="width:${Math.round(seen / total * 100)}%"></i></div></div>
-    ${req.length ? `<div class="card ln-req"><b>Cursos obligatorios pendientes:</b> ${req.map(c => `<a href="#" data-lnopen="${esc(c.id)}">${esc(c.title)}</a>`).join(' · ')}</div>` : ''}
-    <div class="ln-grid">${cs.map(c => { const p = c.progress, pct = Math.round(p.lessons.length / c.lessons.length * 100); return `
-      <button class="ln-card" data-lnopen="${esc(c.id)}">
-        <div class="ln-thumb" style="background-image:url('https://i.ytimg.com/vi/${esc(c.lessons[0].yt)}/mqdefault.jpg')"><span>${c.icon}</span><em>${c.lessons.length} ${c.lessons.length === 1 ? 'video' : 'videos'}</em></div>
-        <div class="ln-ct"><div class="ln-tt">${esc(c.title)}${c.required ? ' <b class="ln-ob">· Obligatorio</b>' : ''}</div>
-        <div class="ln-sum">${esc(c.summary)}</div>
-        <div class="row" style="gap:8px;margin-top:8px;align-items:center"><div class="ln-bar"><i style="width:${pct}%"></i></div>${lnStatusTag(c)}</div></div>
-      </button>`; }).join('')}</div>`;
-}
-function renderLearnCourse() {
-  const c = lnData.courses.find(x => x.id === lnState.course); if (!c) { lnState.course = null; return renderLearn(); }
-  const i = Math.min(lnState.step, c.lessons.length - 1), v = c.lessons[i], seen = c.progress.lessons.includes(i), last = i + 1 >= c.lessons.length;
-  $('lnBody').innerHTML = `<div class="row" style="margin-bottom:10px;gap:8px;align-items:center"><button class="btn small" data-lnback>← Cursos</button><b style="font-size:17px">${c.icon} ${esc(c.title)}</b><span class="muted" style="font-size:13px">${c.progress.lessons.length} de ${c.lessons.length} vistos</span></div>
-    <div class="ln-course">
-      <div class="card ln-main">
-        <div class="ln-video"><iframe src="https://www.youtube-nocookie.com/embed/${esc(v.yt)}?rel=0&modestbranding=1" title="${esc(v.title)}" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen loading="lazy"></iframe></div>
-        <div class="row" style="justify-content:space-between;align-items:center;gap:10px;margin-top:12px;flex-wrap:wrap">
-          <div><div class="muted" style="font-size:12.5px">Video ${i + 1} de ${c.lessons.length}</div><b style="font-size:16px">${esc(v.title)}</b></div>
-          <div class="row" style="gap:8px">${i > 0 ? `<button class="btn" data-lnstep="${i - 1}">← Anterior</button>` : ''}
-          ${seen ? `<button class="btn" data-lnunsee="${i}">✓ Visto</button>${last ? '' : `<button class="btn primary" data-lnstep="${i + 1}">Siguiente →</button>`}` : `<button class="btn primary" data-lnsee="${i}">${last ? 'Ya lo vi ✓' : 'Ya lo vi, siguiente →'}</button>`}</div>
-        </div>
-        ${c.progress.status === 'completo' ? '<div class="ln-res ok" style="margin-top:12px"><b>¡Curso completo!</b> Viste todos los videos.</div>' : ''}
-      </div>
-      <div class="ln-side card">${c.lessons.map((l, k) => `<button class="ln-step${k === i ? ' on' : ''}${c.progress.lessons.includes(k) ? ' done' : ''}" data-lnstep="${k}"><span>${c.progress.lessons.includes(k) ? '✓' : k + 1}</span><img src="https://i.ytimg.com/vi/${esc(l.yt)}/default.jpg" alt="" loading="lazy"><em>${esc(l.title)}</em></button>`).join('')}</div>
-    </div>`;
-}
-async function renderLearnTeam() {
-  $('lnBody').innerHTML = '<div class="card muted">Cargando…</div>';
-  const r = await (await fetch('/api/learn/team')).json().catch(() => ({ ok: false }));
-  if (!r.ok) { $('lnBody').innerHTML = '<div class="card err-t">No se pudo cargar el avance.</div>'; return; }
-  const cell = (p, c) => { const x = p.rows[c.id]; const st = x.status === 'completo' ? '<span class="ln-st ok">✓ Completo</span>' : x.status === 'en curso' ? `<span class="ln-st mid">${x.seen}/${c.lessons}</span>` : '<span class="muted">—</span>';
-    return `<td style="text-align:center">${st}<div><button class="ln-reqb${x.required ? ' on' : ''}" data-lnreq="${esc(p.id)}|${esc(c.id)}" title="${x.required ? 'Es obligatorio. Tocá para sacarlo.' : 'Marcar como obligatorio'}">${x.required ? 'Obligatorio' : '+ obligatorio'}</button></div></td>`; };
-  $('lnBody').innerHTML = `<div class="card"><div class="muted" style="font-size:13px;margin-bottom:8px">Qué videos vio cada persona. Marcá los cursos obligatorios de cada uno: le aparecen arriba y con aviso en el menú.</div>
-    <div style="overflow:auto"><table class="sales-table ln-team"><thead><tr><th style="text-align:left">Persona</th>${r.courses.map(c => `<th title="${esc(c.title)}">${c.icon}<div>${esc(c.title.replace(/^Curso: /, '').replace(/ \(.*\)$/, ''))}</div></th>`).join('')}</tr></thead>
-    <tbody>${r.people.map(p => `<tr><td style="white-space:nowrap"><b>${esc(p.name)}</b><div class="muted" style="font-size:12px">${p.done} de ${p.total} completos${p.required_pending ? ` · <span class="err-t">${p.required_pending} obligatorios pendientes</span>` : ''}</div></td>${r.courses.map(c => cell(p, c)).join('')}</tr>`).join('')}</tbody></table></div></div>`;
-}
-$('lnTabs').onclick = (e) => { const b = e.target.closest('[data-t]'); if (!b) return; lnState.tab = b.dataset.t; lnState.course = null; if (b.dataset.t === 'mine') loadLearn(); else renderLearn(); };
-$('lnBody').onclick = async (e) => {
-  const t = e.target;
-  const open = t.closest('[data-lnopen]');
-  if (open) { e.preventDefault(); const c = lnData.courses.find(x => x.id === open.dataset.lnopen); const nx = c.lessons.findIndex((_, i) => !c.progress.lessons.includes(i)); lnState.course = c.id; lnState.step = nx === -1 ? 0 : nx; renderLearn(); window.scrollTo(0, 0); return; }
-  if (t.closest('[data-lnback]')) { lnState.course = null; renderLearn(); window.scrollTo(0, 0); return; }
-  const st = t.closest('[data-lnstep]');
-  if (st) { lnState.step = Number(st.dataset.lnstep); renderLearnCourse(); return; }
-  const see = t.closest('[data-lnsee],[data-lnunsee]');
-  if (see) {
-    const off = see.hasAttribute('data-lnunsee'), i = Number(off ? see.dataset.lnunsee : see.dataset.lnsee), c = lnData.courses.find(x => x.id === lnState.course);
-    const r = await lsPost('/api/learn/lesson', { course: c.id, lesson: i, off });
-    if (!r.ok) { alert(r.error || 'No se pudo guardar.'); return; }
-    c.progress.lessons = r.lessons; c.progress.status = r.status; lnBadge();
-    if (!off && i + 1 < c.lessons.length) lnState.step = i + 1;
-    renderLearnCourse(); return;
-  }
-  const rq = t.closest('[data-lnreq]');
-  if (rq) { const [user, course] = rq.dataset.lnreq.split('|'); const r = await lsPost('/api/learn/required', { user, course, on: !rq.classList.contains('on') }); if (r.ok) renderLearnTeam(); else alert(r.error || 'No se pudo guardar.'); }
-};
 window.addEventListener('hashchange', showView);
 // Los gráficos se dibujan al ancho real: al cambiar el tamaño de la ventana se vuelven a dibujar.
 let reTimer = null;
