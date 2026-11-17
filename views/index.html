@@ -2778,7 +2778,11 @@ $('pbGo').onclick = () => {
     if (gtin && !(gtin.length >= 8 && gtin.length <= 14)) return err('El código universal tiene que tener entre 8 y 14 números.');
     if (pb.catGtin && !gtin && !noGtin) return err('Mercado Libre pide el <b>código universal</b> (EAN/UPC) para esta categoría. Cargalo o tildá "El producto no tiene código universal".');
     const pkg = { h: Number($('pbPkH').value), w: Number($('pbPkW').value), l: Number($('pbPkL').value), g: Number($('pbPkG').value) };
-    if (pb.catPkg && !(pkg.h > 0 && pkg.w > 0 && pkg.l > 0 && pkg.g > 0)) return err('Mercado Libre pide las <b>medidas y el peso del paquete</b> (alto, ancho, largo en cm y peso en gramos).');
+    if (!(pkg.h > 0 && pkg.w > 0 && pkg.l > 0 && pkg.g > 0)) return err('Mercado Libre pide las <b>medidas y el peso del paquete</b> (alto, ancho, largo en cm y peso en gramos).');
+    if (pkg.g < 20) return err(`El peso del paquete dice <b>${pkg.g} gramos</b>: es muy poco. Va en <b>gramos</b>, no en kilos (por ejemplo, medio kilo = 500).`);
+    if (pkg.g > 70000) return err(`El peso del paquete dice <b>${pkg.g} gramos</b> (${Math.round(pkg.g / 1000)} kg). Revisalo: va en gramos.`);
+    if ([pkg.h, pkg.w, pkg.l].some(x => x < 1)) return err('Las medidas del paquete van en <b>centímetros</b> y cada una tiene que ser de al menos 1 cm.');
+    if ([pkg.h, pkg.w, pkg.l].some(x => x > 200)) return err('Alguna medida del paquete pasa los 200 cm. Revisala: va en <b>centímetros</b>, no en milímetros.');
     const attrs = pbCollectAttrs();
     const missing = pb.catAttrs.filter(a => a.required).filter(a => !attrs.some(x => x.id === a.id));
     const days = del.value === 'days' ? Number($('pbDays').value) : 0;
