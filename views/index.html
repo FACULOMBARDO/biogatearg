@@ -1323,6 +1323,23 @@
   </div>
 </div>
 
+<div class="modal-bg" id="crModal">
+  <div class="modal" style="max-width:480px">
+    <h3 id="crTitle">Envío por Correo Argentino</h3>
+    <p class="muted" id="crSub" style="margin-top:-4px;font-size:13px"></p>
+    <div class="fld"><span>¿A dónde va?</span><div class="seg" id="crMode"><button data-v="sucursal">🏤 A sucursal</button><button data-v="domicilio">🏠 A domicilio</button></div></div>
+    <label class="fld" style="margin-top:10px"><span>Costo del envío ($)</span><input type="text" id="crCost" inputmode="decimal" placeholder="Ej.: 7500"></label>
+    <div class="fld" style="margin-top:10px"><span>¿Quién lo paga?</span><div class="seg" id="crPayer"><button data-v="nosotros">Lo pagamos nosotros</button><button data-v="cliente">Lo paga el cliente</button></div></div>
+    <p class="muted" style="font-size:12.5px;margin:6px 0 0">Si lo pagamos nosotros, el costo se descuenta del neto del pedido.</p>
+    <label class="fld" style="margin-top:10px"><span>Número de seguimiento (opcional)</span><input type="text" id="crTrack" maxlength="40" placeholder="Ej.: CP123456789AR"></label>
+    <div class="row" style="justify-content:space-between;margin-top:14px">
+      <button class="btn" id="crRemove" style="color:var(--err)">Quitar correo</button>
+      <div class="row"><button class="btn" id="crCancel">Cancelar</button><button class="btn primary" id="crSave">Guardar</button></div>
+    </div>
+    <div id="crMsg" style="font-size:13px;margin-top:6px"></div>
+  </div>
+</div>
+
 <!-- Mis publicaciones: detalle de una publicación -->
 <div class="modal-bg" id="lsModal">
   <div class="modal ls-modal">
@@ -6564,13 +6581,41 @@ function renderWeb() {
       <td style="max-width:200px"><b>${esc(o.customer) || '—'}</b><div class="muted" style="font-size:12px">${esc(o.city)}${o.state ? ', ' + esc(o.state) : ''}</div>${o.phone ? `<div style="font-size:12px"><a href="https://wa.me/${esc(o.phone.replace(/\D/g, '').replace(/^0?(\d{10})$/, '549$1'))}" target="_blank" rel="noopener">${esc(o.phone)}</a></div>` : ''}</td>
       <td style="max-width:280px;font-size:13px">${o.items.map(i => `${i.qty > 1 ? `<b>${i.qty}×</b> ` : ''}${i.sku ? `<b style="font-family:ui-monospace,Menlo,Consolas,monospace">${esc(i.sku)}</b> ` : ''}<span class="muted">${esc(i.name)}</span>`).join('<br>')}</td>
       <td style="font-size:12.5px;max-width:190px">${esc(o.payment)}<div class="muted">${esc(o.shipping_method)}</div>
-        <div style="margin-top:5px">${o.ship ? `🛵 ${shipBadge(o.ship)}<div><a href="#" data-wbship="${esc(o.id)}" style="font-size:12px">${esc(o.ship.city || 'editar')} · editar</a> <button class="btn small" data-label="W-${esc(o.id)}" title="Etiqueta 10x15 para el paquete">🏷️ Etiqueta</button></div>` : `<button class="btn small" data-wbship="${esc(o.id)}" title="Marcar que este pedido se entrega por mensajería">🛵 + Envío</button>`}</div></td>
+        <div style="margin-top:5px">${o.ship ? `🛵 ${shipBadge(o.ship)}<div><a href="#" data-wbship="${esc(o.id)}" style="font-size:12px">${esc(o.ship.city || 'editar')} · editar</a> <button class="btn small" data-label="W-${esc(o.id)}" title="Etiqueta 10x15 para el paquete">🏷️ Etiqueta</button></div>` : o.correo ? `<div class="wb-cr">📮 <b>Correo Argentino</b> · ${o.correo.mode === 'domicilio' ? 'a domicilio' : 'a sucursal'}<div><b class="price">${money(o.correo.cost)}</b> · <span style="color:${o.correo.payer === 'nosotros' ? 'var(--err)' : 'var(--ok)'}">${o.correo.payer === 'nosotros' ? 'lo pagamos nosotros' : 'lo paga el cliente'}</span></div>${o.correo.tracking ? `<div class="muted">Seguimiento: <b style="font-family:ui-monospace,Menlo,Consolas,monospace">${esc(o.correo.tracking)}</b></div>` : ''}<a href="#" data-wbcorreo="${esc(o.id)}" style="font-size:12px">editar</a></div>` : `<div class="row" style="gap:5px;flex-wrap:wrap"><button class="btn small" data-wbship="${esc(o.id)}" title="Marcar que este pedido se entrega por mensajería">🛵 + Moto</button><button class="btn small" data-wbcorreo="${esc(o.id)}" title="Marcar que este pedido se manda por Correo Argentino">📮 + Correo</button></div>`}</div></td>
       ${cell(o.gross)}${cell(o.tax, true)}${cell(o.fee, true)}${o.counted && o.net_after_cost === null ? `<td style="text-align:right"><span class="muted" style="font-size:12px">sin costo</span>${o.cost_missing.map(m => `<div><button class="btn small" data-cost-sku="${esc(m.key)}" data-cost-label="${esc(m.label)}" style="margin-top:3px" title="Cargar costo por unidad">cargar · ${esc(m.label.slice(0, 18))}</button></div>`).join('')}</td>` : cell(o.cost, true)}
       <td class="price col-net" style="text-align:right;font-size:15px">${!o.counted ? `<span class="muted">${o.panel_status === 'cancelled' ? 'cancelado' : 'no suma hasta marcarlo'}</span>` : o.net_after_cost === null ? `<span class="muted" style="font-size:12.5px">sin costo</span><div style="font-size:12px">${money(o.net)} antes de mercadería</div>` : `<span style="color:${o.net_after_cost < 0 ? 'var(--err)' : 'var(--ok)'}">${money(o.net_after_cost)}</span>`}</td>
     </tr>`;
   }).join('') || '<tr><td colspan="10" class="muted" style="padding:26px;text-align:center">No hay pedidos con este filtro.</td></tr>';
   wbBulkUi();
 }
+// ---------- Correo Argentino en pedidos web ----------
+let crCur = null;
+function crSeg(id, v) { $(id).querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.v === v)); }
+function crVal(id) { const b = $(id).querySelector('button.on'); return b ? b.dataset.v : ''; }
+function crOpen(o) {
+  crCur = o; const c = o.correo || {};
+  $('crTitle').textContent = `Correo Argentino · pedido web #${o.number}`;
+  $('crSub').textContent = `${o.customer || ''} · ${money(o.total)}${o.shipping_method ? ' · ' + o.shipping_method : ''}`;
+  crSeg('crMode', c.mode || ''); crSeg('crPayer', c.payer || '');
+  $('crCost').value = c.cost ? String(c.cost) : ''; $('crTrack').value = c.tracking || '';
+  $('crRemove').hidden = !o.correo; $('crMsg').textContent = '';
+  $('crModal').classList.add('show'); $('crCost').focus();
+}
+['crMode', 'crPayer'].forEach(id => { $(id).onclick = (e) => { const b = e.target.closest('[data-v]'); if (b) crSeg(id, b.dataset.v); }; });
+$('crCancel').onclick = () => $('crModal').classList.remove('show');
+async function crSend(body) {
+  const r = await fetch(`/api/woo/orders/${crCur.id}/correo`, { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
+  const d = await r.json().catch(() => ({}));
+  if (!d.ok) { $('crMsg').innerHTML = `<span class="err-t">${esc(d.error || 'No se pudo guardar.')}</span>`; return; }
+  $('crModal').classList.remove('show'); loadWeb();
+}
+$('crSave').onclick = () => {
+  if (!crVal('crMode')) { $('crMsg').innerHTML = '<span class="err-t">Elegí si va a sucursal o a domicilio.</span>'; return; }
+  if (!crVal('crPayer')) { $('crMsg').innerHTML = '<span class="err-t">Elegí quién paga el envío.</span>'; return; }
+  if (!$('crCost').value.trim()) { $('crMsg').innerHTML = '<span class="err-t">Poné el costo del envío.</span>'; return; }
+  crSend({ mode: crVal('crMode'), payer: crVal('crPayer'), cost: $('crCost').value, tracking: $('crTrack').value });
+};
+$('crRemove').onclick = () => { if (confirm('¿Quitar el envío por Correo Argentino de este pedido?')) crSend({ on: false }); };
 let wbPicked = new Set();
 function wbBulkUi() { $('wbBulk').hidden = !wbPicked.size; $('wbBulkN').innerHTML = `<b>${wbPicked.size}</b> seleccionado${wbPicked.size === 1 ? '' : 's'} ·`; }
 async function wbSetStatus(ids, status) {
@@ -6581,6 +6626,8 @@ async function wbSetStatus(ids, status) {
   wbPicked.clear(); loadWeb();
 }
 $('wbRows').addEventListener('click', (e) => {
+  const cb = e.target.closest('[data-wbcorreo]');
+  if (cb) { e.preventDefault(); const o = wbList.find(x => x.id === cb.dataset.wbcorreo); if (o) crOpen(o); return; }
   const b = e.target.closest('[data-wbship]'); if (!b) return;
   e.preventDefault();
   const o = wbList.find(x => x.id === b.dataset.wbship); if (!o) return;

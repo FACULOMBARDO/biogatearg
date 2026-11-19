@@ -397,6 +397,7 @@ app.post('/api/plabel/history', (req, res) => {
   store.saveSettings({ plabel_history: h.slice(0, 60) }); res.json({ ok: true, history: h.slice(0, 60) });
 });
 app.put('/api/quotes/:id/ship', (req, res) => { try { const sh = deliveries.setQuoteShip(req.params.id, req.body || {}); const q0 = store.getQuote(req.params.id); if (q0) store.saveQuote({ id: q0.id, delivery: sh ? 'envio' : (q0.delivery === 'envio' ? '' : q0.delivery) }); res.json({ ok: true, ship: sh, ...(sh ? zones.zoneFor(sh.zone_manual ? { ...sh } : sh, store.getSettings()) : {}) }); } catch (e) { res.status(400).json({ ok: false, error: e.message }); } });
+app.put('/api/woo/orders/:id/correo', (req, res) => { try { res.json({ ok: true, correo: deliveries.setWebCorreo(req.params.id, req.body || {}) }); } catch (e) { res.status(400).json({ ok: false, error: e.message }); } });
 app.put('/api/woo/orders/:id/ship', (req, res) => { try { const sh = deliveries.setWebShip(req.params.id, req.body || {}); res.json({ ok: true, ship: sh, ...(sh ? zones.zoneFor(sh, store.getSettings()) : {}) }); } catch (e) { res.status(400).json({ ok: false, error: e.message }); } });
 
 // Zonas y precios
