@@ -2612,7 +2612,7 @@ async function pbLoadSource(pageHtml) {
       document.querySelector('input[name=pbDel][value=days]').checked = false;
       pbBmShow(d.blocked);
       $('pbSrcMsg').innerHTML = d.blocked ? '<span style="color:#d97706">⚠️ Amazon no dejó leer la página desde el panel (pasa seguido). Usá el botón 📥 Mandar a Biogate de abajo, o completá a mano el título, el precio en dólares, el peso y subí las fotos.</span>'
-        : `<span style="color:var(--ok)">✓ Leído de Amazon</span>${d.weight_kg ? '' : ' · <span style="color:#d97706">no encontré el peso: cargalo a mano</span>'}${d.usd ? '' : ' · <span style="color:#d97706">no encontré el precio: cargalo a mano</span>'}. Tocá "✨ Título y descripción con IA" para pasarlo a español.`;
+        : `<span style="color:var(--ok)">✓ Leído de Amazon</span>${d.weight_kg ? '' : ' · <span style="color:#d97706">no encontré el peso: cargalo a mano</span>'}${d.usd ? '' : ' · <span style="color:#d97706">no encontré el precio: cargalo a mano</span>'}${d.description ? '' : ' · <span style="color:#d97706">no encontré la descripción: usá ✨ Título y descripción con IA</span>'}. Tocá "✨ Título y descripción con IA" para pasarlo a español.`;
     } else if (src === 'china') {
       pb.title = d.title_es || d.title || '';
       $('pbCnPrice').value = d.price || ''; $('pbCnCur').value = d.currency === 'CNY' ? 'CNY' : 'USD'; $('pbCnLocal').value = d.local_ship ?? '';
