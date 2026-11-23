@@ -2660,7 +2660,11 @@ async function pbFindCats() {
   const r = await (await fetch('/api/publish/categories?q=' + encodeURIComponent(q))).json().catch(() => ({ ok: false, error: 'Sin conexión.' }));
   if (!r.ok) { $('pbCats').innerHTML = `<span class="err-t">${esc(r.error)}</span>`; return; }
   $('pbCats').innerHTML = r.items.map((c, i) => `<button class="pb-cat" data-pbcat="${i}"><b>${esc(c.name)}</b><div class="muted">${esc(c.domain || '')}</div></button>`).join('') || '<span class="muted" style="font-size:13px">No encontré categorías: probá con otras palabras.</span>';
-  $('pbCats').querySelectorAll('[data-pbcat]').forEach(b => b.onclick = () => { const c = r.items[+b.dataset.pbcat]; for (const a of c.attributes) if (!pb.srcAttrs.some(x => x.id === a.id)) pb.srcAttrs.push(a); pbSetCat(c.category_id); $('pbCats').innerHTML = ''; });
+  const pick = (c) => { for (const a of c.attributes) if (!pb.srcAttrs.some(x => x.id === a.id)) pb.srcAttrs.push(a); pbSetCat(c.category_id); $('pbCats').innerHTML = ''; };
+  $('pbCats').querySelectorAll('[data-pbcat]').forEach(b => b.onclick = () => pick(r.items[+b.dataset.pbcat]));
+  // Siempre "Suplementos alimenticios" si aparece (se puede cambiar buscando otra)
+  const sup = r.items.find(c => /suplement/i.test(`${c.name} ${c.domain}`));
+  if (sup) { pick(sup); $('pbCats').innerHTML = `<span class="muted" style="font-size:12.5px">Elegida automáticamente: ${esc(sup.name)}. Para otra, buscala arriba.</span>`; }
 }
 $('pbCatBtn').onclick = pbFindCats; $('pbCatQ').onkeydown = (e) => { if (e.key === 'Enter') pbFindCats(); };
 async function pbSetCat(cat) {
