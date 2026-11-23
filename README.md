@@ -445,3 +445,6 @@ Guardás datos personales de compradores: usalos solo para gestionar la entrega 
 
 ## Ventas web: envío por Correo Argentino
 En cada pedido web, además de **🛵 + Moto** (que lo manda a Envíos Flex con el costo por zona), está **📮 + Correo**: se elige si va **a sucursal o a domicilio**, se carga el **costo** y **quién lo paga** (nosotros o el cliente), y opcionalmente el número de seguimiento. Si lo pagamos nosotros, el costo se descuenta del neto del pedido. Un pedido va por moto o por correo, no por los dos (al elegir uno se quita el otro). Se guarda en `woo.correo` (`lib/deliveries.js → setWebCorreo`).
+
+## Publicar: botón "📥 Mandar a Biogate" (Amazon, AliExpress, Alibaba, 1688)
+Amazon y las páginas chinas bloquean seguido al servidor del panel (Vercel). El servidor ahora prueba 3 direcciones y navegadores distintos para Amazon, y si igual no puede, aparece el botón **📥 Mandar a Biogate**: se arrastra una vez a la barra de favoritos; después, con el producto abierto en Amazon/AliExpress/Alibaba/1688, se toca el favorito y se abre Publicar con los datos ya leídos (título, precio, fotos, peso, medidas, código). La página se lee desde el navegador de la persona, así que no la bloquean. El lector de Amazon entiende también la página en castellano (libras, onzas, pulgadas).

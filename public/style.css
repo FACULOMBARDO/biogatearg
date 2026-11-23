@@ -651,3 +651,5 @@ input[type=time], input[type=url] { font: inherit; padding: 9px 11px; border: 1p
 .pb-types button.on{border-color:var(--brand);box-shadow:0 0 0 2px color-mix(in srgb,var(--brand) 25%,transparent)}
 .wb-cr{font-size:12.5px;line-height:1.5}
 #crModal .seg{display:flex;flex-wrap:wrap}
+.pb-bm{font-size:13px;margin-top:8px;padding:8px 10px;border:1px dashed var(--line);border-radius:10px;line-height:1.7}
+.pb-bmbtn{cursor:grab;margin:0 4px}

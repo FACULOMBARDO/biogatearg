@@ -788,6 +788,7 @@
       <button class="btn primary" id="pbFetch">Traer datos</button>
     </div>
     <div id="pbSrcMsg" style="font-size:13px;margin-top:6px"></div>
+    <div id="pbBm" class="pb-bm" hidden></div>
   </div>
   <div id="pbForm" hidden>
     <div class="card">
@@ -2570,16 +2571,32 @@ function pbSrc(s) {
   $('pbLink').placeholder = s === 'amazon' ? 'Pegá el link del producto de Amazon' : s === 'china' ? 'Pegá el link de AliExpress, Alibaba o 1688' : 'Pegá el link de la publicación de Mercado Libre';
   $('pbAmz').hidden = s !== 'amazon'; $('pbChina').hidden = s !== 'china'; $('pbCostBox').hidden = s === 'amazon' || s === 'china';
   if (s === 'china') pbChinaCost();
+  pbBmShow();
 }
 $('pbSrc').onclick = (e) => { const b = e.target.closest('[data-s]'); if (b) pbSrc(b.dataset.s); };
 $('pbReset').onclick = () => { pb = PB_EMPTY(); $('pbForm').hidden = true; $('pbLink').value = ''; $('pbSrcMsg').textContent = ''; $('pbResult').textContent = ''; $('pbBreak').textContent = ''; $('pbMkt').textContent = ''; ['pbTitle', 'pbSku', 'pbDesc', 'pbUsd', 'pbW', 'pbCost', 'pbPrice', 'pbCatQ', 'pbCnPrice', 'pbCnLocal', 'pbCnW'].forEach(i => $(i).value = ''); $('pbCnTiers').innerHTML = ''; document.querySelectorAll('input[name=pbDel]').forEach(r => r.checked = false); pbSrc('ml'); };
-$('pbFetch').onclick = async () => {
+// Botón del navegador "Mandar a Biogate": Amazon, AliExpress, Alibaba y 1688 bloquean seguido al servidor del panel.
+// Este botón (favorito) lee la página que la persona ya tiene abierta y se la pasa al panel en Publicar.
+function pbBookmarklet() {
+  const P = location.origin;
+  const code = `(()=>{const P=${JSON.stringify(P)};if(!/amazon\\.|aliexpress\\.|alibaba\\.com|1688\\.com/i.test(location.hostname)){alert('Abrí primero el producto en Amazon, AliExpress, Alibaba o 1688 y tocá este botón ahí.');return;}const h=document.documentElement.outerHTML.replace(/<style[\\s\\S]*?<\\/style>/gi,'').replace(/<svg[\\s\\S]*?<\\/svg>/gi,'').replace(/<script[^>]*>([\\s\\S]*?)<\\/script>/gi,(m,c)=>/hiRes|colorImages|priceAmount|price|weight|sku|subject|offer/i.test(c)?'<script>'+c.slice(0,400000)+'<\\/script>':'').slice(0,4000000);const w=window.open(P+'/?bgimport=1#publicar','bgimport');if(!w){alert('El navegador bloqueó la ventana: permití ventanas emergentes para esta página.');return;}const f=e=>{if(e.origin!==P||!e.data||e.data.bg!=='ready')return;w.postMessage({bg:'page',url:location.href,html:h},P);window.removeEventListener('message',f);};window.addEventListener('message',f);})();`;
+  return 'javascript:' + encodeURIComponent(code);
+}
+function pbBmShow(blocked) {
+  const on = pb.src === 'amazon' || pb.src === 'china';
+  $('pbBm').hidden = !on; if (!on) return;
+  $('pbBm').innerHTML = `${blocked ? '<b>Para traer los datos igual:</b> ' : '<span class="muted">¿No trae los datos?</span> '}arrastrá este botón a la barra de favoritos de tu navegador <a class="btn small pb-bmbtn" href="${pbBookmarklet()}" title="Arrastralo a la barra de favoritos">📥 Mandar a Biogate</a> (se hace una sola vez). Después abrí el producto en ${pb.src === 'amazon' ? 'Amazon' : 'AliExpress, Alibaba o 1688'} y tocá ese favorito: se abre Publicar con los datos cargados.`;
+  $('pbBm').querySelector('.pb-bmbtn').onclick = (e) => { e.preventDefault(); alert('No lo toques acá: arrastralo con el mouse a la barra de favoritos (si no la ves, apretá Ctrl+Shift+B). Después tocalo estando en la página del producto.'); };
+}
+$('pbFetch').onclick = () => pbLoadSource();
+async function pbLoadSource(pageHtml) {
   const src = pb.src, link = $('pbLink').value.trim();
   const keep = pb.src; pb = PB_EMPTY(); pb.src = keep;
   if (src !== 'new') {
     if (!link) { $('pbSrcMsg').innerHTML = '<span class="err-t">Pegá el link.</span>'; return; }
     $('pbFetch').disabled = true; $('pbSrcMsg').innerHTML = '<span class="muted">Leyendo…</span>';
-    const r = await lsPost('/api/publish/source', { type: src, link });
+    $('pbSrcMsg').innerHTML = `<span class="muted">${pageHtml ? 'Leyendo la página que mandaste desde el navegador…' : 'Leyendo…'}</span>`;
+    const r = await lsPost('/api/publish/source', pageHtml ? { type: src, link, html: pageHtml } : { type: src, link });
     $('pbFetch').disabled = false;
     if (!r.ok) { $('pbSrcMsg').innerHTML = `<span class="err-t">${esc(r.error)}</span>`; return; }
     const d = r.data;
@@ -2593,7 +2610,8 @@ $('pbFetch').onclick = async () => {
     if (src === 'amazon') {
       $('pbUsd').value = d.usd || ''; $('pbW').value = d.weight_kg || ''; $('pbWUnit').value = 'kg';
       document.querySelector('input[name=pbDel][value=days]').checked = false;
-      $('pbSrcMsg').innerHTML = d.blocked ? '<span style="color:#d97706">⚠️ Amazon no dejó leer la página (pasa seguido). Completá a mano el título, el precio en dólares, el peso y subí las fotos.</span>'
+      pbBmShow(d.blocked);
+      $('pbSrcMsg').innerHTML = d.blocked ? '<span style="color:#d97706">⚠️ Amazon no dejó leer la página desde el panel (pasa seguido). Usá el botón 📥 Mandar a Biogate de abajo, o completá a mano el título, el precio en dólares, el peso y subí las fotos.</span>'
         : `<span style="color:var(--ok)">✓ Leído de Amazon</span>${d.weight_kg ? '' : ' · <span style="color:#d97706">no encontré el peso: cargalo a mano</span>'}${d.usd ? '' : ' · <span style="color:#d97706">no encontré el precio: cargalo a mano</span>'}. Tocá "✨ Título y descripción con IA" para pasarlo a español.`;
     } else if (src === 'china') {
       pb.title = d.title_es || d.title || '';
@@ -2601,7 +2619,8 @@ $('pbFetch').onclick = async () => {
       $('pbCnW').value = d.weight_kg || ''; $('pbCnWUnit').value = 'kg';
       $('pbCnTiers').innerHTML = (d.tiers || []).length > 1 ? `<span class="muted">Precio por cantidad:</span> ${d.tiers.map(t => `<button class="btn small" data-pbtier="${t.price}">${t.min}${t.max ? '-' + t.max : '+'} u. · ${d.currency === 'CNY' ? '¥' : 'US$'} ${t.price}</button>`).join(' ')} <span class="muted">(tocá uno para calcular con ese precio)</span>` : '';
       const warn = [!d.price && 'no encontré el precio: cargalo a mano', !d.weight_kg && 'no encontré el peso: cargalo a mano', d.local_ship == null && 'no figura el envío dentro de China', d.min_order && `compra mínima ${d.min_order} unidades`].filter(Boolean);
-      $('pbSrcMsg').innerHTML = d.blocked ? `<span style="color:#d97706">⚠️ ${esc(d.site_name || 'La página')} no dejó leer el producto (${esc(d.reason || 'bloqueado')}). Pasa seguido con estas páginas: completá a mano el título, el precio, el peso y subí las fotos.</span>`
+      pbBmShow(d.blocked);
+      $('pbSrcMsg').innerHTML = d.blocked ? `<span style="color:#d97706">⚠️ ${esc(d.site_name || 'La página')} no dejó leer el producto desde el panel (${esc(d.reason || 'bloqueado')}). Usá el botón 📥 Mandar a Biogate de abajo, o completá a mano el título, el precio, el peso y subí las fotos.</span>`
         : `<span style="color:var(--ok)">✓ Leído de ${esc(d.site_name)}</span>${warn.length ? ' · <span style="color:#d97706">' + warn.map(esc).join(' · ') + '</span>' : ''}${d.ai_error ? ` · <span style="color:#d97706">la IA no pudo leer precio y datos (${esc(d.ai_error)}): completalos a mano</span>` : ''}<div style="margin-top:4px;color:#d97706">📸 Revisá las fotos: si tienen letras en chino, marcas de agua o logos, Mercado Libre las rechaza o les baja la calidad. Sacá las que tengan.</div>`;
     } else {
       $('pbSrcMsg').innerHTML = `<span style="color:var(--ok)">✓ Datos traídos de ${esc(d.source_id)}</span>${d.own_listing ? ' (es tuya)' : ' · <span class="muted">Es de otro vendedor: conviene usar fotos y descripción propias, ML puede bajar la publicación si el dueño denuncia.</span>'}${d.variations > 1 ? ` · <span style="color:#d97706">tiene ${d.variations} variantes: se publica sin variantes</span>` : ''}`;
@@ -2615,7 +2634,7 @@ $('pbFetch').onclick = async () => {
   pbRenderPics(); pbAmzCost(); pbChinaCost();
   if (pb.category_id) pbSetCat(pb.category_id); else { $('pbCatName').textContent = 'Sin elegir'; $('pbAttrs').innerHTML = '<span class="muted">Elegí la categoría para ver los datos.</span>'; if (pb.title) { $('pbCatQ').value = pb.title; pbFindCats(); } }
   if (pb.title) { $('pbMktQ').value = pb.title.split(' ').slice(0, 7).join(' '); pbMarket(); }
-};
+}
 $('pbNoGtin').onchange = () => { const on = $('pbNoGtin').checked; $('pbGtinReason').hidden = !on || !$('pbGtinReason').options.length; $('pbGtin').disabled = on; if (on) $('pbGtin').value = ''; };
 function pbTitleN() { $('pbTitleN').textContent = `(${$('pbTitle').value.length}/60)`; }
 $('pbTitle').oninput = pbTitleN;
@@ -3513,6 +3532,19 @@ function showView() {
   if (v === 'recompras') loadRefill();
   if (v === 'preguntas') { loadQuestions(true); loadQStats(); loadQCron(); }
   if (v === 'flex' && typeof scans !== 'undefined') load();
+}
+// Llegada desde el botón "Mandar a Biogate": la pestaña del producto nos manda la página
+if (/[?&]bgimport=1/.test(location.search) && window.opener) {
+  window.addEventListener('message', async (e) => {
+    if (!e.data || e.data.bg !== 'page' || !/^https:\/\/([a-z0-9-]+\.)*(amazon\.[a-z.]+|aliexpress\.[a-z.]+|alibaba\.com|1688\.com)$/i.test(e.origin)) return;
+    history.replaceState(null, '', location.pathname + '#publicar');
+    if (location.hash !== '#publicar') location.hash = '#publicar';
+    await showView();
+    const src = /amazon\./i.test(e.origin) ? 'amazon' : 'china';
+    pbSrc(src); $('pbLink').value = String(e.data.url || '').slice(0, 2000);
+    pbLoadSource(String(e.data.html || ''));
+  });
+  try { window.opener.postMessage({ bg: 'ready' }, '*'); } catch {}
 }
 window.addEventListener('hashchange', showView);
 // Los gráficos se dibujan al ancho real: al cambiar el tamaño de la ventana se vuelven a dibujar.

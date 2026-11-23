@@ -928,7 +928,7 @@ app.post('/api/listings/ai/photos', lsWrap(req => require('./lib/ai').reviewPhot
 
 // Publicar en varias cuentas (desde link de ML, de Amazon o desde cero)
 const publish = require('./lib/publish');
-app.post('/api/publish/source', lsWrap(async req => { const b = req.body || {}; return { data: b.type === 'amazon' ? await publish.fromAmazon(b.link) : b.type === 'china' ? await require('./lib/china').fromChina(b.link) : await publish.fromMl(b.link) }; }));
+app.post('/api/publish/source', lsWrap(async req => { const b = req.body || {}; return { data: b.type === 'amazon' ? await publish.fromAmazon(b.link, typeof b.html === 'string' ? b.html.slice(0, 6e6) : '') : b.type === 'china' ? await require('./lib/china').fromChina(b.link, typeof b.html === 'string' ? b.html.slice(0, 6e6) : '') : await publish.fromMl(b.link) }; }));
 app.get('/api/publish/listing-options', lsWrap(async req => require('./lib/publish').listingOptions(req.query)));
 app.get('/api/publish/china-cost', (req, res) => res.json({ ok: true, ...require('./lib/china').cost({ price: req.query.price, local_ship: req.query.local, kg: req.query.kg, currency: req.query.currency }) }));
 app.put('/api/publish/china-cfg', (req, res) => res.json({ ok: true, ...require('./lib/china').saveCfg(req.body || {}) }));
